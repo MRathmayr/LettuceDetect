@@ -1,9 +1,34 @@
 """Shared fixtures for pytest tests."""
 
+import gc
 from unittest.mock import MagicMock
 
 import pytest
 import torch
+import torch._dynamo
+
+# Enable fallback to eager mode when torch.compile fails (e.g., on GPUs without Triton support)
+torch._dynamo.config.suppress_errors = True
+
+
+@pytest.fixture(autouse=True)
+def clear_cuda_cache():
+    """Clear CUDA cache after each test to prevent OOM errors."""
+    yield
+    if torch.cuda.is_available():
+        gc.collect()                    # FIRST: release Python refs to GPU tensors
+        torch.cuda.synchronize()        # SECOND: wait for GPU ops to complete
+        torch.cuda.empty_cache()        # THIRD: free unreferenced GPU memory
+
+
+@pytest.fixture(scope="class", autouse=True)
+def clear_cuda_between_classes():
+    """Aggressively clear CUDA memory between test classes."""
+    yield
+    if torch.cuda.is_available():
+        gc.collect()
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
 
 
 # =============================================================================
@@ -288,3 +313,105 @@ def mock_model():
     mock_output.logits = torch.tensor([[[0.1, 0.9], [0.8, 0.2], [0.3, 0.7]]])
     model.return_value = mock_output
     return model
+
+
+# =============================================================================
+# Stage1Detector fixtures with automatic GPU cleanup
+# =============================================================================
+
+
+@pytest.fixture
+def stage1_detector_no_aug():
+    """Stage1Detector without augmentations - auto cleanup."""
+    from lettucedetect.detectors.stage1 import Stage1Detector
+
+    detector = Stage1Detector(augmentations=[])
+    yield detector
+    del detector
+
+
+@pytest.fixture
+def stage1_detector_ner():
+    """Stage1Detector with NER augmentation - auto cleanup."""
+    from lettucedetect.detectors.stage1 import Stage1Detector
+
+    detector = Stage1Detector(augmentations=["ner"])
+    yield detector
+    del detector
+
+
+@pytest.fixture
+def stage1_detector_numeric():
+    """Stage1Detector with numeric augmentation - auto cleanup."""
+    from lettucedetect.detectors.stage1 import Stage1Detector
+
+    detector = Stage1Detector(augmentations=["numeric"])
+    yield detector
+    del detector
+
+
+@pytest.fixture
+def stage1_detector_lexical():
+    """Stage1Detector with lexical augmentation - auto cleanup."""
+    from lettucedetect.detectors.stage1 import Stage1Detector
+
+    detector = Stage1Detector(augmentations=["lexical"])
+    yield detector
+    del detector
+
+
+@pytest.fixture
+def stage1_detector_numeric_lexical():
+    """Stage1Detector with numeric and lexical augmentations - auto cleanup."""
+    from lettucedetect.detectors.stage1 import Stage1Detector
+
+    detector = Stage1Detector(augmentations=["numeric", "lexical"])
+    yield detector
+    del detector
+
+
+@pytest.fixture
+def stage1_detector_all():
+    """Stage1Detector with all augmentations - auto cleanup."""
+    from lettucedetect.detectors.stage1 import Stage1Detector
+
+    detector = Stage1Detector(augmentations=["ner", "numeric", "lexical"])
+    yield detector
+    del detector
+
+
+@pytest.fixture
+def stage1_detector_routing():
+    """Stage1Detector with routing config for escalation tests - auto cleanup."""
+    from lettucedetect.detectors.stage1 import Stage1Detector, AggregationConfig
+
+    agg_config = AggregationConfig(
+        confidence_threshold_high=0.7,
+        confidence_threshold_low=0.4,
+    )
+    detector = Stage1Detector(
+        augmentations=["numeric", "lexical"],
+        aggregation_config=agg_config,
+    )
+    yield detector
+    del detector
+
+
+@pytest.fixture
+def stage1_detector_ner_numeric():
+    """Stage1Detector with NER and numeric augmentations - auto cleanup."""
+    from lettucedetect.detectors.stage1 import Stage1Detector
+
+    detector = Stage1Detector(augmentations=["ner", "numeric"])
+    yield detector
+    del detector
+
+
+@pytest.fixture
+def stage1_detector_ner_lexical():
+    """Stage1Detector with NER and lexical augmentations - auto cleanup."""
+    from lettucedetect.detectors.stage1 import Stage1Detector
+
+    detector = Stage1Detector(augmentations=["ner", "lexical"])
+    yield detector
+    del detector
