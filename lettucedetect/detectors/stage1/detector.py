@@ -84,6 +84,11 @@ class Stage1Detector(BaseDetector, BaseStage):
         agg_config = aggregation_config or AggregationConfig()
         self._aggregator = ScoreAggregator(self.config.weights, agg_config)
 
+    @property
+    def stage_name(self) -> str:
+        """Return the stage name for cascade identification."""
+        return "stage1"
+
     def _run_augmentations(
         self,
         context: list[str],

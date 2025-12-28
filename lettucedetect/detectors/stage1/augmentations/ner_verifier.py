@@ -32,18 +32,19 @@ class NERVerifier(BaseAugmentation):
         self._nlp = None
 
     def _load_model(self) -> None:
-        """Lazy load spaCy model."""
+        """Lazy load spaCy model, downloading if necessary."""
         if self._nlp is None:
             import spacy
+            from spacy.util import is_package
 
-            try:
-                self._nlp = spacy.load(self.config.spacy_model)
-            except OSError:
-                logger.warning(
-                    f"spaCy model {self.config.spacy_model} not found. "
-                    f"Run: python -m spacy download {self.config.spacy_model}"
-                )
-                raise
+            model_name = self.config.spacy_model
+            if not is_package(model_name):
+                logger.info(f"Downloading spaCy model: {model_name}")
+                from spacy.cli import download
+
+                download(model_name)
+
+            self._nlp = spacy.load(model_name)
 
     @property
     def name(self) -> str:
