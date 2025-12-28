@@ -37,7 +37,14 @@ class LexicalOverlapCalculator:
             self._stemmer = PorterStemmer()
 
         if self.config.remove_stopwords:
+            import nltk
+            import nltk.data
             from nltk.corpus import stopwords
+
+            try:
+                nltk.data.find("corpora/stopwords")
+            except LookupError:
+                nltk.download("stopwords", quiet=True)
 
             self._stopwords = set(stopwords.words(self.config.stopwords_lang))
 
@@ -110,6 +117,24 @@ class LexicalOverlapCalculator:
     def name(self) -> str:
         """Return augmentation name."""
         return "lexical"
+
+    def safe_score(
+        self,
+        context: list[str],
+        answer: str,
+        question: str | None = None,
+        token_predictions: list[dict] | None = None,
+    ) -> AugmentationResult:
+        """Wrapper with error handling for Stage 1 compatibility."""
+        try:
+            return self.score(context, answer, question, token_predictions)
+        except Exception:
+            return AugmentationResult(
+                score=0.5,
+                confidence=0.0,
+                details={"error": "lexical scoring failed"},
+                flagged_spans=[],
+            )
 
     def preload(self) -> None:
         """Preload NLTK resources."""

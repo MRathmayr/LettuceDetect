@@ -18,7 +18,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "torch>=2.6.0",
+    "torch>=2.4.0",
     "transformers>=4.48.3",
     "tqdm>=4.65.0",
     "scikit-learn>=1.6.1",
@@ -65,9 +65,12 @@ cascade = [
 [tool.setuptools]
 packages = ["lettucedetect", "lettucedetect_api"]
 
-[tool.pytest]
+[tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*_pytest.py"
+markers = [
+    "gpu: requires CUDA-capable GPU",
+]
 
 [tool.ruff]
 line-length = 100
