@@ -206,7 +206,8 @@ class NumericValidator(BaseAugmentation):
         """Score answer numbers against context.
 
         Returns:
-            AugmentationResult with score = ratio of verified numbers
+            AugmentationResult with hallucination score (0 = supported, 1 = hallucinated).
+            Score is ratio of unverified numbers.
         """
         # Extract numbers from context
         context_text = " ".join(context)
@@ -218,8 +219,12 @@ class NumericValidator(BaseAugmentation):
         # No numbers in answer = nothing to verify = fully supported
         if not answer_numbers:
             return AugmentationResult(
-                score=1.0,
-                confidence=0.5,  # Lower confidence when no numbers to check
+                score=0.0,  # 0 = supported (no hallucination)
+                evidence={
+                    "numbers_checked": 0,
+                    "numbers_verified": 0,
+                    "context_numbers": len(context_numbers),
+                },
                 details={
                     "answer_numbers": 0,
                     "context_numbers": len(context_numbers),
@@ -257,12 +262,17 @@ class NumericValidator(BaseAugmentation):
                     }
                 )
 
-        # Calculate support score
-        support_score = verified_count / len(answer_numbers)
+        # Calculate hallucination score (ratio of unverified numbers)
+        # 0 = all verified (supported), 1 = none verified (hallucinated)
+        unverified_ratio = 1.0 - (verified_count / len(answer_numbers))
 
         return AugmentationResult(
-            score=support_score,
-            confidence=0.9,  # High confidence for numeric checks
+            score=unverified_ratio,  # 0 = supported, 1 = hallucinated
+            evidence={
+                "numbers_checked": len(answer_numbers),
+                "numbers_verified": verified_count,
+                "context_numbers": len(context_numbers),
+            },
             details={
                 "answer_numbers": len(answer_numbers),
                 "verified_numbers": verified_count,

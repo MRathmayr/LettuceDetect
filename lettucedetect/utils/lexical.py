@@ -7,6 +7,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 from lettucedetect.cascade.types import AugmentationResult
+from lettucedetect.detectors.stage1.augmentations.base import BaseAugmentation
 
 
 @dataclass
@@ -19,7 +20,7 @@ class LexicalConfig:
     stopwords_lang: str = "english"
 
 
-class LexicalOverlapCalculator:
+class LexicalOverlapCalculator(BaseAugmentation):
     """Calculate lexical overlap between context and answer.
 
     Used by both Stage 1 (augmentation) and Stage 2 (component).
@@ -103,13 +104,28 @@ class LexicalOverlapCalculator:
         question: str | None = None,
         token_predictions: list[dict] | None = None,
     ) -> AugmentationResult:
-        """Score method for Stage 1 augmentation interface."""
+        """Score method for Stage 1 augmentation interface.
+
+        Returns hallucination score (0 = supported, 1 = hallucinated).
+        Low overlap suggests hallucination, high overlap suggests support.
+        """
+        context_text = " ".join(context)
+        context_tokens = self._tokenize(context_text)
+        answer_tokens = self._tokenize(answer)
+
         overlap_score = self.compute_support_score(context, answer)
+        # Convert support score to hallucination score
+        # High overlap = supported = low hallucination score
+        hallucination_score = 1.0 - overlap_score
 
         return AugmentationResult(
-            score=overlap_score,
-            confidence=0.8,
-            details={"jaccard": overlap_score},
+            score=hallucination_score,  # 0 = supported, 1 = hallucinated
+            evidence={
+                "tokens_analyzed": len(answer_tokens),
+                "context_tokens": len(context_tokens),
+                "overlap_ratio": overlap_score,
+            },
+            details={"jaccard": overlap_score, "hallucination_score": hallucination_score},
             flagged_spans=[],
         )
 
@@ -117,24 +133,6 @@ class LexicalOverlapCalculator:
     def name(self) -> str:
         """Return augmentation name."""
         return "lexical"
-
-    def safe_score(
-        self,
-        context: list[str],
-        answer: str,
-        question: str | None = None,
-        token_predictions: list[dict] | None = None,
-    ) -> AugmentationResult:
-        """Wrapper with error handling for Stage 1 compatibility."""
-        try:
-            return self.score(context, answer, question, token_predictions)
-        except Exception:
-            return AugmentationResult(
-                score=0.5,
-                confidence=0.0,
-                details={"error": "lexical scoring failed"},
-                flagged_spans=[],
-            )
 
     def preload(self) -> None:
         """Preload NLTK resources."""

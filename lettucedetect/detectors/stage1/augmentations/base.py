@@ -15,9 +15,10 @@ class BaseAugmentation(ABC):
 
     All augmentations must implement:
     - name: Unique identifier for the augmentation
-    - score: Compute support score for answer against context
+    - score: Compute hallucination score for answer against context
 
-    Score direction: 0.0 = hallucination, 1.0 = fully supported
+    Score direction: 0.0 = supported (no hallucination), 1.0 = hallucinated
+    Evidence: Factual metadata about what was checked (counts, ratios)
     """
 
     @property
@@ -43,7 +44,11 @@ class BaseAugmentation(ABC):
             token_predictions: Optional transformer token predictions
 
         Returns:
-            AugmentationResult with score (0=hallucination, 1=supported)
+            AugmentationResult with:
+            - score: Hallucination probability (0.0 = supported, 1.0 = hallucinated)
+            - evidence: Factual metadata about what was checked
+            - details: Component-specific verification details
+            - flagged_spans: Specific spans identified as potentially hallucinated
         """
         pass
 
@@ -65,7 +70,7 @@ class BaseAugmentation(ABC):
             logger.warning(f"Augmentation {self.name} failed: {e}")
             return AugmentationResult(
                 score=0.5,  # Neutral score on failure
-                confidence=0.0,
+                evidence={},  # No evidence on failure
                 details={"error": str(e)},
                 flagged_spans=[],
             )

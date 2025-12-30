@@ -112,7 +112,8 @@ class NERVerifier(BaseAugmentation):
         """Score answer entities against context.
 
         Returns:
-            AugmentationResult with score = ratio of verified entities
+            AugmentationResult with hallucination score (0 = supported, 1 = hallucinated).
+            Score is ratio of unverified entities.
         """
         # Extract entities from context
         context_text = " ".join(context)
@@ -124,8 +125,12 @@ class NERVerifier(BaseAugmentation):
         # No entities in answer = nothing to verify = fully supported
         if not answer_entities:
             return AugmentationResult(
-                score=1.0,
-                confidence=0.5,  # Lower confidence when no entities to check
+                score=0.0,  # 0 = supported (no hallucination)
+                evidence={
+                    "entities_checked": 0,
+                    "entities_verified": 0,
+                    "context_entities": len(context_entities),
+                },
                 details={"answer_entities": 0, "context_entities": len(context_entities)},
                 flagged_spans=[],
             )
@@ -160,12 +165,17 @@ class NERVerifier(BaseAugmentation):
                     }
                 )
 
-        # Calculate support score
-        support_score = verified_count / len(answer_entities)
+        # Calculate hallucination score (ratio of unverified entities)
+        # 0 = all verified (supported), 1 = none verified (hallucinated)
+        unverified_ratio = 1.0 - (verified_count / len(answer_entities))
 
         return AugmentationResult(
-            score=support_score,
-            confidence=0.8,
+            score=unverified_ratio,  # 0 = supported, 1 = hallucinated
+            evidence={
+                "entities_checked": len(answer_entities),
+                "entities_verified": verified_count,
+                "context_entities": len(context_entities),
+            },
             details={
                 "answer_entities": len(answer_entities),
                 "verified_entities": verified_count,
