@@ -2,6 +2,8 @@
 
 These tests use the en_core_web_sm spaCy model to verify NER extraction
 and entity matching work correctly with real-world RAG examples.
+
+Unified score direction: 0.0 = supported, 1.0 = hallucinated
 """
 
 import pytest
@@ -65,13 +67,14 @@ class TestEntityVerificationRealWorld:
     def test_financial_context_supported_answer(
         self, financial_report_context, financial_answer_supported
     ):
-        """Verify supported financial answer has high score."""
+        """Verify supported financial answer has low (supported) score."""
         result = self.verifier.score(
             financial_report_context, financial_answer_supported, None, None
         )
-        # Entities like "Acme Corporation" and numbers should be found in context
-        assert result.score >= 0.5  # At least half the entities are verified
-        assert result.confidence > 0
+        # Entities like "Acme Corporation" should be found in context
+        # With unified direction, supported = low score
+        assert result.score <= 0.5  # At least half the entities are verified
+        assert result.evidence is not None  # Evidence should be present
 
     def test_financial_context_hallucinated_entities(
         self, financial_report_context, financial_answer_hallucinated_entities
@@ -124,7 +127,8 @@ class TestEntityVerificationRealWorld:
             geographic_context, geographic_answer_supported, None, None
         )
         # Mount Everest, Edmund Hillary, Tenzing Norgay should be verified
-        assert result.score >= 0.5
+        # With unified direction, supported = low score
+        assert result.score <= 0.5
 
     def test_geographic_context_hallucinated(
         self, geographic_context, geographic_answer_hallucinated
@@ -135,8 +139,8 @@ class TestEntityVerificationRealWorld:
         )
         # "Pakistan" and "George Mallory" are not in context
         flagged_texts = [span["text"] for span in result.flagged_spans]
-        # Should flag at least one fabricated entity
-        assert len(result.flagged_spans) > 0 or result.score < 0.5
+        # Should flag at least one fabricated entity -> high hallucination score
+        assert len(result.flagged_spans) > 0 or result.score > 0.5
 
     def test_multi_passage_context_supported(
         self, multi_passage_context, multi_passage_answer_supported
@@ -146,7 +150,8 @@ class TestEntityVerificationRealWorld:
             multi_passage_context, multi_passage_answer_supported, None, None
         )
         # Steve Jobs, Tim Cook, Apple should be found across passages
-        assert result.score >= 0.5
+        # With unified direction, supported = low score
+        assert result.score <= 0.5
 
 
 class TestFuzzyMatching:
@@ -162,8 +167,8 @@ class TestFuzzyMatching:
         # Answer uses slightly different form
         answer = "Robert Smith co-founded the company."
         result = self.verifier.score(context, answer, None, None)
-        # "Robert Smith" should match "Dr. Robert Smith"
-        assert result.score > 0
+        # "Robert Smith" should match "Dr. Robert Smith" -> low hallucination score
+        assert result.score <= 0.5  # supported due to matching
 
     def test_abbreviation_handling(self):
         """Test organization abbreviation handling."""
@@ -179,8 +184,8 @@ class TestFuzzyMatching:
         context = ["MICROSOFT announced the acquisition."]
         answer = "Microsoft confirmed the deal."
         result = self.verifier.score(context, answer, None, None)
-        # Should match despite case difference
-        assert result.score >= 0.5
+        # Should match despite case difference -> low hallucination score
+        assert result.score <= 0.5
 
 
 class TestNERConfig:
@@ -217,8 +222,8 @@ class TestNERConfig:
         strict_result = strict_verifier.score(context, answer, None, None)
         lenient_result = lenient_verifier.score(context, answer, None, None)
 
-        # Lenient should score higher due to fuzzy matching
-        assert lenient_result.score >= strict_result.score
+        # Lenient should score LOWER (more supported) due to fuzzy matching
+        assert lenient_result.score <= strict_result.score
 
 
 class TestEdgeCases:
@@ -238,7 +243,7 @@ class TestEdgeCases:
         """Handle empty answer gracefully."""
         result = self.verifier.score(sample_context, empty_answer, None, None)
         # Empty answer has no entities to verify, so fully supported
-        assert result.score == 1.0
+        assert result.score == 0.0  # supported
 
     def test_no_entities_in_answer(self):
         """Handle answer with no named entities."""
@@ -246,7 +251,7 @@ class TestEdgeCases:
         answer = "The person works at the company."
         result = self.verifier.score(context, answer, None, None)
         # No entities to verify = fully supported
-        assert result.score == 1.0
+        assert result.score == 0.0  # supported
 
     def test_special_characters_in_entities(self):
         """Handle entities with special characters."""
@@ -267,7 +272,8 @@ class TestEdgeCases:
         long_context = ["This is a paragraph about John Smith. " * 100]
         answer = "John Smith is mentioned."
         result = self.verifier.score(long_context, answer, None, None)
-        assert result.score >= 0.5
+        # Should be supported -> low score
+        assert result.score <= 0.5
 
 
 class TestAugmentationInterface:

@@ -145,7 +145,7 @@ class TestAugmentationInterface:
         calc = LexicalOverlapCalculator()
         result = calc.score(["context text"], "answer text", None, None)
         assert hasattr(result, "score")
-        assert hasattr(result, "confidence")
+        assert hasattr(result, "evidence")
         assert hasattr(result, "details")
         assert hasattr(result, "flagged_spans")
 

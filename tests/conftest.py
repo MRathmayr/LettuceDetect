@@ -32,7 +32,7 @@ def clear_cuda_between_classes():
 
 
 # =============================================================================
-# Real-world RAG Fixtures (based on TESTING.md specifications)
+# Real-world RAG Fixtures
 # =============================================================================
 
 
@@ -386,8 +386,8 @@ def stage1_detector_routing():
     from lettucedetect.detectors.stage1 import Stage1Detector, AggregationConfig
 
     agg_config = AggregationConfig(
-        confidence_threshold_high=0.7,
-        confidence_threshold_low=0.4,
+        threshold_high=0.7,
+        threshold_low=0.3,
     )
     detector = Stage1Detector(
         augmentations=["numeric", "lexical"],

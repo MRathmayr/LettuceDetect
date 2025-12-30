@@ -258,7 +258,7 @@ class TestAugmentationInterface:
         calc = LexicalOverlapCalculator()
         result = calc.score(sample_context, sample_answer_supported, None, None)
         assert hasattr(result, "score")
-        assert hasattr(result, "confidence")
+        assert hasattr(result, "evidence")
         assert hasattr(result, "details")
         assert "jaccard" in result.details
 
