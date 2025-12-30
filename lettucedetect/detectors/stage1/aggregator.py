@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+import numpy as np
+
 from lettucedetect.cascade.types import AugmentationResult
 
 logger = logging.getLogger(__name__)
@@ -12,10 +14,18 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class AggregationConfig:
-    """Configuration for score aggregation and routing decisions."""
+    """Configuration for score aggregation and routing decisions.
 
-    confidence_threshold_high: float = 0.7
-    confidence_threshold_low: float = 0.4
+    Thresholds define when we're confident enough to return a result:
+    - hallucination_score >= threshold_high → confident it's hallucinated
+    - hallucination_score <= threshold_low → confident it's supported
+    - agreement < agreement_threshold → escalate even if score is in confident zone
+    - Otherwise → uncertain, may escalate to next stage
+    """
+
+    threshold_high: float = 0.7  # Above this = confident hallucination
+    threshold_low: float = 0.3   # Below this = confident supported
+    agreement_threshold: float = 0.5  # Below this = escalate due to component disagreement
 
 
 @dataclass
@@ -23,21 +33,20 @@ class AggregatedScore:
     """Result of score aggregation across transformer and augmentations."""
 
     hallucination_score: float  # 0.0 = supported, 1.0 = hallucinated
-    confidence: float  # How confident aggregator is in this score
+    agreement: float  # Ensemble agreement (0.0-1.0), high = components agree
     confident: bool  # True = return result, False = consider escalation
     escalate: bool  # True = send to Stage 2
     component_scores: dict  # Individual scores from each component
+    evidence: dict  # Aggregated factual metadata from all components
     merged_spans: list  # Union of flagged spans from all components
     routing_reason: str  # Human-readable explanation
 
 
 class ScoreAggregator:
-    """Aggregates transformer and augmentation scores with proper normalization.
+    """Aggregates transformer and augmentation scores.
 
-    Score directions:
-    - Transformer: high = hallucination (correct direction)
-    - Augmentations: high = supported (needs inversion)
-    - Output: high = hallucination (unified direction)
+    All scores use unified direction: 0.0 = supported, 1.0 = hallucinated.
+    Transformer and augmentations both return hallucination probability.
     """
 
     def __init__(self, weights: dict[str, float], config: AggregationConfig | None = None) -> None:
@@ -50,12 +59,9 @@ class ScoreAggregator:
         """
         self.weights = weights
         config = config or AggregationConfig()
-        self.confidence_threshold_high = config.confidence_threshold_high
-        self.confidence_threshold_low = config.confidence_threshold_low
-
-    def _normalize_augmentation_score(self, aug_score: float) -> float:
-        """Convert augmentation score (high=supported) to hallucination score (high=hallucinated)."""
-        return 1.0 - aug_score
+        self.threshold_high = config.threshold_high
+        self.threshold_low = config.threshold_low
+        self.agreement_threshold = config.agreement_threshold
 
     def _extract_transformer_score(self, preds: list[dict]) -> float:
         """Extract hallucination score from transformer predictions.
@@ -72,7 +78,9 @@ class ScoreAggregator:
         transformer_preds: list[dict],
         aug_results: dict[str, AugmentationResult],
     ) -> AggregatedScore:
-        """Weighted average with proper score direction normalization.
+        """Weighted average of component scores.
+
+        All scores use unified direction: 0.0 = supported, 1.0 = hallucinated.
 
         Args:
             transformer_preds: Token predictions from TransformerDetector
@@ -85,45 +93,83 @@ class ScoreAggregator:
         total_weight = 0.0
         weighted_sum = 0.0
 
-        # Transformer score (already in correct direction)
+        # Transformer score (0 = supported, 1 = hallucinated)
         t_score = self._extract_transformer_score(transformer_preds)
         scores["transformer"] = t_score
         t_weight = self.weights.get("transformer", 0.5)
         weighted_sum += t_score * t_weight
         total_weight += t_weight
 
-        # Augmentation scores (need inversion)
+        # Augmentation scores (already in correct direction: 0 = supported, 1 = hallucinated)
         for name, result in aug_results.items():
             if result.score is None:
                 continue
-            normalized = self._normalize_augmentation_score(result.score)
-            scores[name] = normalized
+            scores[name] = result.score
             weight = self.weights.get(name, 0.1)
-            weighted_sum += normalized * weight
+            weighted_sum += result.score * weight
             total_weight += weight
 
         # Default to 0.5 (neutral/uncertain) if no weights configured
         hallucination_score = weighted_sum / total_weight if total_weight > 0 else 0.5
 
-        # Routing logic
-        confident = (
-            hallucination_score >= self.confidence_threshold_high
-            or hallucination_score <= (1 - self.confidence_threshold_high)
-        )
-        escalate = not confident and hallucination_score > self.confidence_threshold_low
+        # Compute agreement (ensemble disagreement measure)
+        # agreement = 1.0 - min(std * 2, 1.0)
+        # All components agree (std=0) → agreement=1.0
+        # Components strongly disagree (std=0.5) → agreement=0.0
+        all_scores = list(scores.values())
+        if len(all_scores) > 1:
+            agreement = 1.0 - min(float(np.std(all_scores)) * 2, 1.0)
+        else:
+            agreement = 1.0  # Single component = full agreement
 
-        # Calculate confidence as distance from uncertainty (0.5)
-        confidence = abs(hallucination_score - 0.5) * 2
+        # Aggregate evidence from all augmentations
+        evidence = self._aggregate_evidence(transformer_preds, aug_results)
+
+        # Routing logic: consider both score AND agreement
+        in_confident_zone = (
+            hallucination_score >= self.threshold_high  # Confident it's hallucinated
+            or hallucination_score <= self.threshold_low  # Confident it's supported
+        )
+        has_sufficient_agreement = agreement >= self.agreement_threshold
+
+        confident = in_confident_zone and has_sufficient_agreement
+        escalate = not confident  # Uncertain or disagreeing components should escalate
 
         return AggregatedScore(
             hallucination_score=hallucination_score,
-            confidence=confidence,
+            agreement=agreement,
             confident=confident,
             escalate=escalate,
             component_scores=scores,
+            evidence=evidence,
             merged_spans=self._merge_spans(transformer_preds, aug_results),
-            routing_reason=self._get_routing_reason(hallucination_score, confident, escalate),
+            routing_reason=self._get_routing_reason(
+                hallucination_score, confident, escalate, agreement
+            ),
         )
+
+    def _aggregate_evidence(
+        self,
+        transformer_preds: list[dict],
+        aug_results: dict[str, AugmentationResult],
+    ) -> dict:
+        """Combine evidence from all components.
+
+        Args:
+            transformer_preds: Token predictions from TransformerDetector
+            aug_results: Dict of augmentation name -> AugmentationResult
+
+        Returns:
+            Dict with aggregated evidence counts
+        """
+        evidence = {
+            "tokens_analyzed": len(transformer_preds),
+            "hallucination_tokens": sum(1 for p in transformer_preds if p.get("pred") == 1),
+        }
+        for name, result in aug_results.items():
+            for key, value in result.evidence.items():
+                evidence[f"{name}_{key}"] = value
+        return evidence
 
     def _merge_spans(
         self,
@@ -184,14 +230,18 @@ class ScoreAggregator:
             a.get("end", 0) <= b.get("start", 0) or b.get("end", 0) <= a.get("start", 0)
         )
 
-    def _get_routing_reason(self, score: float, confident: bool, escalate: bool) -> str:
+    def _get_routing_reason(
+        self, score: float, confident: bool, escalate: bool, agreement: float
+    ) -> str:
         """Generate human-readable routing explanation."""
         if confident:
-            if score >= self.confidence_threshold_high:
-                return f"High confidence hallucination (score={score:.2f})"
+            if score >= self.threshold_high:
+                return f"High confidence hallucination (score={score:.2f}, agreement={agreement:.2f})"
             else:
-                return f"High confidence supported (score={score:.2f})"
+                return f"High confidence supported (score={score:.2f}, agreement={agreement:.2f})"
         elif escalate:
-            return f"Uncertain, escalating to Stage 2 (score={score:.2f})"
+            if agreement < self.agreement_threshold:
+                return f"Components disagree, escalating (score={score:.2f}, agreement={agreement:.2f})"
+            return f"Uncertain, escalating to Stage 2 (score={score:.2f}, agreement={agreement:.2f})"
         else:
-            return f"Uncertain but below escalation threshold (score={score:.2f})"
+            return f"Uncertain but below escalation threshold (score={score:.2f}, agreement={agreement:.2f})"
