@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 
@@ -17,15 +16,41 @@ class RoutingDecision(Enum):
 
 @dataclass
 class StageResult:
-    """Result from a single stage in the cascade."""
+    """Result from a single stage in the cascade.
+
+    Attributes:
+        stage_name: Identifier for the stage (e.g., "stage1", "stage2")
+        hallucination_score: Detection score where 0.0 = supported, 1.0 = hallucinated
+        agreement: Ensemble agreement (0.0-1.0). High = components agree, low = components disagree.
+        is_hallucination: True if hallucination_score >= 0.5
+        routing_decision: What to do next (return, escalate, or uncertain)
+        latency_ms: Time taken by this stage in milliseconds
+        output: Token/span predictions in requested format
+
+        component_scores: Individual scores from each component (transformer, augmentations, etc.)
+        evidence: Aggregated factual metadata about what was checked
+        routing_reason: Human-readable explanation of routing decision
+
+        degraded: True if any component failed during inference
+        component_errors: List of error messages from failed components
+    """
 
     stage_name: str
-    confidence: float
-    is_hallucination: bool
+    hallucination_score: float  # 0.0 = supported, 1.0 = hallucinated
+    agreement: float  # Ensemble agreement (0.0-1.0)
+    is_hallucination: bool  # True if hallucination_score >= 0.5
     routing_decision: RoutingDecision
     latency_ms: float
-    output_format_result: list[dict]
-    metadata: dict
+    output: list[dict]  # Token/span predictions
+
+    # Explicit fields instead of metadata dict
+    component_scores: dict[str, float]
+    evidence: dict  # Aggregated evidence from all components
+    routing_reason: str
+
+    # Degradation tracking
+    degraded: bool = False
+    component_errors: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -43,41 +68,16 @@ class CascadeInput:
 class AugmentationResult:
     """Result from a Stage 1 augmentation.
 
-    Defined here to avoid circular imports between utils/ and detectors/.
+    All scores use unified direction: 0.0 = supported, 1.0 = hallucinated.
+
+    Attributes:
+        score: Hallucination probability (0.0 = supported, 1.0 = hallucinated)
+        evidence: Factual metadata about what was checked (e.g., entities_checked, numbers_verified)
+        details: Component-specific details (e.g., verified entities, matched numbers)
+        flagged_spans: Spans flagged by this augmentation as potentially hallucinated
     """
 
-    score: float  # 0.0 = hallucination, 1.0 = supported
-    confidence: float  # Confidence in this score
+    score: float  # 0.0 = supported, 1.0 = hallucinated
+    evidence: dict  # Factual metadata (counts, ratios)
     details: dict  # Component-specific details
     flagged_spans: list[dict]  # Spans flagged by this augmentation
-
-
-class BaseStage(ABC):
-    """Abstract base class for cascade stage detectors.
-
-    Each stage must implement run() to process CascadeInput and return StageResult.
-    """
-
-    @abstractmethod
-    def run(
-        self,
-        input: CascadeInput,
-        output_format: str = "tokens",
-        has_next_stage: bool = True,
-    ) -> StageResult:
-        """Process input and return stage result with routing decision.
-
-        Args:
-            input: CascadeInput with context, answer, and optional previous result
-            output_format: Output format ("tokens" or "spans")
-            has_next_stage: Whether there's a subsequent stage (affects routing)
-
-        Returns:
-            StageResult with confidence, prediction, and routing decision
-        """
-        pass
-
-    @abstractmethod
-    def warmup(self) -> None:
-        """Warmup models for consistent latency."""
-        pass
