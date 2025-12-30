@@ -59,7 +59,8 @@ async def detect_hallucinations(
 
     """
     try:
-        # Initialize detector with transformer method
+        # Use transformer method for fast, simple detection (other methods like
+        # cascade require additional config not suitable for a simple agent tool)
         detector = HallucinationDetector(
             method="transformer", model_path="KRLabsOrg/lettucedect-base-modernbert-en-v1"
         )

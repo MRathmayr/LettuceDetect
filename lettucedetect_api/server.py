@@ -20,6 +20,7 @@ class Settings(BaseSettings):
 
     lettucedetect_model: str = "KRLabsOrg/lettucedect-base-modernbert-en-v1"
     lettucedetect_method: str = "transformer"
+    lettucedetect_cascade_config: str | None = None
 
 
 settings = Settings()
@@ -38,10 +39,16 @@ async def init_detector(app: FastAPI) -> AsyncIterator[None]:
     :param app: The FastAPI object for this livespan event.
     """
     global detector
-    detector = HallucinationDetector(
-        method=settings.lettucedetect_method,
-        model_path=settings.lettucedetect_model,
-    )
+    kwargs: dict = {"method": settings.lettucedetect_method}
+
+    if settings.lettucedetect_method == "cascade":
+        if not settings.lettucedetect_cascade_config:
+            raise RuntimeError("LETTUCEDETECT_CASCADE_CONFIG required for cascade method")
+        kwargs["config_path"] = settings.lettucedetect_cascade_config
+    else:
+        kwargs["model_path"] = settings.lettucedetect_model
+
+    detector = HallucinationDetector(**kwargs)
     yield
 
 
