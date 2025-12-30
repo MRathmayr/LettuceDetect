@@ -135,9 +135,9 @@ class CascadeDetector(BaseDetector):
         if output_format == "detailed":
             return self._format_detailed(final_result, stage_results, total_latency)
         elif output_format == "spans":
-            return final_result.output_format_result if final_result else []
+            return final_result.output if final_result else []
         else:
-            return final_result.output_format_result if final_result else []
+            return final_result.output if final_result else []
 
     def _run_stage(
         self,
@@ -150,19 +150,20 @@ class CascadeDetector(BaseDetector):
         """Run a single stage and return result.
 
         Args:
-            stage: The stage detector instance (implements BaseStage)
+            stage: The stage detector instance (implements predict_stage)
             stage_num: Stage number (1, 2, or 3)
             cascade_input: Input data for the stage
             has_next_stage: Whether there's a subsequent stage (affects routing)
             output_format: Output format ("tokens" or "spans")
 
         Returns:
-            StageResult with confidence, prediction, and routing decision
+            StageResult with hallucination_score, agreement, routing decision,
+            component scores, evidence, and output predictions.
         """
         stage_start = time.perf_counter()
 
-        # Run the stage detector
-        result = stage.run(
+        # Run the stage detector via predict_stage()
+        result = stage.predict_stage(
             input=cascade_input,
             output_format=output_format,
             has_next_stage=has_next_stage,
@@ -174,7 +175,7 @@ class CascadeDetector(BaseDetector):
 
         logger.debug(
             f"Stage {stage_num} completed in {latency_ms:.2f}ms, "
-            f"confidence={result.confidence:.3f}, "
+            f"agreement={result.agreement:.3f}, "
             f"routing={result.routing_decision.value}"
         )
 
@@ -191,7 +192,7 @@ class CascadeDetector(BaseDetector):
             return {"spans": [], "routing": {}, "scores": {}}
 
         return {
-            "spans": final_result.output_format_result,
+            "spans": final_result.output,
             "routing": {
                 "resolved_at_stage": int(final_result.stage_name[-1]),
                 "stages_executed": [int(r.stage_name[-1]) for r in stage_results],
@@ -201,12 +202,12 @@ class CascadeDetector(BaseDetector):
                 },
             },
             "scores": {
-                "final_score": final_result.confidence,
+                "final_score": final_result.hallucination_score,
                 "confident": final_result.routing_decision
                 == RoutingDecision.RETURN_CONFIDENT,
                 "escalated": final_result.routing_decision == RoutingDecision.ESCALATE,
                 "per_stage": {
-                    r.stage_name: r.metadata.get("scores", {}) for r in stage_results
+                    r.stage_name: r.component_scores for r in stage_results
                 },
             },
         }

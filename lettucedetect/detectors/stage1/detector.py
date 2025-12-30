@@ -6,7 +6,6 @@ import logging
 import time
 
 from lettucedetect.cascade.types import (
-    BaseStage,
     CascadeInput,
     RoutingDecision,
     StageResult,
@@ -23,7 +22,7 @@ from lettucedetect.detectors.stage1.augmentations.base import BaseAugmentation
 logger = logging.getLogger(__name__)
 
 
-class Stage1Detector(BaseDetector, BaseStage):
+class Stage1Detector(BaseDetector):
     """Stage 1 of the cascade: fast detection with augmentations.
 
     Combines TransformerDetector with optional augmentations:
@@ -122,14 +121,22 @@ class Stage1Detector(BaseDetector, BaseStage):
         for aug in self._augmentations:
             aug.preload()
 
-    def predict(
+    def _detect(
         self,
         context: list[str],
         answer: str,
         question: str | None = None,
-        output_format: str = "tokens",
-    ) -> list:
-        """Main prediction method - implements BaseDetector interface."""
+    ) -> tuple[list[dict], AggregatedScore]:
+        """Core detection logic - shared by predict() and predict_stage().
+
+        Args:
+            context: Context passages
+            answer: Answer to verify
+            question: Optional question
+
+        Returns:
+            Tuple of (transformer_preds, aggregated_score)
+        """
         # 1. Run TransformerDetector
         transformer_preds = self._transformer.predict(
             context, answer, question, output_format="tokens"
@@ -144,7 +151,19 @@ class Stage1Detector(BaseDetector, BaseStage):
         # 3. Aggregate scores
         aggregated = self._aggregator.aggregate(transformer_preds, aug_results)
 
-        # 4. Format output
+        return transformer_preds, aggregated
+
+    def predict(
+        self,
+        context: list[str],
+        answer: str,
+        question: str | None = None,
+        output_format: str = "tokens",
+    ) -> list:
+        """Main prediction method - implements BaseDetector interface."""
+        transformer_preds, aggregated = self._detect(context, answer, question)
+
+        # Format output
         if output_format == "spans":
             return self._format_spans(aggregated, answer)
         return self._format_tokens(aggregated, transformer_preds)
@@ -170,11 +189,7 @@ class Stage1Detector(BaseDetector, BaseStage):
         question: str | None = None,
     ) -> dict:
         """Get routing decision without full prediction formatting."""
-        transformer_preds = self._transformer.predict(context, answer, question, "tokens")
-        aug_results = {}
-        for aug in self._augmentations:
-            aug_results[aug.name] = aug.safe_score(context, answer, question, transformer_preds)
-        aggregated = self._aggregator.aggregate(transformer_preds, aug_results)
+        _, aggregated = self._detect(context, answer, question)
         return {
             "confident": aggregated.confident,
             "escalate": aggregated.escalate,
@@ -183,13 +198,13 @@ class Stage1Detector(BaseDetector, BaseStage):
             "component_scores": aggregated.component_scores,
         }
 
-    def run(
+    def predict_stage(
         self,
         input: CascadeInput,
         output_format: str = "tokens",
         has_next_stage: bool = True,
     ) -> StageResult:
-        """Run stage - implements BaseStage interface.
+        """Cascade prediction returning StageResult with routing decision.
 
         Args:
             input: CascadeInput with context, answer, and optional previous result
@@ -197,22 +212,15 @@ class Stage1Detector(BaseDetector, BaseStage):
             has_next_stage: Whether there's a subsequent stage (affects routing)
 
         Returns:
-            StageResult with confidence, prediction, and routing decision
+            StageResult with hallucination_score, confidence, routing decision,
+            component scores, and output predictions.
         """
         start = time.perf_counter()
 
-        # Run transformer and augmentations
-        transformer_preds = self._transformer.predict(
-            input.context, input.answer, input.question, output_format="tokens"
+        # Core detection logic
+        transformer_preds, aggregated = self._detect(
+            input.context, input.answer, input.question
         )
-        aug_results = {}
-        for aug in self._augmentations:
-            aug_results[aug.name] = aug.safe_score(
-                input.context, input.answer, input.question, transformer_preds
-            )
-
-        # Aggregate scores
-        aggregated = self._aggregator.aggregate(transformer_preds, aug_results)
 
         # Determine routing decision
         if aggregated.confident:
@@ -232,15 +240,15 @@ class Stage1Detector(BaseDetector, BaseStage):
 
         return StageResult(
             stage_name="stage1",
-            confidence=aggregated.confidence,
+            hallucination_score=aggregated.hallucination_score,
+            agreement=aggregated.agreement,
             is_hallucination=aggregated.hallucination_score >= 0.5,
             routing_decision=routing,
             latency_ms=latency_ms,
-            output_format_result=output,
-            metadata={
-                "scores": aggregated.component_scores,
-                "routing_reason": aggregated.routing_reason,
-            },
+            output=output,
+            component_scores=aggregated.component_scores,
+            evidence=aggregated.evidence,
+            routing_reason=aggregated.routing_reason,
         )
 
     def _extract_context_from_prompt(self, prompt: str) -> list[str]:
