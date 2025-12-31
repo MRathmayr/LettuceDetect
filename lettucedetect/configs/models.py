@@ -34,16 +34,61 @@ class Stage1Config(BaseModel):
     device: str = "cuda"
     lang: str = "en"
 
+    @field_validator("weights")
+    @classmethod
+    def validate_weights_sum(cls, v: dict[str, float]) -> dict[str, float]:
+        """Ensure weights sum to 1.0 (with small tolerance for float precision)."""
+        total = sum(v.values())
+        if not (0.99 <= total <= 1.01):
+            raise ValueError(f"Weights must sum to 1.0, got {total:.3f}")
+        return v
+
 
 class Stage2Config(BaseModel):
-    """Configuration for Stage 2: NCS + NLI + Lexical."""
+    """Configuration for Stage 2: NCS + NLI semantic analysis.
 
-    components: list[Literal["ncs", "nli", "lexical"]] = ["ncs", "nli", "lexical"]
+    All options have sensible defaults. Users can override any option
+    for fine-tuning or specific use cases.
+
+    Note: Lexical overlap removed to avoid redundancy with Stage 1.
+    """
+
+    # Component selection
+    components: list[Literal["ncs", "nli"]] = ["ncs", "nli"]
+
+    # Model selection
     ncs_model: str = "minishlab/potion-base-32M"
-    nli_model: str = "microsoft/deberta-v3-base-mnli"
+    nli_model: str = "cross-encoder/nli-deberta-v3-base"
+
+    # Aggregation weights (must sum to 1.0)
     weights: dict[str, float] = Field(
-        default_factory=lambda: {"ncs": 0.4, "nli": 0.4, "lexical": 0.2}
+        default_factory=lambda: {"ncs": 0.5, "nli": 0.5}
     )
+
+    # NCS configuration
+    ncs_normalize_embeddings: bool = True
+    ncs_batch_size: int = 32
+
+    # NLI configuration
+    nli_max_length: int = 512
+    nli_batch_size: int = 8
+
+    # Routing thresholds
+    routing_threshold_high: float = 0.85  # Score >= this = confident hallucination
+    routing_threshold_low: float = 0.3  # Score <= this = confident supported
+
+    # Stage 1 integration
+    use_stage1_score: bool = True
+    stage1_weight: float = 0.3
+
+    @field_validator("weights")
+    @classmethod
+    def validate_weights_sum(cls, v: dict[str, float]) -> dict[str, float]:
+        """Ensure weights sum to 1.0 (with small tolerance for float precision)."""
+        total = sum(v.values())
+        if not (0.99 <= total <= 1.01):
+            raise ValueError(f"Weights must sum to 1.0, got {total:.3f}")
+        return v
 
 
 class Stage3Config(BaseModel):

@@ -90,18 +90,24 @@ class TestNERAugmentationIntegration:
         assert ner_result.score < 1.0 or len(ner_result.flagged_spans) > 0
 
     def test_ner_verifies_existing_person(self, stage1_detector_ner, context_with_persons):
-        """Verify NER confirms existing person names."""
+        """Verify NER confirms existing person names.
+
+        Unified score direction: 0.0 = supported, 1.0 = hallucinated
+        """
         answer = "Albert Einstein worked at the patent office."
 
         results = stage1_detector_ner._run_augmentations(context_with_persons, answer)
 
         assert "ner" in results
         ner_result = results["ner"]
-        # Einstein should be verified
-        assert ner_result.score > 0
+        # Einstein should be verified -> low hallucination score
+        assert ner_result.score <= 0.5
 
     def test_ner_with_organizations(self, stage1_detector_ner, context_with_organizations):
-        """Verify NER works with organization entities."""
+        """Verify NER works with organization entities.
+
+        Unified score direction: 0.0 = supported, 1.0 = hallucinated
+        """
         # Context has Microsoft, LinkedIn, European Commission
         fabricated = "Google acquired Twitter for $30 billion."
         supported = "Microsoft acquired LinkedIn."
@@ -109,8 +115,8 @@ class TestNERAugmentationIntegration:
         fab_results = stage1_detector_ner._run_augmentations(context_with_organizations, fabricated)
         sup_results = stage1_detector_ner._run_augmentations(context_with_organizations, supported)
 
-        # Fabricated should have lower score or flagged spans
-        assert fab_results["ner"].score <= sup_results["ner"].score
+        # Fabricated should have higher hallucination score than supported
+        assert fab_results["ner"].score >= sup_results["ner"].score
 
 
 @pytest.mark.gpu
@@ -134,24 +140,31 @@ class TestNumericAugmentationIntegration:
     def test_numeric_verifies_correct_numbers(
         self, stage1_detector_numeric, financial_report_context, financial_answer_supported
     ):
-        """Verify Numeric confirms correct numbers."""
+        """Verify Numeric confirms correct numbers.
+
+        Unified score direction: 0.0 = supported, 1.0 = hallucinated
+        """
         results = stage1_detector_numeric._run_augmentations(
             financial_report_context, financial_answer_supported
         )
 
         assert "numeric" in results
         numeric_result = results["numeric"]
-        assert numeric_result.score == 1.0
+        assert numeric_result.score == 0.0  # supported
 
     def test_numeric_with_percentages(self, stage1_detector_numeric, context_with_percentages):
-        """Verify Numeric handles percentages correctly."""
+        """Verify Numeric handles percentages correctly.
+
+        Unified score direction: 0.0 = supported, 1.0 = hallucinated
+        """
         correct = "Market share reached 31%."
         wrong = "Market share reached 45%."
 
         correct_results = stage1_detector_numeric._run_augmentations(context_with_percentages, correct)
         wrong_results = stage1_detector_numeric._run_augmentations(context_with_percentages, wrong)
 
-        assert correct_results["numeric"].score > wrong_results["numeric"].score
+        # Correct should have lower (supported) score, wrong should have higher (hallucinated) score
+        assert correct_results["numeric"].score < wrong_results["numeric"].score
 
 
 @pytest.mark.gpu
@@ -161,17 +174,26 @@ class TestLexicalAugmentationIntegration:
     def test_lexical_high_overlap_supported(
         self, stage1_detector_lexical, sample_context, sample_answer_supported
     ):
-        """Verify high lexical overlap for supported answer."""
+        """Verify low hallucination score for supported answer with high lexical overlap.
+
+        Unified score direction: 0.0 = supported, 1.0 = hallucinated
+        hallucination_score = 1.0 - jaccard_similarity
+        """
         results = stage1_detector_lexical._run_augmentations(sample_context, sample_answer_supported)
 
         assert "lexical" in results
         lexical_result = results["lexical"]
-        assert lexical_result.score > 0.25  # Jaccard similarity with stemming/stopwords
+        # High overlap -> low hallucination score (< 0.75 means jaccard > 0.25)
+        assert lexical_result.score < 0.75
 
     def test_lexical_low_overlap_hallucinated(
         self, stage1_detector_lexical, sample_context, sample_answer_supported, sample_answer_hallucinated
     ):
-        """Verify lower lexical overlap for hallucinated answer."""
+        """Verify higher hallucination score for hallucinated answer.
+
+        Unified score direction: 0.0 = supported, 1.0 = hallucinated
+        Low lexical overlap -> high hallucination score
+        """
         supported_results = stage1_detector_lexical._run_augmentations(
             sample_context, sample_answer_supported
         )
@@ -179,10 +201,10 @@ class TestLexicalAugmentationIntegration:
             sample_context, sample_answer_hallucinated
         )
 
-        # Hallucinated should have lower overlap
+        # Hallucinated should have higher hallucination score (lower overlap)
         assert (
             hallucinated_results["lexical"].score
-            <= supported_results["lexical"].score
+            >= supported_results["lexical"].score
         )
 
 
@@ -215,7 +237,7 @@ class TestCombinedAugmentations:
 
         # Should have a combined hallucination score
         assert 0 <= aggregated.hallucination_score <= 1.0
-        assert aggregated.confidence >= 0
+        assert 0 <= aggregated.agreement <= 1.0
 
     def test_multi_domain_hallucination_detection(self, stage1_detector_all):
         """Test detection across different hallucination types."""
@@ -306,8 +328,8 @@ class TestWarmup:
 
 
 @pytest.mark.gpu
-class TestBaseStageInterface:
-    """Test BaseStage interface compliance."""
+class TestPredictStageInterface:
+    """Test predict_stage() interface compliance."""
 
     def test_stage_name(self, stage1_detector_no_aug):
         """Verify stage_name property."""

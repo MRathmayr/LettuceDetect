@@ -26,19 +26,30 @@ def _argparse() -> dict:
     parser.add_argument(
         "--method",
         help='Hallucination detection method. The default value is "transformer".',
-        choices=["transformer"],
+        choices=["transformer", "llm", "rag_fact_checker", "cascade"],
         default="transformer",
+    )
+    parser.add_argument(
+        "--cascade-config",
+        help="Path to cascade config JSON file. Required when --method=cascade.",
+        default=None,
     )
     return parser.parse_args()
 
 
 def _run_fastapi(args: dict) -> None:
+    # Validate cascade requires config
+    if args.method == "cascade" and not args.cascade_config:
+        raise SystemExit("Error: --cascade-config is required when --method=cascade")
+
     scripts_folder = pathlib.Path(__file__).parent.resolve()
     repo_folder = scripts_folder.parent
     api_folder = repo_folder / "lettucedetect_api"
     env = os.environ.copy()
     env["LETTUCEDETECT_MODEL"] = args.model
     env["LETTUCEDETECT_METHOD"] = args.method
+    if args.cascade_config:
+        env["LETTUCEDETECT_CASCADE_CONFIG"] = args.cascade_config
     if args.mode == "dev":
         # Needed for fastapi to be able to import directly from the repository.
         env["PYTHONPATH"] = env.get("PYTHONPATH", "") + os.pathsep + str(repo_folder)

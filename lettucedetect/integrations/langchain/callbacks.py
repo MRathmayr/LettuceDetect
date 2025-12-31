@@ -24,18 +24,21 @@ class LettuceDetectCallback(BaseCallbackHandler):
         model_path: Optional[str] = None,
         on_result: Optional[Callable[[Dict[str, Any]], None]] = None,
         verbose: bool = False,
+        **kwargs,
     ):
         """Initialize the callback.
 
         Args:
-            method: Detection method ("transformer", "llm", "rag_fact_checker")
+            method: Detection method ("transformer", "llm", "rag_fact_checker", "cascade").
             model_path: Path to model (for transformer method)
             on_result: Optional function to handle detection results
             verbose: Whether to print results
+            **kwargs: Additional arguments passed to HallucinationDetector
+                (e.g., config= or config_path= for cascade method)
 
         """
         super().__init__()
-        self.detector = HallucinationDetector(method=method, model_path=model_path)
+        self.detector = HallucinationDetector(method=method, model_path=model_path, **kwargs)
         self.on_result = on_result
         self.verbose = verbose
 
@@ -141,21 +144,24 @@ class LettuceStreamingCallback(BaseCallbackHandler):
         check_every: int = 10,
         on_detection: Optional[Callable[[Dict[str, Any]], None]] = None,
         verbose: bool = False,
+        **kwargs,
     ):
         """Initialize streaming callback.
 
         Args:
-            method: Detection method
+            method: Detection method ("transformer", "llm", "rag_fact_checker", "cascade")
             model_path: Path to model (for transformer method)
             context: Context documents for detection
             question: Question being answered
             check_every: Run detection every N tokens
             on_detection: Function called when detection runs
             verbose: Whether to print detection results
+            **kwargs: Additional arguments passed to HallucinationDetector
+                (e.g., config= or config_path= for cascade method)
 
         """
         super().__init__()
-        self.detector = HallucinationDetector(method=method, model_path=model_path)
+        self.detector = HallucinationDetector(method=method, model_path=model_path, **kwargs)
         self.context = context or []
         self.question = question
         self.check_every = check_every

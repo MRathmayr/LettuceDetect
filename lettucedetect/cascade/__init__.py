@@ -2,7 +2,6 @@
 
 from lettucedetect.cascade.types import (
     AugmentationResult,
-    BaseStage,
     CascadeInput,
     RoutingDecision,
     StageResult,
@@ -13,5 +12,4 @@ __all__ = [
     "StageResult",
     "CascadeInput",
     "AugmentationResult",
-    "BaseStage",
 ]

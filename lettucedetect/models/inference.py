@@ -12,8 +12,15 @@ from lettucedetect.detectors.factory import make_detector
 class HallucinationDetector:
     """Facade class that delegates to a concrete detector chosen by *method*.
 
-    :param method: ``"transformer"`` (token-classifier) or ``"llm"`` (OpenAI function-calling).
-    :param kwargs: Passed straight through to the chosen detector’s constructor.
+    :param method: Detection method. One of:
+
+        - ``"transformer"`` – Token-classifier using ModernBERT (default). Requires ``model_path``.
+        - ``"llm"`` – OpenAI function-calling based detection. Requires ``model`` (e.g., "gpt-4o").
+        - ``"rag_fact_checker"`` – Triplet-based fact checking via OpenAI API.
+        - ``"cascade"`` – Latency-tiered cascade (Stage 1-3). Requires ``config`` (CascadeConfig
+          or dict) or ``config_path`` (JSON file).
+
+    :param kwargs: Passed straight through to the chosen detector's constructor.
     """
 
     def __init__(self, method: str = "transformer", **kwargs):

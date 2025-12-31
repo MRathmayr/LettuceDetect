@@ -2,6 +2,8 @@
 
 These tests verify numeric extraction and validation work correctly
 with real-world financial, scientific, and geographic data.
+
+Unified score direction: 0.0 = supported, 1.0 = hallucinated
 """
 
 import pytest
@@ -26,8 +28,8 @@ class TestFinancialNumericValidation:
         result = self.validator.score(
             financial_report_context, financial_answer_supported, None, None
         )
-        # All numbers match context
-        assert result.score == 1.0
+        # All numbers match context -> low hallucination score
+        assert result.score == 0.0
         assert len(result.flagged_spans) == 0
 
     def test_financial_numbers_hallucinated(
@@ -38,7 +40,7 @@ class TestFinancialNumericValidation:
             financial_report_context, financial_answer_hallucinated_numbers, None, None
         )
         # $5.8 billion (vs $4.2), 22% (vs 15%), $2.3 billion (vs $1.8) are wrong
-        assert result.score < 1.0
+        assert result.score > 0.0  # hallucination detected
         assert len(result.flagged_spans) > 0
 
     def test_percentage_hallucination(self, context_with_percentages):
@@ -46,18 +48,18 @@ class TestFinancialNumericValidation:
         answer = "The market share grew to 45%, and retention reached 85%."
         result = self.validator.score(context_with_percentages, answer, None, None)
         # 45% and 85% are not in context (23%, 31%, 92% are)
-        assert result.score < 1.0
+        assert result.score > 0.0  # hallucination detected
         assert len(result.flagged_spans) >= 2
 
     def test_currency_validation(self, context_with_currencies):
         """Verify currency values are validated."""
         supported = "The property sold for $2.5 million."
         result = self.validator.score(context_with_currencies, supported, None, None)
-        assert result.score == 1.0
+        assert result.score == 0.0  # supported
 
         hallucinated = "The property sold for $3.2 million."
         result = self.validator.score(context_with_currencies, hallucinated, None, None)
-        assert result.score < 1.0
+        assert result.score > 0.0  # hallucination detected
         assert len(result.flagged_spans) > 0
 
 
@@ -73,8 +75,8 @@ class TestScientificNumericValidation:
         result = self.validator.score(
             medical_context, medical_answer_supported, None, None
         )
-        # 37 million and 7% are in context
-        assert result.score >= 0.5
+        # 37 million and 7% are in context -> low hallucination score
+        assert result.score <= 0.5  # mostly supported
 
     def test_medical_numbers_hallucinated(self, medical_context, medical_answer_hallucinated):
         """Verify hallucinated medical numbers are flagged."""
@@ -82,18 +84,18 @@ class TestScientificNumericValidation:
             medical_context, medical_answer_hallucinated, None, None
         )
         # 50 million (vs 37 million), 5% (vs 7%) are wrong
-        assert result.score < 1.0
+        assert result.score > 0.0  # hallucination detected
         assert len(result.flagged_spans) > 0
 
     def test_measurement_validation(self, context_with_measurements):
         """Verify physical measurements are validated."""
         supported = "The bridge is 2.7 kilometers long and 65 meters high."
         result = self.validator.score(context_with_measurements, supported, None, None)
-        assert result.score == 1.0
+        assert result.score == 0.0  # supported
 
         hallucinated = "The bridge is 3.5 kilometers long and 80 meters high."
         result = self.validator.score(context_with_measurements, hallucinated, None, None)
-        assert result.score < 1.0
+        assert result.score > 0.0  # hallucination detected
 
 
 class TestGeographicNumericValidation:
@@ -108,8 +110,8 @@ class TestGeographicNumericValidation:
         result = self.validator.score(
             geographic_context, geographic_answer_supported, None, None
         )
-        # 8,849 meters and 1953 are correct
-        assert result.score >= 0.5
+        # 8,849 meters and 1953 are correct -> low hallucination score
+        assert result.score <= 0.5  # mostly supported
 
     def test_elevation_hallucinated(self, geographic_context, geographic_answer_hallucinated):
         """Verify hallucinated elevation is flagged."""
@@ -117,7 +119,7 @@ class TestGeographicNumericValidation:
             geographic_context, geographic_answer_hallucinated, None, None
         )
         # 9,100 meters (vs 8,849) and 1924 (vs 1953) are wrong
-        assert result.score < 1.0
+        assert result.score > 0.0  # hallucination detected
         # Should have flagged at least one wrong number
         assert len(result.flagged_spans) > 0
 
@@ -133,11 +135,11 @@ class TestYearValidation:
         """Verify years require exact match."""
         supported = "World War II ended in 1945."
         result = self.validator.score(context_with_dates, supported, None, None)
-        assert result.score == 1.0
+        assert result.score == 0.0  # supported
 
         hallucinated = "World War II ended in 1946."
         result = self.validator.score(context_with_dates, hallucinated, None, None)
-        assert result.score < 1.0
+        assert result.score > 0.0  # hallucination detected
 
     def test_multi_passage_years(
         self, multi_passage_context, multi_passage_answer_partial_hallucination
@@ -150,7 +152,7 @@ class TestYearValidation:
             None,
         )
         # 2015 (vs 2011) and $420 billion (vs $383 billion) are wrong
-        assert result.score < 1.0
+        assert result.score > 0.0  # hallucination detected
         assert len(result.flagged_spans) >= 1
 
 
@@ -194,22 +196,22 @@ class TestComplexNumberFormats:
         context = ["The population is 1234567 people."]
         answer = "The population is about 1234567."
         result = self.validator.score(context, answer, None, None)
-        # Exact match of the number should succeed
-        assert result.score == 1.0
+        # Exact match of the number should succeed -> low hallucination
+        assert result.score == 0.0
 
     def test_decimal_numbers(self):
         """Test decimal number extraction."""
         context = ["The rate is 3.14159."]
         answer = "The rate is 3.14159."
         result = self.validator.score(context, answer, None, None)
-        assert result.score == 1.0
+        assert result.score == 0.0  # supported
 
     def test_mixed_formats(self):
         """Test multiple number formats in same text."""
         context = ["Revenue was $2.5 billion (up 15%) with 10,000 employees."]
         answer = "The company has $2.5 billion revenue, 15% growth, and 10,000 staff."
         result = self.validator.score(context, answer, None, None)
-        assert result.score == 1.0
+        assert result.score == 0.0  # supported
 
 
 class TestEdgeCases:
@@ -229,14 +231,14 @@ class TestEdgeCases:
         """Handle empty answer gracefully."""
         result = self.validator.score(sample_context, empty_answer, None, None)
         # No numbers in answer = fully supported
-        assert result.score == 1.0
+        assert result.score == 0.0
 
     def test_no_numbers_in_answer(self):
         """Handle answer with no numeric content."""
         context = ["The value is 42."]
         answer = "There is a value mentioned."
         result = self.validator.score(context, answer, None, None)
-        assert result.score == 1.0
+        assert result.score == 0.0  # supported (nothing to verify)
 
     def test_very_large_numbers(self):
         """Handle very large numbers."""
@@ -295,7 +297,7 @@ class TestPartialMatching:
         # $100 and 2023 match, but 6000 doesn't match 5000
         answer = "Revenue was $100 million with 6000 staff in 2023."
         result = self.validator.score(context, answer, None, None)
-        # Score should be partial
+        # Score should be partial (between 0 and 1)
         assert 0 < result.score < 1.0
         assert len(result.flagged_spans) > 0
 
@@ -304,14 +306,14 @@ class TestPartialMatching:
         context = ["The report shows 42 items at $10 each for $420 total."]
         answer = "There are 42 items costing $10 each, totaling $420."
         result = self.validator.score(context, answer, None, None)
-        assert result.score == 1.0
+        assert result.score == 0.0  # supported
 
     def test_no_numbers_match(self):
         """Test when no numbers match."""
         context = ["The count is 100 items."]
         answer = "The count is 250 items."
         result = self.validator.score(context, answer, None, None)
-        assert result.score == 0.0
+        assert result.score == 1.0  # full hallucination
         assert len(result.flagged_spans) >= 1
 
 
