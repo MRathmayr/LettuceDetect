@@ -216,10 +216,10 @@ class NumericValidator(BaseAugmentation):
         # Extract numbers from answer
         answer_numbers = self._extract_numbers(answer)
 
-        # No numbers in answer = nothing to verify = fully supported
+        # No numbers in answer = nothing to verify = neutral (no signal)
         if not answer_numbers:
             return AugmentationResult(
-                score=0.0,  # 0 = supported (no hallucination)
+                score=0.5,  # Neutral: no signal, not "supported"
                 evidence={
                     "numbers_checked": 0,
                     "numbers_verified": 0,
@@ -230,6 +230,7 @@ class NumericValidator(BaseAugmentation):
                     "context_numbers": len(context_numbers),
                 },
                 flagged_spans=[],
+                is_active=False,  # Nothing to verify
             )
 
         # Verify each answer number
@@ -280,6 +281,7 @@ class NumericValidator(BaseAugmentation):
                 "numbers": number_details,
             },
             flagged_spans=flagged_spans,
+            is_active=True,  # Numbers found and verified
         )
 
     def preload(self) -> None:

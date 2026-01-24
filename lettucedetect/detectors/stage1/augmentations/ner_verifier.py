@@ -122,10 +122,10 @@ class NERVerifier(BaseAugmentation):
         # Extract entities from answer
         answer_entities = self._extract_entities(answer)
 
-        # No entities in answer = nothing to verify = fully supported
+        # No entities in answer = nothing to verify = neutral (no signal)
         if not answer_entities:
             return AugmentationResult(
-                score=0.0,  # 0 = supported (no hallucination)
+                score=0.5,  # Neutral: no signal, not "supported"
                 evidence={
                     "entities_checked": 0,
                     "entities_verified": 0,
@@ -133,6 +133,7 @@ class NERVerifier(BaseAugmentation):
                 },
                 details={"answer_entities": 0, "context_entities": len(context_entities)},
                 flagged_spans=[],
+                is_active=False,  # Nothing to verify
             )
 
         # Verify each answer entity
@@ -183,4 +184,5 @@ class NERVerifier(BaseAugmentation):
                 "entities": entity_details,
             },
             flagged_spans=flagged_spans,
+            is_active=True,  # Entities found and verified
         )

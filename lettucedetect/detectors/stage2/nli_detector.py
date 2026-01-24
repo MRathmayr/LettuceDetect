@@ -127,18 +127,45 @@ class NLIContradictionDetector:
             answer: The answer to check for contradiction.
 
         Returns:
-            Dict with max_contradiction, min_non_contradiction, and all_results.
+            Dict with hallucination_score and raw component scores.
+            hallucination_score uses max_contradiction (best AUROC on RAGTruth).
         """
         if not context_texts:
-            return {"max_contradiction": 0.0, "min_non_contradiction": 1.0}
+            return {
+                "hallucination_score": 0.5,
+                "max_contradiction": 0.0,
+                "min_non_contradiction": 1.0,
+                "mean_entailment": 0.5,
+                "mean_contradiction": 0.0,
+            }
 
         premises = context_texts
         hypotheses = [answer] * len(context_texts)
         results = self.predict_batch(premises, hypotheses)
 
+        # Compute scores across all context passages
+        max_contradiction = max(r["contradiction"] for r in results)
+        mean_entailment = sum(r["entailment"] for r in results) / len(results)
+        mean_contradiction = sum(r["contradiction"] for r in results) / len(results)
+
+        # Compute hallucination score based on config mode
+        if self.config.score_mode == "weighted":
+            # Weighted combination (experimental)
+            ent_weight = self.config.entailment_weight
+            con_weight = self.config.contradiction_weight
+            hallucination_score = (
+                ent_weight * (1.0 - mean_entailment) + con_weight * mean_contradiction
+            )
+        else:
+            # Default: use max_contradiction (best AUROC 0.667 on RAGTruth)
+            hallucination_score = max_contradiction
+
         return {
-            "max_contradiction": max(r["contradiction"] for r in results),
+            "hallucination_score": hallucination_score,
+            "max_contradiction": max_contradiction,
             "min_non_contradiction": min(r["non_contradiction"] for r in results),
+            "mean_entailment": mean_entailment,
+            "mean_contradiction": mean_contradiction,
             "all_results": results,
         }
 

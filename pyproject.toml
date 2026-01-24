@@ -65,12 +65,7 @@ cascade = [
 [tool.setuptools]
 packages = ["lettucedetect", "lettucedetect_api"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = "test_*_pytest.py"
-markers = [
-    "gpu: requires CUDA-capable GPU",
-]
+# pytest config in tests/pytest.ini
 
 [tool.ruff]
 line-length = 100

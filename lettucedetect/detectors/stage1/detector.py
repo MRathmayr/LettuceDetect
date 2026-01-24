@@ -30,7 +30,6 @@ class Stage1Detector(BaseDetector):
     - Numeric validation (regex)
     - Lexical overlap (n-gram Jaccard)
 
-    Target latency: <30ms on GPU
     """
 
     def __init__(

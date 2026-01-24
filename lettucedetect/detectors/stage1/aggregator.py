@@ -104,7 +104,10 @@ class ScoreAggregator:
         for name, result in aug_results.items():
             if result.score is None:
                 continue
-            scores[name] = result.score
+            scores[name] = result.score  # Always record for observability
+            # Skip inactive augmentations from weighted average
+            if not result.is_active:
+                continue
             weight = self.weights.get(name, 0.1)
             weighted_sum += result.score * weight
             total_weight += weight

@@ -91,18 +91,21 @@ class TestNumericValidation:
         assert len(result.flagged_spans) == 1
 
     def test_no_numbers_in_answer(self):
-        """No numbers in answer = fully supported."""
+        """No numbers in answer = neutral, inactive."""
         context = ["The city has many people."]
         answer = "The city is populous."
         result = self.validator.score(context, answer, None, None)
-        assert result.score == 0.0  # supported (nothing to verify)
+        # No numbers in answer = neutral, inactive
+        assert result.score == 0.5  # neutral (no signal)
+        assert result.is_active is False
 
     def test_tolerance_matching(self):
-        """Numbers within tolerance match."""
+        """Float numbers within tolerance match (integers require exact match)."""
         config = NumericConfig(tolerance_percent=5.0)
         validator = NumericValidator(config=config)
-        context = ["The value is 100."]
-        answer = "The value is approximately 102."
+        # Use floats since integers require exact match
+        context = ["The value is 100.0 units."]
+        answer = "The value is approximately 102.0 units."
         result = validator.score(context, answer, None, None)
         assert result.score == 0.0  # supported (within tolerance)
 

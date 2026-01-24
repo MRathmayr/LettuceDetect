@@ -16,12 +16,23 @@ class Model2VecConfig:
 
 @dataclass
 class NLIConfig:
-    """Configuration for NLI contradiction detector."""
+    """Configuration for NLI contradiction detector.
 
-    model_name: str = "cross-encoder/nli-deberta-v3-base"
+    Default model is FEVER-trained for better fact verification.
+    Uses max_contradiction as hallucination score (best AUROC on RAGTruth).
+    """
+
+    # FEVER-trained model for fact verification (184M params, ~15-20ms)
+    # Trained on: MNLI, FEVER-NLI, ANLI - specifically designed for fact checking
+    model_name: str = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
     device: str | None = None
     max_length: int = 512
     batch_size: int = 8
+    # Score mode: "contradiction" (best) or "weighted" (experimental)
+    score_mode: str = "contradiction"
+    # Weights for weighted mode (entailment is anti-correlated on RAGTruth)
+    entailment_weight: float = 0.0  # Disabled - anti-correlated
+    contradiction_weight: float = 1.0  # Full weight on contradiction
 
 
 @dataclass

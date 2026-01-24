@@ -242,16 +242,18 @@ class TestEdgeCases:
     def test_empty_answer(self, sample_context, empty_answer):
         """Handle empty answer gracefully."""
         result = self.verifier.score(sample_context, empty_answer, None, None)
-        # Empty answer has no entities to verify, so fully supported
-        assert result.score == 0.0  # supported
+        # Empty answer has no entities to verify = neutral, inactive
+        assert result.score == 0.5  # neutral (no signal)
+        assert result.is_active is False
 
     def test_no_entities_in_answer(self):
         """Handle answer with no named entities."""
         context = ["John Smith works at Microsoft."]
         answer = "The person works at the company."
         result = self.verifier.score(context, answer, None, None)
-        # No entities to verify = fully supported
-        assert result.score == 0.0  # supported
+        # No entities to verify = neutral, inactive
+        assert result.score == 0.5  # neutral (no signal)
+        assert result.is_active is False
 
     def test_special_characters_in_entities(self):
         """Handle entities with special characters."""

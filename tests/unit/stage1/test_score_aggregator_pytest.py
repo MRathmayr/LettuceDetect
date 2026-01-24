@@ -332,3 +332,89 @@ class TestSpanMerging:
         result = self.aggregator.aggregate(preds, {})
         assert result.merged_spans[0]["start"] == 0
         assert result.merged_spans[1]["start"] == 10
+
+
+class TestInactiveComponentHandling:
+    """Test handling of inactive augmentation components (is_active=False)."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        weights = {"transformer": 0.5, "ner": 0.25, "numeric": 0.25}
+        self.aggregator = ScoreAggregator(weights)
+
+    def test_inactive_components_excluded_from_weighted_average(self):
+        """Inactive augmentations (is_active=False) don't contribute to weighted average."""
+        # Transformer: 0.0 (supported)
+        preds = [{"token": "x", "pred": 0, "prob": 0.1}]
+
+        # NER is inactive (score=0.5 but should be excluded)
+        # Numeric is active with score=1.0 (hallucinated)
+        aug_results = {
+            "ner": AugmentationResult(
+                score=0.5, evidence={}, details={}, flagged_spans=[], is_active=False
+            ),
+            "numeric": AugmentationResult(
+                score=1.0, evidence={}, details={}, flagged_spans=[], is_active=True
+            ),
+        }
+        result = self.aggregator.aggregate(preds, aug_results)
+
+        # Without inactive handling: (0.5*0.0 + 0.25*0.5 + 0.25*1.0) / 1.0 = 0.375
+        # With inactive handling: (0.5*0.0 + 0.25*1.0) / 0.75 = 0.333
+        expected = (0.5 * 0.0 + 0.25 * 1.0) / (0.5 + 0.25)
+        assert abs(result.hallucination_score - expected) < 0.01
+
+    def test_inactive_components_included_in_component_scores(self):
+        """Inactive components still visible in component_scores for observability."""
+        preds = [{"token": "x", "pred": 0, "prob": 0.1}]
+        aug_results = {
+            "ner": AugmentationResult(
+                score=0.5, evidence={}, details={}, flagged_spans=[], is_active=False
+            ),
+        }
+        result = self.aggregator.aggregate(preds, aug_results)
+
+        # NER score should still be recorded even though inactive
+        assert "ner" in result.component_scores
+        assert result.component_scores["ner"] == 0.5
+
+    def test_all_augmentations_inactive_only_transformer_contributes(self):
+        """When all augmentations inactive, only transformer contributes."""
+        # Transformer: 0.8 hallucination score
+        preds = [{"token": "x", "pred": 1, "prob": 0.8}]
+
+        # Both augmentations inactive with 0.5 scores
+        aug_results = {
+            "ner": AugmentationResult(
+                score=0.5, evidence={}, details={}, flagged_spans=[], is_active=False
+            ),
+            "numeric": AugmentationResult(
+                score=0.5, evidence={}, details={}, flagged_spans=[], is_active=False
+            ),
+        }
+        result = self.aggregator.aggregate(preds, aug_results)
+
+        # Only transformer contributes: 0.8
+        assert result.hallucination_score == 0.8
+
+    def test_active_augmentations_included_in_weighted_average(self):
+        """Active augmentations (is_active=True, the default) contribute normally."""
+        preds = [{"token": "x", "pred": 1, "prob": 0.8}]
+        aug_results = {
+            "ner": AugmentationResult(
+                score=0.0, evidence={}, details={}, flagged_spans=[], is_active=True
+            ),
+            "numeric": AugmentationResult(
+                score=0.0, evidence={}, details={}, flagged_spans=[], is_active=True
+            ),
+        }
+        result = self.aggregator.aggregate(preds, aug_results)
+
+        # All components active: (0.5*0.8 + 0.25*0.0 + 0.25*0.0) / 1.0 = 0.4
+        expected = 0.5 * 0.8 + 0.25 * 0.0 + 0.25 * 0.0
+        assert abs(result.hallucination_score - expected) < 0.01
+
+    def test_is_active_default_is_true(self):
+        """AugmentationResult defaults to is_active=True for backwards compatibility."""
+        result = AugmentationResult(score=0.5, evidence={}, details={}, flagged_spans=[])
+        assert result.is_active is True

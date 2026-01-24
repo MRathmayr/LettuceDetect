@@ -134,14 +134,17 @@ class Stage2Detector(BaseDetector):
         ncs_score = 0.5
         if self._encoder:
             ncs_scores = self._encoder.compute_ncs(context, answer)
-            ncs_score = ncs_scores["max"]
+            # NCS is cosine similarity in [-1, 1], convert to [0, 1] support score
+            # -1 (opposite) -> 0, 0 (orthogonal) -> 0.5, 1 (identical) -> 1
+            ncs_score = (ncs_scores["max"] + 1.0) / 2.0
 
         # Compute NLI (if enabled)
         nli_score = 0.5
         if self._nli:
             nli_scores = self._nli.compute_context_nli(context, answer)
-            # Invert: high contradiction -> low support
-            nli_score = 1.0 - nli_scores["max_contradiction"]
+            # Use weighted combined hallucination score, then invert for support convention
+            # hallucination_score: high = hallucination, we need high = support
+            nli_score = 1.0 - nli_scores["hallucination_score"]
 
         # Build scores object and aggregate
         scores = Stage2Scores(
