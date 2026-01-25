@@ -165,6 +165,47 @@ class NumericValidator(BaseAugmentation):
                 total += WORD_NUMBERS[part]
         return total
 
+    def _normalize_word_numbers(self, text: str) -> str:
+        """Convert written numbers to digits using word2number.
+
+        Examples:
+        - "twenty-three" -> "23"
+        - "one million" -> "1000000"
+        - "two hundred and fifty" -> "250"
+        """
+        if not self.config.normalize_word_numbers:
+            return text
+
+        try:
+            from word2number import w2n
+        except ImportError:
+            logger.debug("word2number not installed, skipping normalization")
+            return text
+
+        # Pattern to find potential number phrases
+        # Matches sequences of number words
+        number_words = (
+            r"\b((?:zero|one|two|three|four|five|six|seven|eight|nine|ten|"
+            r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|"
+            r"eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|"
+            r"eighty|ninety|hundred|thousand|million|billion|trillion|and)"
+            r"(?:[-\s]+(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|"
+            r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|"
+            r"eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|"
+            r"eighty|ninety|hundred|thousand|million|billion|trillion|and))*)\b"
+        )
+        pattern = re.compile(number_words, re.IGNORECASE)
+
+        def replace_word_number(match: re.Match) -> str:
+            phrase = match.group(1)
+            try:
+                num = w2n.word_to_num(phrase)
+                return str(num)
+            except ValueError:
+                return phrase  # Keep original if parsing fails
+
+        return pattern.sub(replace_word_number, text)
+
     def _extract_numbers(self, text: str) -> list[ExtractedNumber]:
         """Extract all numeric values from text."""
         numbers = []
@@ -440,12 +481,18 @@ class NumericValidator(BaseAugmentation):
             AugmentationResult with hallucination score (0 = supported, 1 = hallucinated).
             Score is ratio of unverified numbers.
         """
-        # Extract numbers from context
+        # Normalize text numbers if enabled (e.g., "twenty-three" -> "23")
         context_text = " ".join(context)
+        answer_text = answer
+        if self.config.normalize_word_numbers:
+            context_text = self._normalize_word_numbers(context_text)
+            answer_text = self._normalize_word_numbers(answer_text)
+
+        # Extract numbers from context
         context_numbers = self._extract_numbers(context_text)
 
         # Extract numbers from answer
-        answer_numbers = self._extract_numbers(answer)
+        answer_numbers = self._extract_numbers(answer_text)
 
         # No numbers in answer = nothing to verify = no evidence of hallucination
         if not answer_numbers:
