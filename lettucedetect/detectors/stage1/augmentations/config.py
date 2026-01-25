@@ -79,3 +79,4 @@ class NumericConfig:
     tolerance_percentage: float = 0.0  # Exact match for percentages
     extract_currencies: bool = True
     extract_dates: bool = True
+    normalize_word_numbers: bool = True  # Use word2number for text-to-digit
