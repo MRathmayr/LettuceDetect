@@ -18,21 +18,36 @@ class Stage3Method(str, Enum):
 
 
 class Stage1Config(BaseModel):
-    """Configuration for Stage 1: Transformer + Augmentations."""
+    """Configuration for Stage 1: Transformer + Augmentations.
+
+    Weights are optimized for hallucination detection:
+    - transformer: 0.70 (primary signal, trained on RAGTruth)
+    - lexical/ner/numeric: 0.10 each (heuristic augmentations)
+
+    Routing thresholds calibrated on RAGTruth (2026-01-25):
+    - confident_high: 0.79 (score above = skip to hallucinated)
+    - confident_low: 0.09 (score below = skip to supported)
+    - optimal: 0.15 (threshold that maximizes F1)
+    """
 
     model_path: str = "KRLabsOrg/lettucedect-base-modernbert-en-v1"
     augmentations: list[Literal["ner", "numeric", "lexical"]] = []
     weights: dict[str, float] = Field(
         default_factory=lambda: {
-            "transformer": 0.5,
-            "ner": 0.2,
-            "numeric": 0.15,
-            "lexical": 0.15,
+            "transformer": 0.70,  # Primary signal (trained on RAGTruth)
+            "lexical": 0.10,      # Weak heuristic
+            "ner": 0.10,          # Conditional (fires when entities present)
+            "numeric": 0.10,      # Conditional (fires when numbers present)
         }
     )
     max_length: int = 4096
     device: str = "cuda"
     lang: str = "en"
+
+    # Routing thresholds (calibrated on RAGTruth 2026-01-25)
+    routing_threshold_high: float = 0.79  # Score >= this = confident hallucination
+    routing_threshold_low: float = 0.09   # Score <= this = confident supported
+    classification_threshold: float = 0.15  # Optimal threshold for F1
 
     @field_validator("weights")
     @classmethod
@@ -47,35 +62,41 @@ class Stage1Config(BaseModel):
 class Stage2Config(BaseModel):
     """Configuration for Stage 2: NCS + NLI semantic analysis.
 
-    All options have sensible defaults. Users can override any option
-    for fine-tuning or specific use cases.
+    Uses HHEM (Vectara Hallucination Evaluation Model) for NLI component.
+    HHEM is trained specifically for RAG hallucination detection.
 
-    Note: Lexical overlap removed to avoid redundancy with Stage 1.
+    Weights are optimized for hallucination detection:
+    - nli (HHEM): 0.70 (strong hallucination-specific signal)
+    - ncs: 0.30 (embedding similarity)
+
+    Routing thresholds calibrated on RAGTruth (2026-01-25):
+    - confident_high: 0.44 (score above = hallucinated)
+    - confident_low: 0.06 (score below = supported)
+    - optimal: 0.18 (threshold that maximizes F1)
     """
 
     # Component selection
     components: list[Literal["ncs", "nli"]] = ["ncs", "nli"]
 
-    # Model selection
+    # Model selection (HHEM is hardcoded for NLI, only NCS model is configurable)
     ncs_model: str = "minishlab/potion-base-32M"
-    nli_model: str = "cross-encoder/nli-deberta-v3-base"
 
     # Aggregation weights (must sum to 1.0)
     weights: dict[str, float] = Field(
-        default_factory=lambda: {"ncs": 0.5, "nli": 0.5}
+        default_factory=lambda: {
+            "ncs": 0.30,  # Embedding similarity
+            "nli": 0.70,  # HHEM - strong hallucination-specific signal
+        }
     )
 
     # NCS configuration
     ncs_normalize_embeddings: bool = True
     ncs_batch_size: int = 32
 
-    # NLI configuration
-    nli_max_length: int = 512
-    nli_batch_size: int = 8
-
-    # Routing thresholds
-    routing_threshold_high: float = 0.85  # Score >= this = confident hallucination
-    routing_threshold_low: float = 0.3  # Score <= this = confident supported
+    # Routing thresholds (calibrated on RAGTruth 2026-01-25)
+    routing_threshold_high: float = 0.44  # Score >= this = confident hallucination
+    routing_threshold_low: float = 0.06   # Score <= this = confident supported
+    classification_threshold: float = 0.18  # Optimal threshold for F1
 
     # Stage 1 integration
     use_stage1_score: bool = True

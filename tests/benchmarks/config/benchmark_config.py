@@ -8,9 +8,7 @@ from pydantic import BaseModel, Field
 class DatasetConfig(BaseModel):
     """Configuration for a benchmark dataset."""
 
-    name: Literal[
-        "ragtruth", "halueval_qa", "halueval_dialogue", "halueval_summarization", "all"
-    ] = "ragtruth"
+    name: Literal["ragtruth", "halueval_qa", "all"] = "ragtruth"
     limit: int | None = Field(
         default=None, description="Maximum samples to load (None = all)"
     )

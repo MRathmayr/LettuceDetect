@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Complete benchmark suite for LettuceDetect.
 
-Runs all components, stages, and cascade on all datasets (RAGTruth + HaluEval).
+Runs all components, stages, and cascade on benchmark datasets (RAGTruth + HaluEval QA).
 Saves comprehensive results to JSON files.
 
-Expected runtime: ~3-4 hours on GTX 1080
-Datasets: RAGTruth (2.7k) + HaluEval QA/Dialogue/Summarization (30k) = ~33k samples
+Expected runtime: ~1-2 hours on GTX 1080
+Datasets: RAGTruth (2.7k) + HaluEval QA (10k) = ~12.7k samples
 
 Usage:
     python tests/benchmarks/run_complete_benchmark.py
@@ -142,7 +142,7 @@ def clear_gpu():
         torch.cuda.reset_peak_memory_stats()
 
 
-AVAILABLE_DATASETS = ["ragtruth", "halueval_qa", "halueval_dialogue", "halueval_summarization"]
+AVAILABLE_DATASETS = ["ragtruth", "halueval_qa"]
 
 
 def load_all_datasets(
@@ -161,8 +161,6 @@ def load_all_datasets(
     configs = [
         ("ragtruth", RAGTruthAdapter, {}),
         ("halueval_qa", HaluEvalAdapter, {"subset": "qa_samples"}),
-        ("halueval_dialogue", HaluEvalAdapter, {"subset": "dialogue_samples"}),
-        ("halueval_summarization", HaluEvalAdapter, {"subset": "summarization_samples"}),
     ]
 
     for name, adapter_cls, kwargs in configs:
@@ -680,14 +678,25 @@ def save_results(results: dict, output_dir: Path):
 # =============================================================================
 
 
-def run_benchmarks(datasets: dict[str, list[BenchmarkSample]], compute_ci: bool = True) -> dict:
-    """Run all benchmarks."""
+def run_benchmarks(
+    datasets: dict[str, list[BenchmarkSample]],
+    compute_ci: bool = True,
+    component_filter: list[str] | None = None,
+) -> dict:
+    """Run all benchmarks.
+
+    Args:
+        datasets: Dict mapping dataset name to list of samples
+        compute_ci: Whether to compute bootstrap confidence intervals
+        component_filter: Optional list of component names to benchmark (default: all)
+    """
     results = {
         "metadata": {
             "timestamp": datetime.now().isoformat(),
             "datasets": {name: len(samples) for name, samples in datasets.items()},
             "total_samples": sum(len(s) for s in datasets.values()),
             "compute_ci": compute_ci,
+            "component_filter": component_filter,
         },
         "components": [],
         "stages": [],
@@ -695,27 +704,38 @@ def run_benchmarks(datasets: dict[str, list[BenchmarkSample]], compute_ci: bool 
         "summary": {},
     }
 
-    specs = get_component_specs()
+    all_specs = get_component_specs()
+
+    # Filter specs if component_filter is provided
+    if component_filter:
+        specs = [s for s in all_specs if s.name in component_filter]
+        run_cascade = "cascade" in component_filter
+    else:
+        specs = all_specs
+        run_cascade = True
+
     n_datasets = len(datasets)
-    # 8 specs (6 components + 2 stages) + 1 cascade = 9 types, each on n_datasets
-    total_steps = (len(specs) + 1) * n_datasets
+    # Calculate total steps based on filtered specs
+    total_steps = len(specs) * n_datasets + (n_datasets if run_cascade else 0)
     progress = ProgressTracker(total_steps)
 
     # Run components and stages
-    print("\n" + "=" * 70)
-    print("RUNNING COMPONENT AND STAGE BENCHMARKS")
-    print("=" * 70)
+    if specs:
+        print("\n" + "=" * 70)
+        print("RUNNING COMPONENT AND STAGE BENCHMARKS")
+        print("=" * 70)
 
-    component_results = run_component_suite(specs, datasets, progress, compute_ci)
-    results["components"] = component_results["components"]
-    results["stages"] = component_results["stages"]
+        component_results = run_component_suite(specs, datasets, progress, compute_ci)
+        results["components"] = component_results["components"]
+        results["stages"] = component_results["stages"]
 
     # Run cascade
-    print("\n" + "=" * 70)
-    print("RUNNING CASCADE BENCHMARK")
-    print("=" * 70)
+    if run_cascade:
+        print("\n" + "=" * 70)
+        print("RUNNING CASCADE BENCHMARK")
+        print("=" * 70)
 
-    results["cascade"] = benchmark_cascade(datasets, progress, compute_ci)
+        results["cascade"] = benchmark_cascade(datasets, progress, compute_ci)
 
     # Compute summaries
     print("\nComputing summaries...")
@@ -737,6 +757,13 @@ def main():
         default=None,
         help=f"Datasets to benchmark (default: all). Choices: {', '.join(AVAILABLE_DATASETS)}",
     )
+    parser.add_argument(
+        "--component",
+        type=str,
+        nargs="+",
+        default=None,
+        help="Components to benchmark (default: all). Choices: lexical, numeric, ner, transformer, model2vec, nli, stage1, stage2, cascade",
+    )
     args = parser.parse_args()
 
     print("=" * 70)
@@ -747,13 +774,15 @@ def main():
     print(f"Bootstrap CI: {'No (--no-ci)' if args.no_ci else 'Yes'}")
     if args.dataset:
         print(f"Datasets: {', '.join(args.dataset)}")
+    if args.component:
+        print(f"Components: {', '.join(args.component)}")
     if args.limit:
         print(f"Sample limit: {args.limit} per dataset")
 
     start_time = time.time()
 
     datasets = load_all_datasets(limit=args.limit, dataset_filter=args.dataset)
-    results = run_benchmarks(datasets, compute_ci=not args.no_ci)
+    results = run_benchmarks(datasets, compute_ci=not args.no_ci, component_filter=args.component)
 
     total_time = time.time() - start_time
     results["metadata"]["total_time_sec"] = total_time

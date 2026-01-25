@@ -1,8 +1,10 @@
-"""NER-based verification augmentation using spaCy."""
+"""NER-based verification augmentation using spaCy or GLiNER."""
 
 from __future__ import annotations
 
 import logging
+
+from rapidfuzz import fuzz
 
 from lettucedetect.cascade.types import AugmentationResult
 from lettucedetect.detectors.stage1.augmentations.base import BaseAugmentation
@@ -14,24 +16,28 @@ logger = logging.getLogger(__name__)
 class NERVerifier(BaseAugmentation):
     """Verify named entities in answer exist in context.
 
-    Uses spaCy for entity extraction and rapidfuzz for fuzzy matching.
+    Supports two NER backends:
+    - spaCy (default): Traditional NER, fast, good for common entity types
+    - GLiNER: Zero-shot NER, higher recall for domain-specific entities
+
     Returns ratio of verified entities as support score.
 
     Limitations:
-    - Poor on domain-specific entities
-    - Reliable for common entity types: PERSON, ORG, GPE, LOC, DATE, TIME, MONEY, PERCENT
+    - spaCy: Poor on domain-specific entities
+    - GLiNER: Requires GPU for reasonable latency (~500ms on GPU, several seconds on CPU)
     """
 
     def __init__(self, config: NERConfig | None = None) -> None:
         """Initialize NER verifier.
 
         Args:
-            config: NERConfig with spacy_model, entity_types, fuzzy_threshold
+            config: NERConfig with model selection and thresholds
         """
         self.config = config or NERConfig()
-        self._nlp = None
+        self._nlp = None  # spaCy model
+        self._gliner = None  # GLiNER model
 
-    def _load_model(self) -> None:
+    def _load_spacy_model(self) -> None:
         """Lazy load spaCy model, downloading if necessary."""
         if self._nlp is None:
             import spacy
@@ -41,10 +47,42 @@ class NERVerifier(BaseAugmentation):
             if not is_package(model_name):
                 logger.info(f"Downloading spaCy model: {model_name}")
                 from spacy.cli import download
-
                 download(model_name)
 
             self._nlp = spacy.load(model_name)
+
+    def _load_gliner_model(self) -> None:
+        """Lazy load GLiNER model."""
+        if self._gliner is None:
+            try:
+                from gliner import GLiNER
+
+                logger.info(f"Loading GLiNER model: {self.config.gliner_model}")
+                try:
+                    self._gliner = GLiNER.from_pretrained(self.config.gliner_model)
+                except Exception as e:
+                    raise RuntimeError(
+                        f"Failed to load GLiNER model '{self.config.gliner_model}': {e}. "
+                        "Ensure the model exists on HuggingFace and you have network access."
+                    ) from e
+
+                # Move to GPU if available and enabled
+                if self.config.use_gpu:
+                    try:
+                        import torch
+                        if torch.cuda.is_available():
+                            self._gliner = self._gliner.to("cuda")
+                            logger.info("GLiNER model loaded on GPU")
+                        else:
+                            logger.warning("GPU not available, GLiNER running on CPU (slow)")
+                    except ImportError:
+                        logger.warning("torch not available, GLiNER running on CPU")
+                else:
+                    logger.info("GLiNER model loaded on CPU (use_gpu=False)")
+            except ImportError:
+                raise ImportError(
+                    "GLiNER not installed. Install with: pip install gliner"
+                )
 
     @property
     def name(self) -> str:
@@ -52,16 +90,19 @@ class NERVerifier(BaseAugmentation):
         return "ner"
 
     def preload(self) -> None:
-        """Preload spaCy model."""
-        self._load_model()
+        """Preload NER model based on configuration."""
+        if self.config.model == "gliner":
+            self._load_gliner_model()
+        else:
+            self._load_spacy_model()
 
-    def _extract_entities(self, text: str) -> list[dict]:
-        """Extract named entities from text.
+    def _extract_entities_spacy(self, text: str) -> list[dict]:
+        """Extract named entities using spaCy.
 
         Returns:
             List of dicts with text, label, start, end
         """
-        self._load_model()
+        self._load_spacy_model()
         doc = self._nlp(text)
         entities = []
         for ent in doc.ents:
@@ -76,6 +117,39 @@ class NERVerifier(BaseAugmentation):
                 )
         return entities
 
+    def _extract_entities_gliner(self, text: str) -> list[dict]:
+        """Extract named entities using GLiNER.
+
+        Returns:
+            List of dicts with text, label, start, end
+        """
+        self._load_gliner_model()
+
+        # GLiNER predict_entities expects labels as list of strings
+        predictions = self._gliner.predict_entities(
+            text,
+            self.config.gliner_entity_labels,
+            threshold=self.config.gliner_threshold,
+        )
+
+        entities = []
+        for pred in predictions:
+            entities.append(
+                {
+                    "text": pred["text"],
+                    "label": pred["label"].upper(),  # Normalize to uppercase
+                    "start": pred["start"],
+                    "end": pred["end"],
+                }
+            )
+        return entities
+
+    def _extract_entities(self, text: str) -> list[dict]:
+        """Extract named entities from text using configured backend."""
+        if self.config.model == "gliner":
+            return self._extract_entities_gliner(text)
+        return self._extract_entities_spacy(text)
+
     def _entity_in_context(
         self, entity_text: str, context_entities: list[dict]
     ) -> tuple[bool, float]:
@@ -84,8 +158,6 @@ class NERVerifier(BaseAugmentation):
         Returns:
             (found, similarity_score) tuple
         """
-        from rapidfuzz import fuzz
-
         entity_lower = entity_text.lower()
 
         for ctx_ent in context_entities:
@@ -122,10 +194,11 @@ class NERVerifier(BaseAugmentation):
         # Extract entities from answer
         answer_entities = self._extract_entities(answer)
 
-        # No entities in answer = nothing to verify = neutral (no signal)
+        # No entities in answer = nothing to verify = no evidence of hallucination
+        # Score 0.0 = supported (no hallucination), is_active=False excludes from aggregation
         if not answer_entities:
             return AugmentationResult(
-                score=0.5,  # Neutral: no signal, not "supported"
+                score=0.0,  # 0.0 = supported/no hallucination (absence of entities is not hallucination)
                 evidence={
                     "entities_checked": 0,
                     "entities_verified": 0,
@@ -133,7 +206,7 @@ class NERVerifier(BaseAugmentation):
                 },
                 details={"answer_entities": 0, "context_entities": len(context_entities)},
                 flagged_spans=[],
-                is_active=False,  # Nothing to verify
+                is_active=False,  # Excluded from weighted average - nothing to verify
             )
 
         # Verify each answer entity

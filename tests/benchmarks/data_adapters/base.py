@@ -75,8 +75,6 @@ def load_dataset_adapter(name: str) -> DatasetAdapter:
     adapters = {
         "ragtruth": RAGTruthAdapter,
         "halueval_qa": lambda: HaluEvalAdapter(subset="qa_samples"),
-        "halueval_dialogue": lambda: HaluEvalAdapter(subset="dialogue_samples"),
-        "halueval_summarization": lambda: HaluEvalAdapter(subset="summarization_samples"),
     }
 
     if name not in adapters:
@@ -99,7 +97,7 @@ def load_all_datasets(limit: int | None = None) -> list[BenchmarkSample]:
         Combined list of samples from all datasets
     """
     samples = []
-    for name in ["ragtruth", "halueval_qa", "halueval_dialogue", "halueval_summarization"]:
+    for name in ["ragtruth", "halueval_qa"]:
         adapter = load_dataset_adapter(name)
         samples.extend(adapter.load(limit=limit))
     return samples

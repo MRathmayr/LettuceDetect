@@ -1,179 +1,126 @@
-"""NLI contradiction detector using DeBERTa-MNLI."""
+"""NLI-based hallucination detection using HHEM (Vectara).
+
+HHEM (Hallucination Evaluation Model) is trained specifically for RAG hallucination
+detection, unlike generic NLI models. It outperforms GPT-3.5 and GPT-4 on
+hallucination detection benchmarks.
+
+Note: HHEM requires trust_remote_code=True which executes code from HuggingFace.
+This is acceptable for research/development. If enterprise security policies
+prohibit this, the code can be vendored locally.
+"""
 
 from __future__ import annotations
 
 import logging
 
 import torch
-
-from lettucedetect.detectors.stage2.config import NLIConfig
+from transformers import AutoModelForSequenceClassification
 
 logger = logging.getLogger(__name__)
 
 
 class NLIContradictionDetector:
-    """DeBERTa-based NLI for detecting contradictions between context and answer.
+    """NLI-based hallucination detection using HHEM model.
 
-    Uses batched inference to avoid sequential bottleneck on multi-passage contexts.
-    Label mapping is auto-detected from model config (id2label).
+    HHEM is a cross-encoder trained specifically for detecting hallucinations
+    in RAG systems. It takes (context, answer) pairs and returns consistency scores.
+
+    Score direction:
+    - HHEM returns: 0.0 = hallucinated, 1.0 = consistent
+    - We invert to: 0.0 = supported, 1.0 = hallucinated
     """
 
-    def __init__(self, config: NLIConfig | None = None):
-        self.config = config or NLIConfig()
-        self._model = None
-        self._tokenizer = None
-        self._label_map = None  # Auto-detected from model
+    MODEL_NAME = "vectara/hallucination_evaluation_model"
 
-    def _load_model(self) -> None:
-        """Lazy load model and tokenizer."""
-        if self._model is None:
-            from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-            self._tokenizer = AutoTokenizer.from_pretrained(self.config.model_name)
-            self._model = AutoModelForSequenceClassification.from_pretrained(
-                self.config.model_name
-            )
-
-            # Auto-detect label mapping from model config
-            id2label = self._model.config.id2label
-            self._label_map = {v.lower(): k for k, v in id2label.items()}
-
-            device = self.config.device
-            if device is None:
-                device = "cuda" if torch.cuda.is_available() else "cpu"
-
-            self._model = self._model.to(device)
-            self._model.eval()
-            self._device = device
-
-    def predict_batch(self, premises: list[str], hypotheses: list[str]) -> list[dict]:
-        """Batched NLI prediction - critical for multi-passage efficiency.
+    def __init__(self, device: str | None = None):
+        """Initialize NLI detector.
 
         Args:
-            premises: List of premise texts (context passages).
-            hypotheses: List of hypothesis texts (usually the answer repeated).
-
-        Returns:
-            List of dicts with entailment/neutral/contradiction probabilities.
-            On error, returns neutral defaults (0.33, 0.34, 0.33) for each pair.
+            device: Device to run model on ("cuda", "cpu", or None for auto-detect).
         """
-        if not premises or not hypotheses:
-            return []
+        self._model = None
+        self._device = device
 
-        if len(premises) != len(hypotheses):
-            raise ValueError(
-                f"premises and hypotheses must have same length, "
-                f"got {len(premises)} and {len(hypotheses)}"
-            )
+    def preload(self) -> None:
+        """Load HHEM model to GPU/CPU."""
+        if self._model is not None:
+            return
 
-        try:
-            self._load_model()
+        logger.info("Loading HHEM model (Vectara hallucination evaluation)")
+        self._model = AutoModelForSequenceClassification.from_pretrained(
+            self.MODEL_NAME,
+            trust_remote_code=True,
+        )
 
-            inputs = self._tokenizer(
-                premises,
-                hypotheses,
-                padding=True,
-                truncation=True,
-                max_length=self.config.max_length,
-                return_tensors="pt",
-            )
-            inputs = {k: v.to(self._device) for k, v in inputs.items()}
+        # Move to device
+        if self._device is None:
+            self._device = "cuda" if torch.cuda.is_available() else "cpu"
+        self._model = self._model.to(self._device)
+        self._model.eval()
+        logger.info(f"HHEM model loaded on {self._device}")
 
-            with torch.no_grad():
-                outputs = self._model(**inputs)
-                probs = torch.softmax(outputs.logits, dim=-1).cpu().numpy()
-
-            # Use label map for correct indices
-            ent_idx = self._label_map.get("entailment", 0)
-            neu_idx = self._label_map.get("neutral", 1)
-            con_idx = self._label_map.get("contradiction", 2)
-
-            results = []
-            for p in probs:
-                entailment = float(p[ent_idx])
-                neutral = float(p[neu_idx])
-                contradiction = float(p[con_idx])
-                results.append(
-                    {
-                        "entailment": entailment,
-                        "neutral": neutral,
-                        "contradiction": contradiction,
-                        "non_contradiction": entailment + neutral,
-                    }
-                )
-            return results
-
-        except Exception as e:
-            logger.warning(f"NLI prediction failed: {e}, returning neutral defaults")
-            return [
-                {
-                    "entailment": 0.33,
-                    "neutral": 0.34,
-                    "contradiction": 0.33,
-                    "non_contradiction": 0.67,
-                }
-                for _ in premises
-            ]
-
-    def predict_single(self, premise: str, hypothesis: str) -> dict:
-        """Single-pair prediction (wrapper around batch)."""
-        return self.predict_batch([premise], [hypothesis])[0]
+    def warmup(self) -> None:
+        """Alias for preload() to match augmentation interface."""
+        self.preload()
 
     def compute_context_nli(self, context_texts: list[str], answer: str) -> dict:
-        """Compute NLI against all context passages using batched inference.
+        """Compute hallucination scores for answer against context.
 
         Args:
-            context_texts: List of context passages.
-            answer: The answer to check for contradiction.
+            context_texts: List of context passages (premises).
+            answer: Generated answer to check (hypothesis).
 
         Returns:
-            Dict with hallucination_score and raw component scores.
-            hallucination_score uses max_contradiction (best AUROC on RAGTruth).
+            Dict with hallucination_score, max_hallucination, mean_hallucination.
+            All scores are in range [0, 1] where 0 = supported, 1 = hallucinated.
         """
         if not context_texts:
             return {
                 "hallucination_score": 0.5,
-                "max_contradiction": 0.0,
-                "min_non_contradiction": 1.0,
-                "mean_entailment": 0.5,
-                "mean_contradiction": 0.0,
+                "max_hallucination": 0.5,
+                "mean_hallucination": 0.5,
             }
 
-        premises = context_texts
-        hypotheses = [answer] * len(context_texts)
-        results = self.predict_batch(premises, hypotheses)
+        if self._model is None:
+            self.preload()
 
-        # Compute scores across all context passages
-        max_contradiction = max(r["contradiction"] for r in results)
-        mean_entailment = sum(r["entailment"] for r in results) / len(results)
-        mean_contradiction = sum(r["contradiction"] for r in results) / len(results)
+        # Create premise-hypothesis pairs
+        pairs = [(ctx, answer) for ctx in context_texts]
 
-        # Compute hallucination score based on config mode
-        if self.config.score_mode == "weighted":
-            # Weighted combination (experimental)
-            ent_weight = self.config.entailment_weight
-            con_weight = self.config.contradiction_weight
-            hallucination_score = (
-                ent_weight * (1.0 - mean_entailment) + con_weight * mean_contradiction
-            )
-        else:
-            # Default: use max_contradiction (best AUROC 0.667 on RAGTruth)
-            hallucination_score = max_contradiction
+        try:
+            # HHEM's predict() handles batching and tokenization internally
+            scores = self._model.predict(pairs)
+
+            # Convert to list robustly
+            if hasattr(scores, "tolist"):
+                scores_list = scores.tolist()
+            else:
+                scores_list = list(scores)
+
+            # INVERT: HHEM returns 0=hallucinated, 1=consistent
+            # We need 0=supported, 1=hallucinated
+            hallucination_scores = [1.0 - s for s in scores_list]
+
+        except (RuntimeError, torch.cuda.OutOfMemoryError) as e:
+            # Critical errors should propagate
+            logger.error(f"HHEM critical failure: {e}")
+            raise
+        except Exception as e:
+            logger.warning(f"HHEM predict() failed: {e}. Returning neutral scores.")
+            hallucination_scores = [0.5] * len(pairs)
+
+        if not hallucination_scores:
+            return {
+                "hallucination_score": 0.5,
+                "max_hallucination": 0.5,
+                "mean_hallucination": 0.5,
+            }
+
+        max_hal = max(hallucination_scores)
+        mean_hal = sum(hallucination_scores) / len(hallucination_scores)
 
         return {
-            "hallucination_score": hallucination_score,
-            "max_contradiction": max_contradiction,
-            "min_non_contradiction": min(r["non_contradiction"] for r in results),
-            "mean_entailment": mean_entailment,
-            "mean_contradiction": mean_contradiction,
-            "all_results": results,
+            "hallucination_score": max_hal,  # Use max as primary (consistent with DeBERTa approach)
+            "max_hallucination": max_hal,
+            "mean_hallucination": mean_hal,
         }
-
-    def warmup(self) -> None:
-        """Preload model for consistent latency."""
-        self._load_model()
-        _ = self.predict_single("warmup premise", "warmup hypothesis")
-
-    def preload(self) -> None:
-        """Alias for warmup() to match augmentation interface."""
-        self.warmup()

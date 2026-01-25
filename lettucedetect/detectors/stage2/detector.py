@@ -22,7 +22,7 @@ from lettucedetect.detectors.stage2.aggregator import (
     Stage2Aggregator,
     Stage2Scores,
 )
-from lettucedetect.detectors.stage2.config import Model2VecConfig, NLIConfig
+from lettucedetect.detectors.stage2.config import Model2VecConfig
 from lettucedetect.detectors.stage2.model2vec_encoder import Model2VecEncoder
 from lettucedetect.detectors.stage2.nli_detector import NLIContradictionDetector
 
@@ -46,7 +46,10 @@ class Stage2Detector(BaseDetector):
 
     Components:
     - NCS (Model2Vec embeddings): Fast semantic similarity via static embeddings
-    - NLI (DeBERTa-MNLI): Contradiction detection via cross-encoder
+    - NLI (HHEM): Hallucination detection via Vectara's HHEM model
+
+    HHEM is trained specifically for RAG hallucination detection, unlike generic
+    NLI models like DeBERTa-MNLI. It outperforms GPT-3.5 and GPT-4 on benchmarks.
 
     This stage operates at RESPONSE LEVEL, not token level. The hallucination
     score represents the probability that the entire answer is unsupported by
@@ -86,14 +89,10 @@ class Stage2Detector(BaseDetector):
             )
             self._encoder = Model2VecEncoder(m2v_config)
 
-        # Initialize NLI detector if enabled
+        # Initialize NLI detector if enabled (uses HHEM)
         self._nli = None
         if "nli" in components:
-            nli_config = NLIConfig(
-                model_name=self.config.nli_model,
-                max_length=self.config.nli_max_length,
-            )
-            self._nli = NLIContradictionDetector(nli_config)
+            self._nli = NLIContradictionDetector(device=self._device)
 
         # Initialize aggregator with weights and thresholds from config
         agg_config = AggregatorConfig(

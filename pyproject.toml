@@ -48,6 +48,7 @@ stage1 = [
     "spacy>=3.7.0",
     "rapidfuzz>=3.0.0",
     "nltk>=3.8.0",
+    "gliner>=0.2.0",  # Optional: for GLiNER-based NER
 ]
 stage2 = [
     "model2vec>=0.3.0",
