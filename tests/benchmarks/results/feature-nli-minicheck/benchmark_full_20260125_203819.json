@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "timestamp": "2026-01-25T20:32:42.678244",
+    "datasets": {
+      "ragtruth": 2700
+    },
+    "total_samples": 2700,
+    "compute_ci": false,
+    "component_filter": [
+      "nli"
+    ],
+    "total_time_sec": 339.0020966529846,
+    "total_time_hours": 0.0941672490702735
+  },
+  "components": [
+    {
+      "component": "nli",
+      "dataset": "ragtruth",
+      "n_samples": 2700,
+      "auroc": 0.6625242704383194,
+      "auroc_ci_lower": null,
+      "auroc_ci_upper": null,
+      "f1": 0.5773420479302832,
+      "precision": 0.4389839867476532,
+      "recall": 0.8430540827147401,
+      "optimal_threshold": 0.47226420044898987,
+      "optimal_f1": 0.5825311898326048,
+      "latency_mean_ms": 123.79776049593433,
+      "latency_std_ms": 15.274830909351609,
+      "latency_min_ms": 60.74603199886042,
+      "latency_max_ms": 310.25627399867517,
+      "latency_p50_ms": 129.75441249909636,
+      "latency_p95_ms": 131.5982433516183,
+      "gpu_peak_mb": 3239.052734375,
+      "elapsed_sec": 334.3221826553345,
+      "extra": {}
+    }
+  ],
+  "stages": [],
+  "cascade": [],
+  "summary": {
+    "nli": {
+      "avg_auroc": 0.6625242704383194,
+      "avg_f1": 0.5773420479302832,
+      "avg_optimal_f1": 0.5825311898326048,
+      "avg_latency_mean_ms": 123.79776049593433,
+      "avg_latency_p95_ms": 131.5982433516183,
+      "total_samples": 2700
+    }
+  }
+}

@@ -1,36 +1,37 @@
-"""NLI-based hallucination detection using HHEM (Vectara).
+"""NLI-based hallucination detection using MiniCheck-Flan-T5-Large.
 
-HHEM (Hallucination Evaluation Model) is trained specifically for RAG hallucination
-detection, unlike generic NLI models. It outperforms GPT-3.5 and GPT-4 on
-hallucination detection benchmarks.
+MiniCheck outperforms HHEM on LLM-AggreFact (75% vs 71.8% balanced accuracy).
+It uses a seq2seq approach: given (document, claim), generates "Yes" or "No".
+We extract probabilities from the logits to get a continuous score.
 
-Note: HHEM requires trust_remote_code=True which executes code from HuggingFace.
-This is acceptable for research/development. If enterprise security policies
-prohibit this, the code can be vendored locally.
+Model: lytang/MiniCheck-Flan-T5-Large (~0.8B parameters)
 """
 
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 import torch
-from transformers import AutoModelForSequenceClassification
+
+if TYPE_CHECKING:
+    from transformers import PreTrainedModel, PreTrainedTokenizer
 
 logger = logging.getLogger(__name__)
 
 
 class NLIContradictionDetector:
-    """NLI-based hallucination detection using HHEM model.
+    """NLI-based hallucination detection using MiniCheck-Flan-T5-Large.
 
-    HHEM is a cross-encoder trained specifically for detecting hallucinations
-    in RAG systems. It takes (context, answer) pairs and returns consistency scores.
+    MiniCheck is a seq2seq model that outputs "Yes" (supported) or "No" (not supported)
+    for document-claim pairs. We extract probabilities from the output logits.
 
     Score direction:
-    - HHEM returns: 0.0 = hallucinated, 1.0 = consistent
-    - We invert to: 0.0 = supported, 1.0 = hallucinated
+    - MiniCheck "Yes" = supported, "No" = not supported
+    - We return: 0.0 = supported, 1.0 = hallucinated
     """
 
-    MODEL_NAME = "vectara/hallucination_evaluation_model"
+    MODEL_NAME = "lytang/MiniCheck-Flan-T5-Large"
 
     def __init__(self, device: str | None = None):
         """Initialize NLI detector.
@@ -38,30 +39,81 @@ class NLIContradictionDetector:
         Args:
             device: Device to run model on ("cuda", "cpu", or None for auto-detect).
         """
-        self._model = None
+        self._model: PreTrainedModel | None = None
+        self._tokenizer: PreTrainedTokenizer | None = None
         self._device = device
+        self._yes_id: int | None = None
+        self._no_id: int | None = None
 
     def preload(self) -> None:
-        """Load HHEM model to GPU/CPU."""
+        """Load MiniCheck model to GPU/CPU."""
         if self._model is not None:
             return
 
-        logger.info("Loading HHEM model (Vectara hallucination evaluation)")
-        self._model = AutoModelForSequenceClassification.from_pretrained(
-            self.MODEL_NAME,
-            trust_remote_code=True,
-        )
+        from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+        logger.info(f"Loading MiniCheck model: {self.MODEL_NAME}")
+        self._tokenizer = AutoTokenizer.from_pretrained(self.MODEL_NAME)
+        self._model = AutoModelForSeq2SeqLM.from_pretrained(self.MODEL_NAME)
 
         # Move to device
         if self._device is None:
             self._device = "cuda" if torch.cuda.is_available() else "cpu"
         self._model = self._model.to(self._device)
         self._model.eval()
-        logger.info(f"HHEM model loaded on {self._device}")
+
+        # Cache token IDs for Yes/No
+        self._yes_id = self._tokenizer.encode("Yes", add_special_tokens=False)[0]
+        self._no_id = self._tokenizer.encode("No", add_special_tokens=False)[0]
+
+        logger.info(f"MiniCheck loaded on {self._device}")
 
     def warmup(self) -> None:
         """Alias for preload() to match augmentation interface."""
         self.preload()
+
+    def _score_single(self, context: str, answer: str) -> float:
+        """Score a single context-answer pair.
+
+        Args:
+            context: Context/document text.
+            answer: Claim/answer to verify.
+
+        Returns:
+            Hallucination score in [0, 1] where 0 = supported, 1 = hallucinated.
+        """
+        # MiniCheck format
+        input_text = f"Document: {context}\nClaim: {answer}"
+        inputs = self._tokenizer(
+            input_text,
+            return_tensors="pt",
+            truncation=True,
+            max_length=512,
+        )
+        inputs = {k: v.to(self._device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            # Generate with output scores
+            outputs = self._model.generate(
+                **inputs,
+                max_new_tokens=1,
+                return_dict_in_generate=True,
+                output_scores=True,
+            )
+
+            # Get logits for first generated token
+            logits = outputs.scores[0][0]  # Shape: (vocab_size,)
+
+            # Extract Yes/No logits and compute softmax
+            yes_no_logits = torch.tensor(
+                [logits[self._yes_id], logits[self._no_id]],
+                device=self._device,
+            )
+            probs = torch.softmax(yes_no_logits, dim=0)
+
+            # prob_supported = probs[0] (Yes), prob_not_supported = probs[1] (No)
+            # hallucination_score = prob_not_supported
+            return probs[1].item()
 
     def compute_context_nli(self, context_texts: list[str], answer: str) -> dict:
         """Compute hallucination scores for answer against context.
@@ -84,30 +136,18 @@ class NLIContradictionDetector:
         if self._model is None:
             self.preload()
 
-        # Create premise-hypothesis pairs
-        pairs = [(ctx, answer) for ctx in context_texts]
+        hallucination_scores = []
 
-        try:
-            # HHEM's predict() handles batching and tokenization internally
-            scores = self._model.predict(pairs)
-
-            # Convert to list robustly
-            if hasattr(scores, "tolist"):
-                scores_list = scores.tolist()
-            else:
-                scores_list = list(scores)
-
-            # INVERT: HHEM returns 0=hallucinated, 1=consistent
-            # We need 0=supported, 1=hallucinated
-            hallucination_scores = [1.0 - s for s in scores_list]
-
-        except (RuntimeError, torch.cuda.OutOfMemoryError) as e:
-            # Critical errors should propagate
-            logger.error(f"HHEM critical failure: {e}")
-            raise
-        except Exception as e:
-            logger.warning(f"HHEM predict() failed: {e}. Returning neutral scores.")
-            hallucination_scores = [0.5] * len(pairs)
+        for ctx in context_texts:
+            try:
+                score = self._score_single(ctx, answer)
+                hallucination_scores.append(score)
+            except (RuntimeError, torch.cuda.OutOfMemoryError) as e:
+                logger.error(f"MiniCheck critical failure: {e}")
+                raise
+            except Exception as e:
+                logger.warning(f"MiniCheck scoring failed for context: {e}")
+                hallucination_scores.append(0.5)
 
         if not hallucination_scores:
             return {
@@ -120,7 +160,7 @@ class NLIContradictionDetector:
         mean_hal = sum(hallucination_scores) / len(hallucination_scores)
 
         return {
-            "hallucination_score": max_hal,  # Use max as primary (consistent with DeBERTa approach)
+            "hallucination_score": max_hal,  # Use max as primary
             "max_hallucination": max_hal,
             "mean_hallucination": mean_hal,
         }

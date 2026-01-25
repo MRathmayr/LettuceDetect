@@ -27,14 +27,14 @@ class Model2VecConfig:
 
 @dataclass
 class NLIConfig:
-    """Configuration for NLI contradiction detector (HHEM).
+    """Configuration for NLI contradiction detector (MiniCheck).
 
-    HHEM is the default and only supported NLI model for Stage 2.
-    Model name is hardcoded since HHEM requires trust_remote_code=True.
+    MiniCheck-Flan-T5-Large outperforms HHEM on LLM-AggreFact (75% vs 71.8%).
+    It's a seq2seq model that outputs Yes/No for document-claim pairs.
     """
 
     device: str | None = None
-    # HHEM handles tokenization internally, max_length not needed
+    max_length: int = 512  # Max input tokens for context + claim
 
 
 @dataclass

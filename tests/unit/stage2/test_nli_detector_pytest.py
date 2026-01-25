@@ -1,9 +1,9 @@
-"""Unit tests for NLIContradictionDetector (HHEM-based).
+"""Unit tests for NLIContradictionDetector (MiniCheck-based).
 
-HHEM (Vectara Hallucination Evaluation Model) is trained specifically for RAG
-hallucination detection. Score direction:
-- HHEM returns: 0=hallucinated, 1=consistent
-- We invert to: 0=supported, 1=hallucinated
+MiniCheck-Flan-T5-Large is a seq2seq model that outputs Yes/No for document-claim pairs.
+Score direction:
+- MiniCheck "Yes" = supported, "No" = not supported
+- We return: 0=supported, 1=hallucinated
 """
 
 import gc
@@ -40,6 +40,7 @@ class TestNLIDetectorBasics:
     def test_lazy_loading(self, nli_detector):
         """Model should not load until first use."""
         assert nli_detector._model is None
+        assert nli_detector._tokenizer is None
 
     def test_compute_context_nli_returns_dict(self, nli_detector):
         """compute_context_nli returns dict with expected keys."""
@@ -159,6 +160,7 @@ class TestWarmup:
 
         nli_detector.warmup()
         assert nli_detector._model is not None
+        assert nli_detector._tokenizer is not None
 
     def test_preload_alias(self, nli_detector):
         """preload() is an alias for warmup()."""
@@ -174,19 +176,32 @@ class TestWarmup:
         assert id(nli_detector._model) == model_id  # Same model instance
 
 
-class TestHHEMSpecific:
-    """Test HHEM-specific behavior."""
+class TestMiniCheckSpecific:
+    """Test MiniCheck-specific behavior."""
 
-    def test_model_has_predict_method(self, nli_detector):
-        """HHEM model should have predict() method."""
+    def test_model_is_seq2seq(self, nli_detector):
+        """MiniCheck model should be a seq2seq model."""
         nli_detector.preload()
-        assert hasattr(nli_detector._model, "predict")
+        # MiniCheck uses T5, which has generate method
+        assert hasattr(nli_detector._model, "generate")
 
-    def test_score_direction_inverted(self, nli_detector):
-        """Verify HHEM scores are inverted correctly.
+    def test_tokenizer_loaded(self, nli_detector):
+        """MiniCheck requires separate tokenizer."""
+        nli_detector.preload()
+        assert nli_detector._tokenizer is not None
 
-        HHEM returns 0=hallucinated, 1=consistent.
-        We need 0=supported, 1=hallucinated.
+    def test_yes_no_token_ids_cached(self, nli_detector):
+        """Yes/No token IDs should be cached after preload."""
+        nli_detector.preload()
+        assert nli_detector._yes_id is not None
+        assert nli_detector._no_id is not None
+        assert nli_detector._yes_id != nli_detector._no_id
+
+    def test_score_direction(self, nli_detector):
+        """Verify MiniCheck scores are in correct direction.
+
+        MiniCheck: Yes=supported, No=not supported
+        We need: 0=supported, 1=hallucinated
         """
         # Clear hallucination
         result = nli_detector.compute_context_nli(
@@ -194,7 +209,5 @@ class TestHHEMSpecific:
             "The answer is 999.",  # Wrong
         )
 
-        # If scores were NOT inverted, this would be low
-        # Since we invert, hallucination should be high
-        # Just verify it's in valid range
+        # Verify it's in valid range
         assert 0 <= result["hallucination_score"] <= 1
