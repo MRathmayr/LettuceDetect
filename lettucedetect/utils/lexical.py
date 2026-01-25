@@ -18,6 +18,7 @@ class LexicalConfig:
     remove_stopwords: bool = True
     ngram_range: tuple[int, int] = (1, 2)
     stopwords_lang: str = "english"
+    use_tfidf: bool = True  # Use TF-IDF weighted overlap instead of Jaccard
 
 
 class LexicalOverlapCalculator(BaseAugmentation):
@@ -107,8 +108,53 @@ class LexicalOverlapCalculator(BaseAugmentation):
 
         return len(intersection) / len(union)
 
+    def compute_tfidf_overlap(self, context: list[str], answer: str) -> float:
+        """Compute TF-IDF weighted overlap between context and answer.
+
+        TF-IDF weighting down-weights common words and up-weights
+        distinctive content words for better semantic matching.
+        """
+        from sklearn.feature_extraction.text import TfidfVectorizer
+
+        context_text = " ".join(context)
+
+        # Fit vectorizer on both texts
+        vectorizer = TfidfVectorizer(
+            ngram_range=self.config.ngram_range,
+            stop_words="english" if self.config.remove_stopwords else None,
+        )
+
+        try:
+            tfidf_matrix = vectorizer.fit_transform([context_text, answer])
+        except ValueError:
+            # Empty vocabulary (no valid tokens)
+            return 0.0
+
+        # Get feature vectors
+        context_vec = tfidf_matrix[0].toarray().flatten()
+        answer_vec = tfidf_matrix[1].toarray().flatten()
+
+        # Compute weighted overlap: for each term in answer, check if in context
+        answer_terms_mask = answer_vec > 0
+        if not answer_terms_mask.any():
+            return 1.0  # No answer terms = supported
+
+        # Intersection: answer terms that appear in context, weighted by answer TF-IDF
+        intersection_weights = answer_vec * (context_vec > 0)
+        intersection_score = intersection_weights.sum()
+
+        # Union: all answer terms, weighted
+        union_score = answer_vec.sum()
+
+        if union_score == 0:
+            return 1.0
+
+        return intersection_score / union_score
+
     def compute_support_score(self, context: list[str], answer: str) -> float:
         """Compute support score (0=unsupported, 1=fully supported)."""
+        if self.config.use_tfidf:
+            return self.compute_tfidf_overlap(context, answer)
         return self.compute_jaccard(context, answer)
 
     def score(
