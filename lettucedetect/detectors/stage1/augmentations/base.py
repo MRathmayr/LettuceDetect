@@ -73,4 +73,5 @@ class BaseAugmentation(ABC):
                 evidence={},  # No evidence on failure
                 details={"error": str(e)},
                 flagged_spans=[],
+                is_active=False,  # Error = no valid signal
             )

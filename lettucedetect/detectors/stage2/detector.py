@@ -22,7 +22,7 @@ from lettucedetect.detectors.stage2.aggregator import (
     Stage2Aggregator,
     Stage2Scores,
 )
-from lettucedetect.detectors.stage2.config import Model2VecConfig, NLIConfig
+from lettucedetect.detectors.stage2.config import Model2VecConfig
 from lettucedetect.detectors.stage2.model2vec_encoder import Model2VecEncoder
 from lettucedetect.detectors.stage2.nli_detector import NLIContradictionDetector
 
@@ -46,7 +46,10 @@ class Stage2Detector(BaseDetector):
 
     Components:
     - NCS (Model2Vec embeddings): Fast semantic similarity via static embeddings
-    - NLI (DeBERTa-MNLI): Contradiction detection via cross-encoder
+    - NLI (HHEM): Hallucination detection via Vectara's HHEM model
+
+    HHEM is trained specifically for RAG hallucination detection, unlike generic
+    NLI models like DeBERTa-MNLI. It outperforms GPT-3.5 and GPT-4 on benchmarks.
 
     This stage operates at RESPONSE LEVEL, not token level. The hallucination
     score represents the probability that the entire answer is unsupported by
@@ -86,14 +89,10 @@ class Stage2Detector(BaseDetector):
             )
             self._encoder = Model2VecEncoder(m2v_config)
 
-        # Initialize NLI detector if enabled
+        # Initialize NLI detector if enabled (uses HHEM)
         self._nli = None
         if "nli" in components:
-            nli_config = NLIConfig(
-                model_name=self.config.nli_model,
-                max_length=self.config.nli_max_length,
-            )
-            self._nli = NLIContradictionDetector(nli_config)
+            self._nli = NLIContradictionDetector(device=self._device)
 
         # Initialize aggregator with weights and thresholds from config
         agg_config = AggregatorConfig(
@@ -134,14 +133,17 @@ class Stage2Detector(BaseDetector):
         ncs_score = 0.5
         if self._encoder:
             ncs_scores = self._encoder.compute_ncs(context, answer)
-            ncs_score = ncs_scores["max"]
+            # NCS is cosine similarity in [-1, 1], convert to [0, 1] support score
+            # -1 (opposite) -> 0, 0 (orthogonal) -> 0.5, 1 (identical) -> 1
+            ncs_score = (ncs_scores["max"] + 1.0) / 2.0
 
         # Compute NLI (if enabled)
         nli_score = 0.5
         if self._nli:
             nli_scores = self._nli.compute_context_nli(context, answer)
-            # Invert: high contradiction -> low support
-            nli_score = 1.0 - nli_scores["max_contradiction"]
+            # Use weighted combined hallucination score, then invert for support convention
+            # hallucination_score: high = hallucination, we need high = support
+            nli_score = 1.0 - nli_scores["hallucination_score"]
 
         # Build scores object and aggregate
         scores = Stage2Scores(

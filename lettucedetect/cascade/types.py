@@ -75,9 +75,12 @@ class AugmentationResult:
         evidence: Factual metadata about what was checked (e.g., entities_checked, numbers_verified)
         details: Component-specific details (e.g., verified entities, matched numbers)
         flagged_spans: Spans flagged by this augmentation as potentially hallucinated
+        is_active: Whether component found content to verify (default True).
+                   False when nothing to check (no entities/numbers) - excluded from weighted avg.
     """
 
     score: float  # 0.0 = supported, 1.0 = hallucinated
     evidence: dict  # Factual metadata (counts, ratios)
     details: dict  # Component-specific details
     flagged_spans: list[dict]  # Spans flagged by this augmentation
+    is_active: bool = True  # False when nothing to check (no entities/numbers)

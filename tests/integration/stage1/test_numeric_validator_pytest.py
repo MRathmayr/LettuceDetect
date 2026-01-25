@@ -193,8 +193,8 @@ class TestComplexNumberFormats:
 
     def test_comma_separated_thousands(self):
         """Test numbers with comma separators."""
-        context = ["The population is 1234567 people."]
-        answer = "The population is about 1234567."
+        context = ["The population is 1,234,567 people."]
+        answer = "The population is about 1,234,567 people."
         result = self.validator.score(context, answer, None, None)
         # Exact match of the number should succeed -> low hallucination
         assert result.score == 0.0
@@ -230,15 +230,18 @@ class TestEdgeCases:
     def test_empty_answer(self, sample_context, empty_answer):
         """Handle empty answer gracefully."""
         result = self.validator.score(sample_context, empty_answer, None, None)
-        # No numbers in answer = fully supported
-        assert result.score == 0.0
+        # No numbers in answer = neutral, inactive
+        assert result.score == 0.5  # neutral (no signal)
+        assert result.is_active is False
 
     def test_no_numbers_in_answer(self):
         """Handle answer with no numeric content."""
         context = ["The value is 42."]
         answer = "There is a value mentioned."
         result = self.validator.score(context, answer, None, None)
-        assert result.score == 0.0  # supported (nothing to verify)
+        # No numbers in answer = neutral, inactive
+        assert result.score == 0.5  # neutral (no signal)
+        assert result.is_active is False
 
     def test_very_large_numbers(self):
         """Handle very large numbers."""

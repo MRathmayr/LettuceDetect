@@ -26,6 +26,16 @@ class LexicalOverlapCalculator(BaseAugmentation):
     Used by both Stage 1 (augmentation) and Stage 2 (component).
     """
 
+    # Negation words to preserve (not remove as stopwords)
+    # Includes contractions that contain negation semantically
+    PRESERVE_NEGATIONS = {
+        "not", "no", "nor", "never", "neither",
+        "nobody", "nothing", "nowhere", "none",
+        # Contractions with negation (after tokenization "don't" -> "don", "t")
+        "don", "doesn", "didn", "won", "wouldn", "couldn", "shouldn",
+        "isn", "aren", "wasn", "weren", "hasn", "haven", "hadn",
+    }
+
     def __init__(self, config: LexicalConfig | None = None) -> None:
         """Initialize calculator with optional config."""
         self.config = config or LexicalConfig()
@@ -54,7 +64,11 @@ class LexicalOverlapCalculator(BaseAugmentation):
         tokens = re.findall(r"\b\w+\b", text.lower())
 
         if self._stopwords:
-            tokens = [t for t in tokens if t not in self._stopwords]
+            # Keep negation words even though they're in stopwords
+            tokens = [
+                t for t in tokens
+                if t not in self._stopwords or t in self.PRESERVE_NEGATIONS
+            ]
 
         if self._stemmer:
             tokens = [self._stemmer.stem(t) for t in tokens]

@@ -56,13 +56,11 @@ class TestNumericExtraction:
         assert 1999 in values
         assert "year" in types
 
-    def test_negative_numbers_not_extracted(self):
-        """Negative numbers handled correctly."""
-        # Current implementation doesn't handle negatives explicitly
+    def test_negative_numbers_extracted(self):
+        """Negative numbers are extracted correctly."""
         numbers = self.validator._extract_numbers("Temperature is -5 degrees")
-        # -5 would be extracted as 5
         values = [n.value for n in numbers]
-        assert 5 in values
+        assert -5 in values
 
 
 class TestNumericValidation:
@@ -91,18 +89,21 @@ class TestNumericValidation:
         assert len(result.flagged_spans) == 1
 
     def test_no_numbers_in_answer(self):
-        """No numbers in answer = fully supported."""
+        """No numbers in answer = supported, inactive."""
         context = ["The city has many people."]
         answer = "The city is populous."
         result = self.validator.score(context, answer, None, None)
-        assert result.score == 0.0  # supported (nothing to verify)
+        # No numbers in answer = no evidence of hallucination = supported
+        assert result.score == 0.0  # supported (absence of numbers is not hallucination)
+        assert result.is_active is False
 
     def test_tolerance_matching(self):
-        """Numbers within tolerance match."""
+        """Float numbers within tolerance match (integers require exact match)."""
         config = NumericConfig(tolerance_percent=5.0)
         validator = NumericValidator(config=config)
-        context = ["The value is 100."]
-        answer = "The value is approximately 102."
+        # Use floats since integers require exact match
+        context = ["The value is 100.0 units."]
+        answer = "The value is approximately 102.0 units."
         result = validator.score(context, answer, None, None)
         assert result.score == 0.0  # supported (within tolerance)
 

@@ -44,8 +44,8 @@ class TestCascadeConfigDefaults:
         config = Stage2Config()
         assert config.components == ["ncs", "nli"]  # lexical removed
         assert config.ncs_model == "minishlab/potion-base-32M"
-        assert config.nli_model == "cross-encoder/nli-deberta-v3-base"
-        assert config.weights == {"ncs": 0.5, "nli": 0.5}
+        # nli_model removed - HHEM is hardcoded in NLIContradictionDetector
+        assert config.weights == {"ncs": 0.30, "nli": 0.70}  # HHEM gets higher weight
 
     def test_stage3_config_defaults(self):
         """Stage3Config should have correct defaults."""

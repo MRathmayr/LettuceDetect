@@ -178,3 +178,73 @@ class TestEdgeCases:
         answer = "cats and dogs"
         result = calc.score(context, answer, None, None)
         assert result.score > 0
+
+
+class TestNegationPreservation:
+    """Test that negation words are preserved during stopword removal."""
+
+    def test_negation_words_preserved(self):
+        """Negation words 'not', 'no', 'never' are not removed as stopwords."""
+        calc = LexicalOverlapCalculator(
+            LexicalConfig(use_stemming=False, remove_stopwords=True)
+        )
+        tokens = calc._tokenize("This is not true")
+        assert "not" in tokens
+
+    def test_negation_no_preserved(self):
+        """'no' is preserved."""
+        calc = LexicalOverlapCalculator(
+            LexicalConfig(use_stemming=False, remove_stopwords=True)
+        )
+        tokens = calc._tokenize("There is no evidence")
+        assert "no" in tokens
+
+    def test_negation_never_preserved(self):
+        """'never' is preserved."""
+        calc = LexicalOverlapCalculator(
+            LexicalConfig(use_stemming=False, remove_stopwords=True)
+        )
+        tokens = calc._tokenize("This has never happened")
+        assert "never" in tokens
+
+    def test_negation_contractions_preserved(self):
+        """Contracted negations like 'don't' -> 'don' are preserved."""
+        calc = LexicalOverlapCalculator(
+            LexicalConfig(use_stemming=False, remove_stopwords=True)
+        )
+        # "don't" tokenizes to ["don", "t"]
+        tokens = calc._tokenize("I don't know")
+        assert "don" in tokens
+
+    def test_negation_affects_overlap_score(self):
+        """Negation preservation affects overlap score."""
+        calc = LexicalOverlapCalculator(
+            LexicalConfig(use_stemming=False, remove_stopwords=True, ngram_range=(1, 1))
+        )
+        # Context says "This is true", answer says "This is not true"
+        # Without negation preservation, "not" would be removed as stopword
+        # and both would have same tokens -> high overlap
+        # With negation preservation, "not" is kept -> different tokens -> lower overlap
+        context = ["This statement is true"]
+        answer_without_negation = "This statement is true"
+        answer_with_negation = "This statement is not true"
+
+        score_without = calc.compute_jaccard(context, answer_without_negation)
+        score_with = calc.compute_jaccard(context, answer_with_negation)
+
+        # Answer with negation should have lower Jaccard due to "not" being preserved
+        assert score_with < score_without
+
+    def test_other_stopwords_still_removed(self):
+        """Other stopwords (not negations) are still removed."""
+        calc = LexicalOverlapCalculator(
+            LexicalConfig(use_stemming=False, remove_stopwords=True)
+        )
+        tokens = calc._tokenize("The cat is on the mat")
+        # "the", "is", "on" are stopwords and should be removed
+        assert "the" not in tokens
+        assert "is" not in tokens
+        assert "on" not in tokens
+        # "cat", "mat" are content words and should be kept
+        assert "cat" in tokens
+        assert "mat" in tokens

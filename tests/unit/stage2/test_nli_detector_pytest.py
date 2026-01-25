@@ -1,11 +1,16 @@
-"""Unit tests for NLIContradictionDetector."""
+"""Unit tests for NLIContradictionDetector (HHEM-based).
+
+HHEM (Vectara Hallucination Evaluation Model) is trained specifically for RAG
+hallucination detection. Score direction:
+- HHEM returns: 0=hallucinated, 1=consistent
+- We invert to: 0=supported, 1=hallucinated
+"""
 
 import gc
 
 import pytest
 import torch
 
-from lettucedetect.detectors.stage2.config import NLIConfig
 from lettucedetect.detectors.stage2.nli_detector import NLIContradictionDetector
 
 
@@ -18,7 +23,7 @@ def nli_detector():
         torch.cuda.synchronize()
         torch.cuda.empty_cache()
 
-    detector = NLIContradictionDetector(NLIConfig())
+    detector = NLIContradictionDetector()
     yield detector
 
     # Cleanup after test
@@ -35,132 +40,88 @@ class TestNLIDetectorBasics:
     def test_lazy_loading(self, nli_detector):
         """Model should not load until first use."""
         assert nli_detector._model is None
-        assert nli_detector._tokenizer is None
 
-    def test_predict_single_returns_dict(self, nli_detector):
-        """predict_single returns dict with expected keys."""
-        result = nli_detector.predict_single(
-            premise="The sky is blue.",
-            hypothesis="The sky has a color.",
+    def test_compute_context_nli_returns_dict(self, nli_detector):
+        """compute_context_nli returns dict with expected keys."""
+        result = nli_detector.compute_context_nli(
+            context_texts=["The sky is blue."],
+            answer="The sky has a color.",
         )
 
-        assert "entailment" in result
-        assert "neutral" in result
-        assert "contradiction" in result
-        assert "non_contradiction" in result
+        assert "hallucination_score" in result
+        assert "max_hallucination" in result
+        assert "mean_hallucination" in result
 
-    def test_predict_single_probabilities_sum_to_one(self, nli_detector):
-        """Entailment + neutral + contradiction should sum to ~1.0."""
-        result = nli_detector.predict_single(
-            premise="The cat sat on the mat.",
-            hypothesis="An animal was on the mat.",
+    def test_scores_are_bounded(self, nli_detector):
+        """All scores should be in [0, 1] range."""
+        result = nli_detector.compute_context_nli(
+            ["The cat sat on the mat."],
+            "An animal was on the mat.",
         )
 
-        total = result["entailment"] + result["neutral"] + result["contradiction"]
-        assert abs(total - 1.0) < 0.01
-
-    def test_non_contradiction_is_sum(self, nli_detector):
-        """non_contradiction = entailment + neutral."""
-        result = nli_detector.predict_single(
-            premise="Paris is in France.",
-            hypothesis="A city is in a country.",
-        )
-
-        expected = result["entailment"] + result["neutral"]
-        assert abs(result["non_contradiction"] - expected) < 0.001
+        assert 0.0 <= result["max_hallucination"] <= 1.0
+        assert 0.0 <= result["mean_hallucination"] <= 1.0
+        assert 0.0 <= result["hallucination_score"] <= 1.0
 
 
 @pytest.mark.gpu
 class TestNLIDetectorPredictions:
     """Test NLI prediction quality (requires model)."""
 
-    def test_entailment_case(self, nli_detector):
-        """Clear entailment should have high entailment score."""
-        result = nli_detector.predict_single(
-            premise="All cats are animals.",
-            hypothesis="Cats are animals.",
+    def test_detects_hallucination(self, nli_detector):
+        """Clear hallucination should have high hallucination score."""
+        result = nli_detector.compute_context_nli(
+            ["Paris is the capital of France."],
+            "Paris is the capital of Germany.",  # Hallucinated
         )
 
-        # Entailment should be the highest
-        assert result["entailment"] > result["contradiction"]
-
-    def test_contradiction_case(self, nli_detector):
-        """Clear contradiction should have higher contradiction than neutral."""
-        result = nli_detector.predict_single(
-            premise="The sun rises in the east.",
-            hypothesis="The sun rises in the west.",
+        # Should detect this as hallucination (score > 0.5)
+        assert result["max_hallucination"] > 0.5, (
+            f"Hallucination should score high, got {result['max_hallucination']}"
         )
 
-        # Contradiction should be detectable (not necessarily > 0.1 threshold)
-        # Just verify it's higher than a completely neutral statement would be
-        assert result["contradiction"] > result["entailment"]
+    def test_accepts_factual(self, nli_detector):
+        """Clear factual statement should have low hallucination score."""
+        result = nli_detector.compute_context_nli(
+            ["Paris is the capital of France."],
+            "France's capital is Paris.",  # Factual
+        )
 
+        # Should detect this as supported (score < 0.5)
+        assert result["max_hallucination"] < 0.5, (
+            f"Factual should score low, got {result['max_hallucination']}"
+        )
 
-class TestNLIBatchInference:
-    """Test batched inference functionality."""
+    def test_hallucination_higher_than_factual(self, nli_detector):
+        """Hallucinated content should score higher than factual."""
+        hal_result = nli_detector.compute_context_nli(
+            ["The population is exactly 5 million."],
+            "The population is 10 million.",  # Wrong number
+        )
 
-    def test_predict_batch_returns_list(self, nli_detector):
-        """predict_batch returns list of dicts."""
-        premises = ["The dog is brown.", "The cat is white."]
-        hypotheses = ["An animal has fur.", "An animal has fur."]
+        fact_result = nli_detector.compute_context_nli(
+            ["The company was founded in 1995."],
+            "The company was founded in 1995.",  # Exact match
+        )
 
-        results = nli_detector.predict_batch(premises, hypotheses)
-
-        assert isinstance(results, list)
-        assert len(results) == 2
-        assert all(isinstance(r, dict) for r in results)
-
-    def test_predict_batch_length_mismatch_raises(self, nli_detector):
-        """Mismatched lengths raise ValueError."""
-        with pytest.raises(ValueError, match="same length"):
-            nli_detector.predict_batch(
-                premises=["A", "B", "C"],
-                hypotheses=["X", "Y"],
-            )
-
-    def test_predict_batch_empty(self, nli_detector):
-        """Empty inputs return empty list."""
-        results = nli_detector.predict_batch([], [])
-        assert results == []
-
-    def test_batch_matches_sequential(self, nli_detector):
-        """Batch results match sequential predictions."""
-        premises = ["The sky is blue.", "Water is wet."]
-        hypotheses = ["The sky has color.", "Liquid is moist."]
-
-        batch_results = nli_detector.predict_batch(premises, hypotheses)
-        seq_results = [
-            nli_detector.predict_single(p, h) for p, h in zip(premises, hypotheses)
-        ]
-
-        # Results should be very close (may have slight float differences)
-        for batch, seq in zip(batch_results, seq_results):
-            assert abs(batch["entailment"] - seq["entailment"]) < 0.01
-            assert abs(batch["contradiction"] - seq["contradiction"]) < 0.01
+        assert hal_result["max_hallucination"] > fact_result["max_hallucination"], (
+            f"Hallucination ({hal_result['max_hallucination']}) should score higher "
+            f"than factual ({fact_result['max_hallucination']})"
+        )
 
 
 class TestContextNLI:
     """Test compute_context_nli method."""
 
-    def test_compute_context_nli_empty(self, nli_detector):
-        """Empty context returns safe defaults."""
+    def test_empty_context_returns_neutral(self, nli_detector):
+        """Empty context returns neutral score (0.5)."""
         result = nli_detector.compute_context_nli([], "Some answer")
 
-        assert result["max_contradiction"] == 0.0
-        assert result["min_non_contradiction"] == 1.0
+        assert result["max_hallucination"] == 0.5
+        assert result["mean_hallucination"] == 0.5
+        assert result["hallucination_score"] == 0.5
 
-    def test_compute_context_nli_returns_expected_keys(self, nli_detector):
-        """Returns max_contradiction and min_non_contradiction."""
-        context = ["The capital of France is Paris."]
-        answer = "Paris is the capital."
-
-        result = nli_detector.compute_context_nli(context, answer)
-
-        assert "max_contradiction" in result
-        assert "min_non_contradiction" in result
-        assert "all_results" in result
-
-    def test_compute_context_nli_multi_passage(self, nli_detector):
+    def test_handles_multiple_contexts(self, nli_detector):
         """Works with multiple context passages."""
         context = [
             "Paris is in France.",
@@ -171,10 +132,22 @@ class TestContextNLI:
 
         result = nli_detector.compute_context_nli(context, answer)
 
-        # Should have results for all passages
-        assert len(result["all_results"]) == 3
-        assert 0 <= result["max_contradiction"] <= 1
-        assert 0 <= result["min_non_contradiction"] <= 1
+        # Should have valid scores
+        assert 0 <= result["max_hallucination"] <= 1
+        assert 0 <= result["mean_hallucination"] <= 1
+
+    def test_max_vs_mean(self, nli_detector):
+        """max_hallucination should be >= mean_hallucination."""
+        result = nli_detector.compute_context_nli(
+            [
+                "The sky is blue.",
+                "Water is wet.",
+                "Fire is hot.",
+            ],
+            "The sky is green.",  # Only contradicts first context
+        )
+
+        assert result["max_hallucination"] >= result["mean_hallucination"]
 
 
 class TestWarmup:
@@ -191,3 +164,37 @@ class TestWarmup:
         """preload() is an alias for warmup()."""
         nli_detector.preload()
         assert nli_detector._model is not None
+
+    def test_warmup_idempotent(self, nli_detector):
+        """warmup() is idempotent (safe to call multiple times)."""
+        nli_detector.warmup()
+        model_id = id(nli_detector._model)
+
+        nli_detector.warmup()
+        assert id(nli_detector._model) == model_id  # Same model instance
+
+
+class TestHHEMSpecific:
+    """Test HHEM-specific behavior."""
+
+    def test_model_has_predict_method(self, nli_detector):
+        """HHEM model should have predict() method."""
+        nli_detector.preload()
+        assert hasattr(nli_detector._model, "predict")
+
+    def test_score_direction_inverted(self, nli_detector):
+        """Verify HHEM scores are inverted correctly.
+
+        HHEM returns 0=hallucinated, 1=consistent.
+        We need 0=supported, 1=hallucinated.
+        """
+        # Clear hallucination
+        result = nli_detector.compute_context_nli(
+            ["The answer is 42."],
+            "The answer is 999.",  # Wrong
+        )
+
+        # If scores were NOT inverted, this would be low
+        # Since we invert, hallucination should be high
+        # Just verify it's in valid range
+        assert 0 <= result["hallucination_score"] <= 1

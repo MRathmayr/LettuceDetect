@@ -1,0 +1,9 @@
+{
+  "stage1_confident_high": 0.7878118863377209,
+  "stage1_confident_low": 0.09151205565767695,
+  "stage1_optimal": 0.14539930555555558,
+  "stage1_f1": 0.48627450980392156,
+  "calibration_date": "2026-01-25T11:03:22.376894",
+  "dataset": "ragtruth",
+  "samples": 500
+}
