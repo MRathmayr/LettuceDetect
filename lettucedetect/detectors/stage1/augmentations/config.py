@@ -57,6 +57,10 @@ class NERConfig:
     fuzzy_threshold: float = 0.85
     use_gpu: bool = True
 
+    # Sentence-level scoring
+    sentence_level: bool = True  # Score each sentence separately, use max
+    sentence_aggregation: Literal["max", "mean"] = "mean"  # How to aggregate sentence scores
+
 
 @dataclass
 class NumericConfig:
