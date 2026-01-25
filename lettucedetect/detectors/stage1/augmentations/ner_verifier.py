@@ -174,6 +174,46 @@ class NERVerifier(BaseAugmentation):
 
         return False, 0.0
 
+    def _score_text_entities(
+        self, text: str, context_entities: list[dict]
+    ) -> tuple[float, list[dict], list[dict]]:
+        """Score entities in a text against context entities.
+
+        Returns:
+            (hallucination_score, entity_details, flagged_spans)
+        """
+        entities = self._extract_entities(text)
+
+        if not entities:
+            return 0.0, [], []
+
+        verified_count = 0
+        flagged_spans = []
+        entity_details = []
+
+        for ent in entities:
+            found, similarity = self._entity_in_context(ent["text"], context_entities)
+            entity_details.append({
+                "text": ent["text"],
+                "label": ent["label"],
+                "found": found,
+                "similarity": similarity,
+            })
+
+            if found:
+                verified_count += 1
+            else:
+                flagged_spans.append({
+                    "start": ent["start"],
+                    "end": ent["end"],
+                    "text": ent["text"],
+                    "confidence": 0.8,
+                    "reason": f"Entity '{ent['text']}' ({ent['label']}) not found in context",
+                })
+
+        unverified_ratio = 1.0 - (verified_count / len(entities))
+        return unverified_ratio, entity_details, flagged_spans
+
     def score(
         self,
         context: list[str],
@@ -183,79 +223,123 @@ class NERVerifier(BaseAugmentation):
     ) -> AugmentationResult:
         """Score answer entities against context.
 
+        If sentence_level=True, scores each sentence separately and aggregates.
+        This catches cases where one sentence is hallucinated among supported ones.
+
         Returns:
             AugmentationResult with hallucination score (0 = supported, 1 = hallucinated).
-            Score is ratio of unverified entities.
         """
         # Extract entities from context
         context_text = " ".join(context)
         context_entities = self._extract_entities(context_text)
 
-        # Extract entities from answer
-        answer_entities = self._extract_entities(answer)
+        if self.config.sentence_level:
+            return self._score_sentence_level(answer, context_entities)
+        return self._score_document_level(answer, context_entities)
 
-        # No entities in answer = nothing to verify = no evidence of hallucination
-        # Score 0.0 = supported (no hallucination), is_active=False excludes from aggregation
-        if not answer_entities:
+    def _score_sentence_level(
+        self, answer: str, context_entities: list[dict]
+    ) -> AugmentationResult:
+        """Score answer at sentence level, aggregating per-sentence scores."""
+        import nltk
+
+        try:
+            sentences = nltk.sent_tokenize(answer)
+        except LookupError:
+            nltk.download("punkt", quiet=True)
+            nltk.download("punkt_tab", quiet=True)
+            sentences = nltk.sent_tokenize(answer)
+
+        if not sentences:
             return AugmentationResult(
-                score=0.0,  # 0.0 = supported/no hallucination (absence of entities is not hallucination)
-                evidence={
-                    "entities_checked": 0,
-                    "entities_verified": 0,
-                    "context_entities": len(context_entities),
-                },
-                details={"answer_entities": 0, "context_entities": len(context_entities)},
+                score=0.0,
+                evidence={"entities_checked": 0, "sentences": 0},
+                details={"sentence_scores": []},
                 flagged_spans=[],
-                is_active=False,  # Excluded from weighted average - nothing to verify
+                is_active=False,
             )
 
-        # Verify each answer entity
-        verified_count = 0
-        flagged_spans = []
-        entity_details = []
+        sentence_scores = []
+        all_entity_details = []
+        all_flagged_spans = []
+        total_entities = 0
 
-        for ent in answer_entities:
-            found, similarity = self._entity_in_context(ent["text"], context_entities)
-            entity_details.append(
-                {
-                    "text": ent["text"],
-                    "label": ent["label"],
-                    "found": found,
-                    "similarity": similarity,
-                }
+        for sent in sentences:
+            score, entity_details, flagged_spans = self._score_text_entities(
+                sent, context_entities
+            )
+            if entity_details:  # Only include sentences with entities
+                sentence_scores.append(score)
+                all_entity_details.extend(entity_details)
+                all_flagged_spans.extend(flagged_spans)
+                total_entities += len(entity_details)
+
+        # No entities in any sentence
+        if not sentence_scores:
+            return AugmentationResult(
+                score=0.0,
+                evidence={"entities_checked": 0, "sentences": len(sentences)},
+                details={"sentence_scores": []},
+                flagged_spans=[],
+                is_active=False,
             )
 
-            if found:
-                verified_count += 1
-            else:
-                # Flag unverified entity
-                flagged_spans.append(
-                    {
-                        "start": ent["start"],
-                        "end": ent["end"],
-                        "text": ent["text"],
-                        "confidence": 0.8,
-                        "reason": f"Entity '{ent['text']}' ({ent['label']}) not found in context",
-                    }
-                )
+        # Aggregate sentence scores
+        if self.config.sentence_aggregation == "max":
+            final_score = max(sentence_scores)
+        else:
+            final_score = sum(sentence_scores) / len(sentence_scores)
 
-        # Calculate hallucination score (ratio of unverified entities)
-        # 0 = all verified (supported), 1 = none verified (hallucinated)
-        unverified_ratio = 1.0 - (verified_count / len(answer_entities))
+        verified_count = sum(1 for e in all_entity_details if e["found"])
 
         return AugmentationResult(
-            score=unverified_ratio,  # 0 = supported, 1 = hallucinated
+            score=final_score,
             evidence={
-                "entities_checked": len(answer_entities),
+                "entities_checked": total_entities,
+                "entities_verified": verified_count,
+                "context_entities": len(context_entities),
+                "sentences_with_entities": len(sentence_scores),
+            },
+            details={
+                "sentence_scores": sentence_scores,
+                "aggregation": self.config.sentence_aggregation,
+                "entities": all_entity_details,
+            },
+            flagged_spans=all_flagged_spans,
+            is_active=True,
+        )
+
+    def _score_document_level(
+        self, answer: str, context_entities: list[dict]
+    ) -> AugmentationResult:
+        """Original document-level scoring (all entities pooled)."""
+        score, entity_details, flagged_spans = self._score_text_entities(
+            answer, context_entities
+        )
+
+        if not entity_details:
+            return AugmentationResult(
+                score=0.0,
+                evidence={"entities_checked": 0, "context_entities": len(context_entities)},
+                details={"answer_entities": 0},
+                flagged_spans=[],
+                is_active=False,
+            )
+
+        verified_count = sum(1 for e in entity_details if e["found"])
+
+        return AugmentationResult(
+            score=score,
+            evidence={
+                "entities_checked": len(entity_details),
                 "entities_verified": verified_count,
                 "context_entities": len(context_entities),
             },
             details={
-                "answer_entities": len(answer_entities),
+                "answer_entities": len(entity_details),
                 "verified_entities": verified_count,
-                "context_entities": len(context_entities),
                 "entities": entity_details,
             },
             flagged_spans=flagged_spans,
-            is_active=True,  # Entities found and verified
+            is_active=True,
         )
