@@ -450,6 +450,21 @@ def analyze_confidence_correlation(predictions: list[SamplePrediction]) -> dict:
     return correlation_stats
 
 
+def _convert_to_serializable(obj):
+    """Convert numpy types to Python native types for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: _convert_to_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_convert_to_serializable(v) for v in obj]
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return obj
+
+
 def save_results(
     predictions: list[SamplePrediction],
     escalation_stats: dict,
@@ -463,10 +478,10 @@ def save_results(
             "timestamp": datetime.now().isoformat(),
             "n_samples": len(predictions),
         },
-        "escalation_analysis": escalation_stats,
-        "calibration_stats": calibration_stats,
-        "confidence_correlation": correlation_stats,
-        "per_sample_predictions": [asdict(p) for p in predictions],
+        "escalation_analysis": _convert_to_serializable(escalation_stats),
+        "calibration_stats": _convert_to_serializable(calibration_stats),
+        "confidence_correlation": _convert_to_serializable(correlation_stats),
+        "per_sample_predictions": [_convert_to_serializable(asdict(p)) for p in predictions],
     }
 
     output_path = output_dir / "calibration_analysis.json"
