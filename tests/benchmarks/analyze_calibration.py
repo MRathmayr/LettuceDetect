@@ -456,10 +456,12 @@ def _convert_to_serializable(obj):
         return {k: _convert_to_serializable(v) for k, v in obj.items()}
     elif isinstance(obj, list):
         return [_convert_to_serializable(v) for v in obj]
-    elif isinstance(obj, np.integer):
+    elif isinstance(obj, (np.integer, np.int64, np.int32)):
         return int(obj)
-    elif isinstance(obj, np.floating):
+    elif isinstance(obj, (np.floating, np.float64, np.float32)):
         return float(obj)
+    elif isinstance(obj, (np.bool_, bool)):
+        return bool(obj)
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
     return obj
