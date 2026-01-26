@@ -167,60 +167,67 @@ def collect_predictions(samples: list[BenchmarkSample]) -> list[SamplePrediction
     _clear_gpu_memory()
 
     # ========================================
-    # PHASE 4: NLI + Stage1 + Stage2 + Cascade
-    # NLI is the heavy model (~3GB), shared across detectors
+    # PHASE 4: NLI (~3GB GPU)
     # ========================================
-    print("\n[Phase 4/4] NLI, Stage1, Stage2, Cascade...")
+    print("\n[Phase 4/4] NLI...")
     nli = NLIContradictionDetector()
     nli.preload()
-
-    stage1 = Stage1Detector(augmentations=["ner", "numeric", "lexical"])
-    stage1.warmup()
-
-    stage2 = Stage2Detector()
-    # Stage2 should reuse the NLI model we already loaded
-    stage2.warmup()
-
-    config = CascadeConfig(
-        stages=[1, 2],
-        stage1=Stage1Config(augmentations=["ner", "numeric", "lexical"]),
-        stage2=Stage2Config(components=["ncs", "nli"]),
-    )
-    cascade = CascadeDetector(config)
-    cascade.warmup()
 
     for idx, (_, sample) in enumerate(valid_samples):
         if (idx + 1) % 50 == 0:
             print(f"  {idx+1}/{len(valid_samples)}...", end="\r")
-
-        # NLI score
         predictions[idx].nli_score = nli.compute_context_nli(sample.context, sample.response)["hallucination_score"]
-
-        # Stage 1
-        stage1_spans = stage1.predict(sample.context, sample.response, sample.question, output_format="spans")
-        predictions[idx].stage1_score = max((sp.get("confidence", 0.5) for sp in stage1_spans), default=0.0)
-        predictions[idx].stage1_confident = predictions[idx].stage1_score < 0.3 or predictions[idx].stage1_score > 0.7
-
-        # Stage 2
-        stage2_spans = stage2.predict(sample.context, sample.response, sample.question, output_format="spans")
-        predictions[idx].stage2_score = max((sp.get("confidence", 0.5) for sp in stage2_spans), default=0.0)
-
-        # Cascade
-        cascade_result = cascade.predict(
-            sample.context, sample.response, sample.question, output_format="detailed"
-        )
-        if isinstance(cascade_result, dict):
-            predictions[idx].cascade_score = cascade_result.get("scores", {}).get("final_score", 0.0)
-            predictions[idx].resolved_at_stage = cascade_result.get("routing", {}).get("resolved_at_stage", 1)
-        else:
-            predictions[idx].cascade_score = max((sp.get("confidence", 0.5) for sp in cascade_result), default=0.0)
-            predictions[idx].resolved_at_stage = 1
-
     print(f"  {len(valid_samples)}/{len(valid_samples)} done")
 
-    # Cleanup
-    del nli, stage1, stage2, cascade
+    del nli
     _clear_gpu_memory()
+
+    # ========================================
+    # PHASE 5: Compute Stage1/Stage2/Cascade from component scores
+    # This avoids loading more models and gives us per-component analysis
+    # ========================================
+    print("\n[Phase 5/5] Computing stage scores from components...")
+
+    # Stage 1 weights (from config)
+    s1_weights = {"transformer": 0.5, "ner": 0.2, "numeric": 0.15, "lexical": 0.15}
+
+    # Stage 2 weights
+    s2_weights = {"model2vec": 0.4, "nli": 0.6}
+
+    for idx, pred in enumerate(predictions):
+        # Stage 1: weighted average of transformer + augmentations
+        s1_sum = 0.0
+        s1_total = 0.0
+        for name, weight in s1_weights.items():
+            score = getattr(pred, f"{name}_score", None)
+            if score is not None:
+                s1_sum += score * weight
+                s1_total += weight
+        pred.stage1_score = s1_sum / s1_total if s1_total > 0 else 0.5
+
+        # Stage 1 confident if score < 0.3 or > 0.7
+        pred.stage1_confident = pred.stage1_score < 0.3 or pred.stage1_score > 0.7
+
+        # Stage 2: weighted average of model2vec + nli
+        s2_sum = 0.0
+        s2_total = 0.0
+        for name, weight in s2_weights.items():
+            score = getattr(pred, f"{name}_score", None)
+            if score is not None:
+                s2_sum += score * weight
+                s2_total += weight
+        pred.stage2_score = s2_sum / s2_total if s2_total > 0 else 0.5
+
+        # Cascade: use stage1 if confident, otherwise blend with stage2
+        if pred.stage1_confident:
+            pred.cascade_score = pred.stage1_score
+            pred.resolved_at_stage = 1
+        else:
+            # Blend stage1 and stage2 (50/50)
+            pred.cascade_score = 0.5 * pred.stage1_score + 0.5 * pred.stage2_score
+            pred.resolved_at_stage = 2
+
+    print("  Done")
 
     print(f"\n  Collected {len(predictions)} predictions")
     return predictions
