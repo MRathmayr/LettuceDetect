@@ -71,8 +71,24 @@ def load_dataset(limit: int | None = None) -> list[BenchmarkSample]:
     return samples
 
 
+def _clear_gpu_memory():
+    """Clear GPU memory by garbage collecting and emptying CUDA cache."""
+    import gc
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
 def collect_predictions(samples: list[BenchmarkSample]) -> list[SamplePrediction]:
-    """Run all components and collect per-sample predictions."""
+    """Run all components and collect per-sample predictions.
+
+    Loads models sequentially to fit within 8GB VRAM:
+    1. CPU components (lexical, numeric, ner) - no GPU
+    2. Transformer - ~500MB
+    3. Model2Vec - ~100MB
+    4. NLI - ~3GB
+    5. Cascade (Stage1 + Stage2) - shares NLI model
+    """
     from lettucedetect.configs.models import CascadeConfig, Stage1Config, Stage2Config
     from lettucedetect.detectors.cascade import CascadeDetector
     from lettucedetect.detectors.stage1.augmentations.ner_verifier import NERVerifier
@@ -84,22 +100,85 @@ def collect_predictions(samples: list[BenchmarkSample]) -> list[SamplePrediction
     from lettucedetect.detectors.transformer import TransformerDetector
     from lettucedetect.utils.lexical import LexicalOverlapCalculator
 
-    print("\nLoading components...")
+    # Initialize prediction list
+    predictions = []
+    total = len(samples)
 
-    # Individual components
+    # Pre-filter valid samples
+    valid_samples = [(i, s) for i, s in enumerate(samples) if s.context and s.response]
+    for _, sample in valid_samples:
+        predictions.append(SamplePrediction(
+            sample_id=sample.id,
+            ground_truth=sample.ground_truth,
+        ))
+
+    print(f"\nCollecting predictions for {len(valid_samples)} valid samples...")
+
+    # ========================================
+    # PHASE 1: CPU components (no GPU needed)
+    # ========================================
+    print("\n[Phase 1/4] CPU components (lexical, numeric, ner)...")
     lexical = LexicalOverlapCalculator()
     numeric = NumericValidator()
     ner = NERVerifier()
+    ner.preload()
+
+    for idx, (_, sample) in enumerate(valid_samples):
+        if (idx + 1) % 100 == 0:
+            print(f"  {idx+1}/{len(valid_samples)}...", end="\r")
+        predictions[idx].lexical_score = lexical.score(sample.context, sample.response, sample.question, None).score
+        predictions[idx].numeric_score = numeric.score(sample.context, sample.response, sample.question, None).score
+        predictions[idx].ner_score = ner.score(sample.context, sample.response, sample.question, None).score
+    print(f"  {len(valid_samples)}/{len(valid_samples)} done")
+
+    # ========================================
+    # PHASE 2: Transformer (~500MB GPU)
+    # ========================================
+    print("\n[Phase 2/4] Transformer...")
+    _clear_gpu_memory()
     transformer = TransformerDetector(model_path="KRLabsOrg/lettucedect-base-modernbert-en-v1")
     transformer.warmup()
+
+    for idx, (_, sample) in enumerate(valid_samples):
+        if (idx + 1) % 100 == 0:
+            print(f"  {idx+1}/{len(valid_samples)}...", end="\r")
+        spans = transformer.predict(sample.context, sample.response, sample.question, output_format="spans")
+        predictions[idx].transformer_score = max((sp.get("confidence", 0.5) for sp in spans), default=0.0)
+    print(f"  {len(valid_samples)}/{len(valid_samples)} done")
+
+    # Unload transformer
+    del transformer
+    _clear_gpu_memory()
+
+    # ========================================
+    # PHASE 3: Model2Vec (~100MB GPU)
+    # ========================================
+    print("\n[Phase 3/4] Model2Vec...")
     model2vec = Model2VecEncoder()
+
+    for idx, (_, sample) in enumerate(valid_samples):
+        if (idx + 1) % 100 == 0:
+            print(f"  {idx+1}/{len(valid_samples)}...", end="\r")
+        ncs = model2vec.compute_ncs(sample.context, sample.response)
+        predictions[idx].model2vec_score = (1.0 - ncs["max"]) / 2.0
+    print(f"  {len(valid_samples)}/{len(valid_samples)} done")
+
+    del model2vec
+    _clear_gpu_memory()
+
+    # ========================================
+    # PHASE 4: NLI + Stage1 + Stage2 + Cascade
+    # NLI is the heavy model (~3GB), shared across detectors
+    # ========================================
+    print("\n[Phase 4/4] NLI, Stage1, Stage2, Cascade...")
     nli = NLIContradictionDetector()
     nli.preload()
 
-    # Stages and cascade
     stage1 = Stage1Detector(augmentations=["ner", "numeric", "lexical"])
     stage1.warmup()
+
     stage2 = Stage2Detector()
+    # Stage2 should reuse the NLI model we already loaded
     stage2.warmup()
 
     config = CascadeConfig(
@@ -110,57 +189,38 @@ def collect_predictions(samples: list[BenchmarkSample]) -> list[SamplePrediction
     cascade = CascadeDetector(config)
     cascade.warmup()
 
-    print("Collecting predictions...")
-    predictions = []
-    total = len(samples)
+    for idx, (_, sample) in enumerate(valid_samples):
+        if (idx + 1) % 50 == 0:
+            print(f"  {idx+1}/{len(valid_samples)}...", end="\r")
 
-    for i, sample in enumerate(samples):
-        if (i + 1) % 100 == 0:
-            print(f"  {i+1}/{total}...", end="\r")
-
-        if not sample.context or not sample.response:
-            continue
-
-        pred = SamplePrediction(
-            sample_id=sample.id,
-            ground_truth=sample.ground_truth,
-        )
-
-        # Component scores
-        pred.lexical_score = lexical.score(sample.context, sample.response, sample.question, None).score
-        pred.numeric_score = numeric.score(sample.context, sample.response, sample.question, None).score
-        pred.ner_score = ner.score(sample.context, sample.response, sample.question, None).score
-
-        spans = transformer.predict(sample.context, sample.response, sample.question, output_format="spans")
-        pred.transformer_score = max((sp.get("confidence", 0.5) for sp in spans), default=0.0)
-
-        ncs = model2vec.compute_ncs(sample.context, sample.response)
-        pred.model2vec_score = (1.0 - ncs["max"]) / 2.0
-
-        pred.nli_score = nli.compute_context_nli(sample.context, sample.response)["hallucination_score"]
+        # NLI score
+        predictions[idx].nli_score = nli.compute_context_nli(sample.context, sample.response)["hallucination_score"]
 
         # Stage 1
         stage1_spans = stage1.predict(sample.context, sample.response, sample.question, output_format="spans")
-        pred.stage1_score = max((sp.get("confidence", 0.5) for sp in stage1_spans), default=0.0)
-        # Check if Stage 1 would be confident (threshold 0.3/0.7)
-        pred.stage1_confident = pred.stage1_score < 0.3 or pred.stage1_score > 0.7
+        predictions[idx].stage1_score = max((sp.get("confidence", 0.5) for sp in stage1_spans), default=0.0)
+        predictions[idx].stage1_confident = predictions[idx].stage1_score < 0.3 or predictions[idx].stage1_score > 0.7
 
         # Stage 2
         stage2_spans = stage2.predict(sample.context, sample.response, sample.question, output_format="spans")
-        pred.stage2_score = max((sp.get("confidence", 0.5) for sp in stage2_spans), default=0.0)
+        predictions[idx].stage2_score = max((sp.get("confidence", 0.5) for sp in stage2_spans), default=0.0)
 
         # Cascade
         cascade_result = cascade.predict(
             sample.context, sample.response, sample.question, output_format="detailed"
         )
         if isinstance(cascade_result, dict):
-            pred.cascade_score = cascade_result.get("scores", {}).get("final_score", 0.0)
-            pred.resolved_at_stage = cascade_result.get("routing", {}).get("resolved_at_stage", 1)
+            predictions[idx].cascade_score = cascade_result.get("scores", {}).get("final_score", 0.0)
+            predictions[idx].resolved_at_stage = cascade_result.get("routing", {}).get("resolved_at_stage", 1)
         else:
-            pred.cascade_score = max((sp.get("confidence", 0.5) for sp in cascade_result), default=0.0)
-            pred.resolved_at_stage = 1
+            predictions[idx].cascade_score = max((sp.get("confidence", 0.5) for sp in cascade_result), default=0.0)
+            predictions[idx].resolved_at_stage = 1
 
-        predictions.append(pred)
+    print(f"  {len(valid_samples)}/{len(valid_samples)} done")
+
+    # Cleanup
+    del nli, stage1, stage2, cascade
+    _clear_gpu_memory()
 
     print(f"\n  Collected {len(predictions)} predictions")
     return predictions
