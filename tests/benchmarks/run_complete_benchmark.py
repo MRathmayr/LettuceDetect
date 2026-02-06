@@ -492,8 +492,11 @@ def get_component_specs() -> list[ComponentSpec]:
         return comp.compute_context_nli(s.context, s.response)["hallucination_score"]
 
     def predict_stage(comp, s):
-        spans = comp.predict(s.context, s.response, s.question, output_format="spans")
-        return max((sp.get("confidence", 0.5) for sp in spans), default=0.0)
+        from lettucedetect.cascade.types import CascadeInput
+
+        cascade_input = CascadeInput(context=s.context, answer=s.response, question=s.question)
+        result = comp.predict_stage(input=cascade_input, has_next_stage=False)
+        return result.hallucination_score
 
     return [
         # Stage 1 components

@@ -31,7 +31,8 @@ class AggregationConfig:
     agreement_threshold: float = 0.5  # Below this = escalate due to component disagreement
 
     # Calibrated voting: convert scores to binary using optimal thresholds
-    use_calibrated_voting: bool = True
+    # Disabled: binarization destroys continuous score discrimination (0.851 vs 0.878 AUROC)
+    use_calibrated_voting: bool = False
     optimal_thresholds: dict | None = None  # Per-component optimal thresholds
 
     def __post_init__(self):

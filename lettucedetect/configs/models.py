@@ -20,9 +20,10 @@ class Stage3Method(str, Enum):
 class Stage1Config(BaseModel):
     """Configuration for Stage 1: Transformer + Augmentations.
 
-    Weights are optimized for hallucination detection:
+    Weights optimized on RAGTruth benchmark (voting analysis AUROC 0.878):
     - transformer: 0.70 (primary signal, trained on RAGTruth)
-    - lexical/ner/numeric: 0.10 each (heuristic augmentations)
+    - lexical: 0.30 (complementary heuristic)
+    - ner/numeric: 0.0 (disabled - hurt AUROC by flipping correct decisions)
 
     Routing thresholds calibrated on RAGTruth (2026-01-25):
     - confident_high: 0.79 (score above = skip to hallucinated)
@@ -35,9 +36,9 @@ class Stage1Config(BaseModel):
     weights: dict[str, float] = Field(
         default_factory=lambda: {
             "transformer": 0.70,  # Primary signal (trained on RAGTruth)
-            "lexical": 0.10,      # Weak heuristic
-            "ner": 0.10,          # Conditional (fires when entities present)
-            "numeric": 0.10,      # Conditional (fires when numbers present)
+            "lexical": 0.30,      # Complementary heuristic
+            "ner": 0.0,           # Disabled - hurts AUROC (flips correct decisions)
+            "numeric": 0.0,       # Disabled - hurts AUROC (flips correct decisions)
         }
     )
     max_length: int = 4096
@@ -62,12 +63,12 @@ class Stage1Config(BaseModel):
 class Stage2Config(BaseModel):
     """Configuration for Stage 2: NCS + NLI semantic analysis.
 
-    Uses HHEM (Vectara Hallucination Evaluation Model) for NLI component.
-    HHEM is trained specifically for RAG hallucination detection.
+    Uses Model2Vec (NCS) for fast embedding similarity.
+    NLI (HHEM) disabled - high-confidence predictions worse than random (46%).
 
-    Weights are optimized for hallucination detection:
-    - nli (HHEM): 0.70 (strong hallucination-specific signal)
-    - ncs: 0.30 (embedding similarity)
+    Weights optimized on RAGTruth benchmark:
+    - ncs: 1.0 (Model2Vec embedding similarity)
+    - nli: 0.0 (disabled - high-confidence worse than random)
 
     Routing thresholds calibrated on RAGTruth (2026-01-25):
     - confident_high: 0.44 (score above = hallucinated)
@@ -84,8 +85,8 @@ class Stage2Config(BaseModel):
     # Aggregation weights (must sum to 1.0)
     weights: dict[str, float] = Field(
         default_factory=lambda: {
-            "ncs": 0.30,  # Embedding similarity
-            "nli": 0.70,  # HHEM - strong hallucination-specific signal
+            "ncs": 1.0,   # Model2Vec embedding similarity
+            "nli": 0.0,   # Disabled - high-confidence worse than random (46%)
         }
     )
 
