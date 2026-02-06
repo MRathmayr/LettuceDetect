@@ -2,37 +2,34 @@
 
 from lettucedetect.configs.models import (
     CascadeConfig,
-    RoutingConfig,
     Stage1Config,
     Stage2Config,
     Stage3Config,
     Stage3Method,
 )
 
-# Full 3-stage cascade
+# Main preset: Stage 1 + Reading Probes (default)
 FULL_CASCADE = CascadeConfig(
-    stages=[1, 2, 3],
-    stage1=Stage1Config(augmentations=["ner", "numeric", "lexical"]),
-    stage2=Stage2Config(),
-    stage3=Stage3Config(method=Stage3Method.SEPS),
-    routing=RoutingConfig(threshold_1to2=0.7, threshold_2to3=0.7),
+    stages=[1, 3],
+    stage1=Stage1Config(augmentations=["lexical", "model2vec"]),
+    stage3=Stage3Config(method=Stage3Method.READING_PROBE),
 )
 
-# Fast 2-stage cascade (no LLM calls)
+# Fast mode: Stage 1 only
 FAST_CASCADE = CascadeConfig(
-    stages=[1, 2],
-    stage1=Stage1Config(augmentations=["ner", "numeric", "lexical"]),
-    stage2=Stage2Config(),
-    routing=RoutingConfig(threshold_1to2=0.7),
-)
-
-# Stage 1 only with augmentations
-STAGE1_AUGMENTED = CascadeConfig(
     stages=[1],
-    stage1=Stage1Config(augmentations=["ner", "numeric", "lexical"]),
+    stage1=Stage1Config(augmentations=["lexical", "model2vec"]),
 )
 
-# Stage 1 only, no augmentations (equivalent to legacy transformer)
+# With NLI: all 3 stages
+WITH_NLI = CascadeConfig(
+    stages=[1, 2, 3],
+    stage1=Stage1Config(augmentations=["lexical", "model2vec"]),
+    stage2=Stage2Config(),
+    stage3=Stage3Config(method=Stage3Method.READING_PROBE),
+)
+
+# Stage 1 only (no augmentations) - legacy transformer baseline
 STAGE1_MINIMAL = CascadeConfig(
     stages=[1],
     stage1=Stage1Config(augmentations=[]),
@@ -44,28 +41,18 @@ STAGE2_ONLY = CascadeConfig(
     stage2=Stage2Config(),
 )
 
-# Stage 3 SEPs only
-STAGE3_SEPS = CascadeConfig(
+# Stage 3 Reading Probe only (for standalone probe evaluation)
+STAGE3_READING_PROBE = CascadeConfig(
     stages=[3],
-    stage3=Stage3Config(method=Stage3Method.SEPS),
-)
-
-# Stage 3 Self-Consistency
-STAGE3_SELF_CONSISTENCY = CascadeConfig(
-    stages=[3],
-    stage3=Stage3Config(
-        method=Stage3Method.SELF_CONSISTENCY,
-        num_samples=5,
-    ),
+    stage3=Stage3Config(method=Stage3Method.READING_PROBE),
 )
 
 # All presets dict for easy access
 PRESETS = {
     "full_cascade": FULL_CASCADE,
     "fast_cascade": FAST_CASCADE,
-    "stage1_augmented": STAGE1_AUGMENTED,
+    "with_nli": WITH_NLI,
     "stage1_minimal": STAGE1_MINIMAL,
     "stage2_only": STAGE2_ONLY,
-    "stage3_seps": STAGE3_SEPS,
-    "stage3_self_consistency": STAGE3_SELF_CONSISTENCY,
+    "stage3_reading_probe": STAGE3_READING_PROBE,
 }

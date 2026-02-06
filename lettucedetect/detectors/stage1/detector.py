@@ -77,6 +77,12 @@ class Stage1Detector(BaseDetector):
             from lettucedetect.utils.lexical import LexicalOverlapCalculator
 
             self._augmentations.append(LexicalOverlapCalculator())
+        if "model2vec" in aug_list:
+            from lettucedetect.detectors.stage1.augmentations.model2vec_augmentation import (
+                Model2VecAugmentation,
+            )
+
+            self._augmentations.append(Model2VecAugmentation())
 
         # Initialize aggregator with weights from config
         agg_config = aggregation_config or AggregationConfig()

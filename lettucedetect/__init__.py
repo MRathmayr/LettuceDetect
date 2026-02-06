@@ -26,11 +26,10 @@ from lettucedetect.configs import (
     FAST_CASCADE,
     FULL_CASCADE,
     PRESETS,
-    STAGE1_AUGMENTED,
     STAGE1_MINIMAL,
     STAGE2_ONLY,
-    STAGE3_SELF_CONSISTENCY,
-    STAGE3_SEPS,
+    STAGE3_READING_PROBE,
+    WITH_NLI,
 )
 
 __version__ = "0.1.7"
@@ -53,10 +52,9 @@ __all__ = [
     # Presets
     "FULL_CASCADE",
     "FAST_CASCADE",
-    "STAGE1_AUGMENTED",
+    "WITH_NLI",
     "STAGE1_MINIMAL",
     "STAGE2_ONLY",
-    "STAGE3_SEPS",
-    "STAGE3_SELF_CONSISTENCY",
+    "STAGE3_READING_PROBE",
     "PRESETS",
 ]

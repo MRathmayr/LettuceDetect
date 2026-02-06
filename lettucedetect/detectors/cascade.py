@@ -53,37 +53,23 @@ class CascadeDetector(BaseDetector):
 
     def _init_stage3(self):
         """Initialize Stage 3 detector based on configured method."""
-        if self.config.stage3.method == Stage3Method.SEPS:
-            from lettucedetect.detectors.stage3.seps_detector import SEPsDetector
+        if self.config.stage3.method == Stage3Method.READING_PROBE:
+            from lettucedetect.detectors.stage3.reading_probe_detector import (
+                ReadingProbeDetector,
+            )
 
-            return SEPsDetector(
+            return ReadingProbeDetector(
                 model_name_or_path=self.config.stage3.llm_model,
                 probe_path=self.config.stage3.probe_path,
                 layer_index=self.config.stage3.layer_index,
                 token_position=self.config.stage3.token_position,
-                load_in_8bit=self.config.stage3.load_in_8bit,
+                threshold=self.config.stage3.threshold,
                 load_in_4bit=self.config.stage3.load_in_4bit,
-            )
-        elif self.config.stage3.method == Stage3Method.SELF_CONSISTENCY:
-            from lettucedetect.detectors.stage3.self_consistency_detector import (
-                SelfConsistencyDetector,
-            )
-
-            return SelfConsistencyDetector(
-                model=self.config.stage3.api_model,
-                num_samples=self.config.stage3.num_samples,
-                temperature=self.config.stage3.temperature,
-                consistency_method=self.config.stage3.consistency_method,
+                load_in_8bit=self.config.stage3.load_in_8bit,
             )
         elif self.config.stage3.method == Stage3Method.SEMANTIC_ENTROPY:
-            from lettucedetect.detectors.stage3.semantic_entropy_detector import (
-                SemanticEntropyDetector,
-            )
-
-            return SemanticEntropyDetector(
-                model=self.config.stage3.api_model,
-                num_samples=self.config.stage3.num_samples,
-                clustering_method=self.config.stage3.clustering_method,
+            raise NotImplementedError(
+                "Semantic entropy detector not yet implemented (offline baseline only)"
             )
         else:
             raise ValueError(f"Unknown Stage 3 method: {self.config.stage3.method}")

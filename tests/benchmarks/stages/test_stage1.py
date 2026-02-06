@@ -107,9 +107,9 @@ class TestStage1Benchmark:
         print(f"Stage 1 Full Pipeline Benchmark Results")
         print(f"{'='*60}")
         print(f"Samples: {metrics.n_samples}")
-        print(f"AUROC: {metrics.auroc:.3f}" if metrics.auroc else "AUROC: N/A")
-        print(f"F1: {metrics.f1:.3f}" if metrics.f1 else "F1: N/A")
-        print(f"Optimal F1: {metrics.optimal_f1:.3f}" if metrics.optimal_f1 else "Optimal F1: N/A")
+        print(f"AUROC: {metrics.auroc:.3f}" if metrics.auroc is not None else "AUROC: N/A")
+        print(f"F1: {metrics.f1:.3f}" if metrics.f1 is not None else "F1: N/A")
+        print(f"Optimal F1: {metrics.optimal_f1:.3f}" if metrics.optimal_f1 is not None else "Optimal F1: N/A")
         print(f"Latency: {timing.mean_ms:.2f}ms (P95: {timing.p95_ms:.2f}ms)")
         if memory.gpu_peak_mb:
             print(f"GPU Peak: {memory.gpu_peak_mb:.1f}MB")

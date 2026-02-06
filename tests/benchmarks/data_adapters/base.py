@@ -19,6 +19,9 @@ class BenchmarkSample:
     response: str | None  # Pre-generated response (None = needs generation)
     ground_truth: int  # 0=factual, 1=hallucination
 
+    # Task type within dataset (e.g., RAGTruth: "qa", "summary", "data2txt")
+    task_type: str | None = None
+
     # Optional fields for span-level evaluation
     hallucination_spans: list[dict] | None = None  # [{"start": 0, "end": 10, "type": "..."}]
 

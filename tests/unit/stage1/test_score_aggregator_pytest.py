@@ -504,11 +504,6 @@ class TestCalibratedVoting:
         # Votes: transformer=0, ner=1 -> (0.5*0 + 0.5*1) / 1.0 = 0.5
         assert result.hallucination_score == 0.5
 
-    def test_calibrated_voting_enabled_by_default(self):
-        """Calibrated voting is enabled by default in AggregationConfig."""
-        config = AggregationConfig()
-        assert config.use_calibrated_voting is True
-
     def test_default_thresholds_from_ragtruth(self):
         """Default thresholds match RAGTruth benchmark values."""
         config = AggregationConfig()

@@ -45,6 +45,8 @@ class RAGTruthAdapter(DatasetAdapter):
             question = item.get("query", "")
             response = item.get("output", "")
             context_str = item.get("context", "")
+            # Task type: "Summary", "Data2txt", "QA" → normalize to lowercase
+            task_type = item.get("task_type", "unknown").lower()
 
             # Hallucination labels - check both types
             labels = item.get("hallucination_labels_processed", {})
@@ -63,6 +65,7 @@ class RAGTruthAdapter(DatasetAdapter):
                     context=context,
                     response=response,
                     ground_truth=ground_truth,
+                    task_type=task_type,
                     hallucination_spans=None,  # RAGTruth-processed is response-level
                 )
             )

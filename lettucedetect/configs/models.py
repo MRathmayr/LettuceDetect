@@ -12,8 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 class Stage3Method(str, Enum):
     """Available methods for Stage 3 detection."""
 
-    SEPS = "seps"
-    SELF_CONSISTENCY = "self_consistency"
+    READING_PROBE = "reading_probe"
     SEMANTIC_ENTROPY = "semantic_entropy"
 
 
@@ -32,11 +31,12 @@ class Stage1Config(BaseModel):
     """
 
     model_path: str = "KRLabsOrg/lettucedect-base-modernbert-en-v1"
-    augmentations: list[Literal["ner", "numeric", "lexical"]] = []
+    augmentations: list[Literal["ner", "numeric", "lexical", "model2vec"]] = ["lexical", "model2vec"]
     weights: dict[str, float] = Field(
         default_factory=lambda: {
-            "transformer": 0.70,  # Primary signal (trained on RAGTruth)
-            "lexical": 0.30,      # Complementary heuristic
+            "transformer": 0.65,  # Primary signal (trained on RAGTruth)
+            "lexical": 0.25,      # Complementary heuristic
+            "model2vec": 0.10,    # NCS embedding similarity
             "ner": 0.0,           # Disabled - hurts AUROC (flips correct decisions)
             "numeric": 0.0,       # Disabled - hurts AUROC (flips correct decisions)
         }
@@ -61,14 +61,11 @@ class Stage1Config(BaseModel):
 
 
 class Stage2Config(BaseModel):
-    """Configuration for Stage 2: NCS + NLI semantic analysis.
+    """Configuration for Stage 2: NLI semantic analysis.
 
-    Uses Model2Vec (NCS) for fast embedding similarity.
-    NLI (HHEM) disabled - high-confidence predictions worse than random (46%).
-
-    Weights optimized on RAGTruth benchmark:
-    - ncs: 1.0 (Model2Vec embedding similarity)
-    - nli: 0.0 (disabled - high-confidence worse than random)
+    Model2Vec (NCS) moved to Stage 1 as augmentation. Stage 2 is now NLI-only.
+    Inactive by default (not in default cascade stages=[1, 3]).
+    Re-enable by setting stages=[1, 2, 3] in CascadeConfig.
 
     Routing thresholds calibrated on RAGTruth (2026-01-25):
     - confident_high: 0.44 (score above = hallucinated)
@@ -76,8 +73,8 @@ class Stage2Config(BaseModel):
     - optimal: 0.18 (threshold that maximizes F1)
     """
 
-    # Component selection
-    components: list[Literal["ncs", "nli"]] = ["ncs", "nli"]
+    # Component selection (Model2Vec moved to Stage 1)
+    components: list[Literal["ncs", "nli"]] = ["nli"]
 
     # Model selection (HHEM is hardcoded for NLI, only NCS model is configurable)
     ncs_model: str = "minishlab/potion-base-32M"
@@ -85,8 +82,8 @@ class Stage2Config(BaseModel):
     # Aggregation weights (must sum to 1.0)
     weights: dict[str, float] = Field(
         default_factory=lambda: {
-            "ncs": 1.0,   # Model2Vec embedding similarity
-            "nli": 0.0,   # Disabled - high-confidence worse than random (46%)
+            "ncs": 0.0,   # Model2Vec moved to Stage 1
+            "nli": 1.0,   # NLI is the only Stage 2 component
         }
     )
 
@@ -114,25 +111,20 @@ class Stage2Config(BaseModel):
 
 
 class Stage3Config(BaseModel):
-    """Configuration for Stage 3: SEPs / Self-Consistency / Semantic Entropy."""
+    """Configuration for Stage 3: Reading Probe / Semantic Entropy."""
 
-    method: Stage3Method = Stage3Method.SEPS
+    method: Stage3Method = Stage3Method.READING_PROBE
 
-    # SEPs config
-    llm_model: str = "meta-llama/Llama-3.2-3B"
+    # Reading Probe config
+    llm_model: str = "Qwen/Qwen2.5-3B-Instruct"
     probe_path: str | None = None
-    layer_index: int = -1
-    token_position: Literal["last", "mean"] = "last"
-    load_in_4bit: bool = False
+    layer_index: int = -16
+    token_position: Literal["slt", "tbg", "mean"] = "mean"
+    load_in_4bit: bool = True
     load_in_8bit: bool = False
+    threshold: float = 0.5  # P(correct) below this = hallucination
 
-    # Self-Consistency config
-    api_model: str = "gpt-4o-mini"
-    num_samples: int = 5
-    temperature: float = 0.7
-    consistency_method: Literal["bertscore", "nli", "hybrid"] = "hybrid"
-
-    # Semantic Entropy config
+    # Semantic Entropy config (offline baseline, not yet implemented)
     clustering_method: Literal["nli", "embedding"] = "nli"
 
 
@@ -146,7 +138,7 @@ class RoutingConfig(BaseModel):
 class CascadeConfig(BaseModel):
     """Main configuration for cascade detector."""
 
-    stages: list[Literal[1, 2, 3]] = [1, 2, 3]
+    stages: list[Literal[1, 2, 3]] = [1, 3]
     stage1: Stage1Config = Field(default_factory=Stage1Config)
     stage2: Stage2Config = Field(default_factory=Stage2Config)
     stage3: Stage3Config = Field(default_factory=Stage3Config)

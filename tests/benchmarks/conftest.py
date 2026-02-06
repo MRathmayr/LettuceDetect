@@ -3,6 +3,7 @@
 import pytest
 
 from tests.benchmarks.config import BenchmarkConfig, DatasetConfig
+from tests.benchmarks.core.stage3_variants import STAGE3_VARIANTS, resolve_probe_path
 
 
 def pytest_addoption(parser):
@@ -143,6 +144,92 @@ def stage2_detector():
     detector = Stage2Detector()
     detector.warmup()
     return detector
+
+
+# Stage 3 fixtures (GPU required)
+# Use yield fixtures with explicit cleanup to free VRAM between model sizes.
+@pytest.fixture(scope="module")
+def stage3_detector_3b():
+    """Create Stage 3 Reading Probe detector with Qwen 2.5 3B.
+
+    Requires:
+    - CUDA GPU with >= 4 GB VRAM
+    - Probe file: read-training/results/training_430k_3b/reading_probe_3b_qwen.joblib
+    """
+    import gc
+
+    import torch
+
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA GPU required for Stage 3 benchmarks")
+
+    variant = STAGE3_VARIANTS["3b"]
+    probe_path = resolve_probe_path(variant["probe_subdir"])
+    if not probe_path:
+        pytest.skip(f"Probe file not found for 3b")
+
+    from lettucedetect.detectors.stage3.reading_probe_detector import ReadingProbeDetector
+
+    detector = ReadingProbeDetector(
+        model_name_or_path=variant["model"],
+        probe_path=probe_path,
+        layer_index=variant["layer_index"],
+        token_position="mean",
+        threshold=0.5,
+        load_in_4bit=True,
+    )
+    yield detector
+
+    # Free VRAM so 7B can load
+    del detector
+    gc.collect()
+    torch.cuda.empty_cache()
+
+
+@pytest.fixture(scope="module")
+def stage3_detector_7b():
+    """Create Stage 3 Reading Probe detector with Qwen 2.5 7B.
+
+    Requires:
+    - CUDA GPU with >= 7 GB VRAM (marginal on GTX 1080)
+    - Probe file: read-training/results/training_430k_7b/reading_probe_7b_qwen.joblib
+    """
+    import gc
+
+    import torch
+
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA GPU required for Stage 3 benchmarks")
+
+    # Check VRAM - 7B needs ~5-7 GB in 4-bit, plus overhead for activations/KV cache
+    gpu_mem = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+    if gpu_mem < 7.5:
+        pytest.skip(f"Insufficient VRAM for 7B model: {gpu_mem:.1f} GB (need >= 7.5 GB)")
+
+    variant = STAGE3_VARIANTS["7b"]
+    probe_path = resolve_probe_path(variant["probe_subdir"])
+    if not probe_path:
+        pytest.skip(f"Probe file not found for 7b")
+
+    # Force cleanup before loading 7B
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    from lettucedetect.detectors.stage3.reading_probe_detector import ReadingProbeDetector
+
+    detector = ReadingProbeDetector(
+        model_name_or_path=variant["model"],
+        probe_path=probe_path,
+        layer_index=variant["layer_index"],
+        token_position="mean",
+        threshold=0.5,
+        load_in_4bit=True,
+    )
+    yield detector
+
+    del detector
+    gc.collect()
+    torch.cuda.empty_cache()
 
 
 # Cleanup fixtures

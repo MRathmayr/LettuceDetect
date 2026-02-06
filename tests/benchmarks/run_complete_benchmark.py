@@ -2,7 +2,11 @@
 """Complete benchmark suite for LettuceDetect.
 
 Runs all components, stages, and cascade on benchmark datasets (RAGTruth + HaluEval QA).
-Saves comprehensive results to JSON files.
+Saves results separately per Stage 3 model variant:
+- benchmark_full_3b_{timestamp}.json: Shared components + Stage3(3B) + Cascade[1,3](3B)
+- benchmark_full_7b_{timestamp}.json: Shared components + Stage3(7B) + Cascade[1,3](7B)
+
+If a variant is unavailable (no probe file, no GPU, OOM), earlier variants are still saved.
 
 Expected runtime: ~1-2 hours on GTX 1080
 Datasets: RAGTruth (2.7k) + HaluEval QA (10k) = ~12.7k samples
@@ -13,8 +17,10 @@ Usage:
 """
 
 import argparse
+import copy
 import gc
 import json
+import os
 import sys
 import time
 from dataclasses import asdict, dataclass, field
@@ -37,6 +43,8 @@ from tests.benchmarks.data_adapters import BenchmarkSample, HaluEvalAdapter, RAG
 
 # Default classification threshold
 DEFAULT_THRESHOLD = 0.5
+
+from tests.benchmarks.core.stage3_variants import STAGE3_VARIANTS, resolve_probe_path
 
 
 # =============================================================================
@@ -145,10 +153,22 @@ def clear_gpu():
 AVAILABLE_DATASETS = ["ragtruth", "halueval_qa"]
 
 
+def _split_by_task_type(samples: list[BenchmarkSample]) -> dict[str, list[BenchmarkSample]]:
+    """Split samples by task_type field into sub-datasets."""
+    by_type: dict[str, list[BenchmarkSample]] = {}
+    for s in samples:
+        if s.task_type:
+            by_type.setdefault(s.task_type, []).append(s)
+    return by_type
+
+
 def load_all_datasets(
     limit: int | None = None, dataset_filter: list[str] | None = None
 ) -> dict[str, list[BenchmarkSample]]:
     """Load benchmark datasets.
+
+    RAGTruth is additionally split by task type (qa, summary, data2txt)
+    so per-task metrics are computed automatically.
 
     Args:
         limit: Maximum samples per dataset (None = all)
@@ -168,8 +188,19 @@ def load_all_datasets(
             continue
         print(f"  - {name}...", end=" ", flush=True)
         adapter = adapter_cls(**kwargs)
-        datasets[name] = adapter.load(limit=limit)
-        print(f"{len(datasets[name])} samples")
+        samples = adapter.load(limit=limit)
+        datasets[name] = samples
+        print(f"{len(samples)} samples")
+
+        # Replace ragtruth with per-task-type sub-datasets to avoid double-counting
+        if name == "ragtruth":
+            sub_splits = _split_by_task_type(samples)
+            if sub_splits:
+                del datasets["ragtruth"]
+                for task_type, task_samples in sorted(sub_splits.items()):
+                    sub_name = f"ragtruth_{task_type}"
+                    datasets[sub_name] = task_samples
+                    print(f"    - {sub_name}: {len(task_samples)} samples")
 
     total = sum(len(d) for d in datasets.values())
     print(f"\nTotal: {total} samples across {len(datasets)} datasets")
@@ -332,7 +363,7 @@ def run_component_suite(
 
             # Print result summary
             gpu_info = f", GPU={result.gpu_peak_mb:.0f}MB" if result.gpu_peak_mb else ""
-            f1_info = f", F1={result.optimal_f1:.3f}@{result.optimal_threshold:.2f}" if result.optimal_f1 else ""
+            f1_info = f", F1={result.optimal_f1:.3f}@{result.optimal_threshold:.2f}" if result.optimal_f1 is not None else ""
             print(f"  Result: AUROC={result.auroc:.3f}{f1_info}, latency={result.latency_mean_ms:.2f}ms{gpu_info}")
 
         # Cleanup
@@ -347,11 +378,7 @@ def benchmark_cascade(
     progress: ProgressTracker,
     compute_ci: bool,
 ) -> list[dict]:
-    """Benchmark the full cascade with routing tracking.
-
-    This is separate from run_component_suite because cascade needs to track
-    which stage resolved each sample, requiring custom per-sample logic.
-    """
+    """Benchmark the full cascade (stages 1+2) with routing tracking."""
     from lettucedetect.configs.models import CascadeConfig, Stage1Config, Stage2Config
     from lettucedetect.detectors.cascade import CascadeDetector
 
@@ -366,9 +393,8 @@ def benchmark_cascade(
     results = []
 
     for ds_name, samples in datasets.items():
-        progress.start_step(f"Cascade -> {ds_name}")
+        progress.start_step(f"Cascade [1,2] -> {ds_name}")
 
-        # Track routing decisions
         routing_counts = {"stage1_resolved": 0, "stage2_resolved": 0}
 
         def predict_with_routing(sample: BenchmarkSample) -> float:
@@ -385,7 +411,7 @@ def benchmark_cascade(
                     routing_counts["stage2_resolved"] += 1
             else:
                 score = max((sp.get("confidence", 0.5) for sp in result), default=0.0)
-                routing_counts["stage1_resolved"] += 1  # Default assumption
+                routing_counts["stage1_resolved"] += 1
 
             return score
 
@@ -398,7 +424,6 @@ def benchmark_cascade(
             compute_ci=compute_ci,
         )
 
-        # Add routing stats to result
         result_dict = asdict(result)
         total_resolved = routing_counts["stage1_resolved"] + routing_counts["stage2_resolved"]
         result_dict["stage1_resolved"] = routing_counts["stage1_resolved"]
@@ -410,7 +435,7 @@ def benchmark_cascade(
         results.append(result_dict)
 
         stage1_pct = result_dict["stage1_resolved_pct"]
-        f1_info = f", F1={result.optimal_f1:.3f}@{result.optimal_threshold:.2f}" if result.optimal_f1 else ""
+        f1_info = f", F1={result.optimal_f1:.3f}@{result.optimal_threshold:.2f}" if result.optimal_f1 is not None else ""
         print(f"  Result: AUROC={result.auroc:.3f}{f1_info}, latency={result.latency_mean_ms:.2f}ms, Stage1={stage1_pct:.1f}%")
 
     del cascade
@@ -419,56 +444,159 @@ def benchmark_cascade(
     return results
 
 
+def benchmark_cascade_13(
+    model_size: str,
+    variant: dict,
+    datasets: dict[str, list[BenchmarkSample]],
+    progress: ProgressTracker,
+    compute_ci: bool,
+) -> tuple[list[dict], list[dict]]:
+    """Benchmark Stage 3 standalone + Cascade[1,3] for a specific model variant.
+
+    Creates a single cascade[1,3] and reuses its stage3 detector for standalone benchmarking.
+
+    Returns:
+        Tuple of (stage3_results, cascade_results) as lists of dicts.
+        Empty lists if probe/GPU not available.
+    """
+    from lettucedetect.configs.models import CascadeConfig, Stage1Config, Stage3Config
+    from lettucedetect.detectors.cascade import CascadeDetector
+
+    probe_path = resolve_probe_path(variant["probe_subdir"])
+    if not probe_path:
+        print(f"  Stage 3 ({model_size}) SKIPPED: probe file not found")
+        return [], []
+    if not torch.cuda.is_available():
+        print(f"  Stage 3 ({model_size}) SKIPPED: CUDA GPU required")
+        return [], []
+
+    clear_gpu()
+
+    print(f"\n  Loading cascade [1,3] with {variant['model']}...")
+    config = CascadeConfig(
+        stages=[1, 3],
+        stage1=Stage1Config(augmentations=["ner", "numeric", "lexical"]),
+        stage3=Stage3Config(
+            llm_model=variant["model"],
+            probe_path=probe_path,
+            layer_index=variant["layer_index"],
+            token_position="mean",
+            load_in_4bit=True,
+        ),
+    )
+    cascade = CascadeDetector(config)
+    cascade.warmup()
+
+    stage3_results = []
+    cascade_results = []
+    stage3_detector = cascade._stages[3]
+    component_name = f"stage3_{model_size}"
+
+    def predict_stage3(sample: BenchmarkSample) -> float:
+        spans = stage3_detector.predict(
+            sample.context, sample.response, sample.question, output_format="spans"
+        )
+        return max((sp.get("confidence", 0.5) for sp in spans), default=0.0)
+
+    # --- Stage 3 standalone ---
+    for ds_name, samples in datasets.items():
+        progress.start_step(f"Stage 3 ({model_size}) -> {ds_name}")
+        result = benchmark_component(
+            component_name, ds_name, samples, predict_stage3,
+            use_gpu=True, compute_ci=compute_ci,
+        )
+        stage3_results.append(asdict(result))
+
+        gpu_info = f", GPU={result.gpu_peak_mb:.0f}MB" if result.gpu_peak_mb else ""
+        f1_info = f", F1={result.optimal_f1:.3f}@{result.optimal_threshold:.2f}" if result.optimal_f1 is not None else ""
+        print(f"  Result: AUROC={result.auroc:.3f}{f1_info}, latency={result.latency_mean_ms:.2f}ms{gpu_info}")
+
+    # --- Cascade [1,3] ---
+    cascade_name = f"cascade_stages13_{model_size}"
+    for ds_name, samples in datasets.items():
+        progress.start_step(f"Cascade [1,3] ({model_size}) -> {ds_name}")
+
+        routing_counts = {"stage1_resolved": 0, "stage3_resolved": 0}
+
+        def predict_cascade(sample: BenchmarkSample) -> float:
+            result = cascade.predict(
+                sample.context, sample.response, sample.question, output_format="detailed"
+            )
+            if isinstance(result, dict):
+                score = result.get("scores", {}).get("final_score", 0.0)
+                resolved_at = result.get("routing", {}).get("resolved_at_stage", 1)
+                if resolved_at == 1:
+                    routing_counts["stage1_resolved"] += 1
+                else:
+                    routing_counts["stage3_resolved"] += 1
+            else:
+                score = max((sp.get("confidence", 0.5) for sp in result), default=0.0)
+            return score
+
+        result = benchmark_component(
+            cascade_name, ds_name, samples, predict_cascade,
+            use_gpu=True, compute_ci=compute_ci,
+        )
+
+        result_dict = asdict(result)
+        total_resolved = routing_counts["stage1_resolved"] + routing_counts["stage3_resolved"]
+        result_dict["stage1_resolved"] = routing_counts["stage1_resolved"]
+        result_dict["stage3_resolved"] = routing_counts["stage3_resolved"]
+        result_dict["stage1_resolved_pct"] = (
+            100 * routing_counts["stage1_resolved"] / total_resolved if total_resolved > 0 else 0
+        )
+        cascade_results.append(result_dict)
+
+        stage1_pct = result_dict["stage1_resolved_pct"]
+        f1_info = f", F1={result.optimal_f1:.3f}@{result.optimal_threshold:.2f}" if result.optimal_f1 is not None else ""
+        print(f"  Result: AUROC={result.auroc:.3f}{f1_info}, latency={result.latency_mean_ms:.2f}ms, Stage1={stage1_pct:.1f}%")
+
+    del cascade
+    clear_gpu()
+
+    return stage3_results, cascade_results
+
+
 # =============================================================================
 # Component Definitions
 # =============================================================================
 
 
-def get_component_specs() -> list[ComponentSpec]:
-    """Define all components to benchmark."""
+def get_shared_specs() -> list[ComponentSpec]:
+    """Define shared components (everything except Stage 3) to benchmark."""
 
-    # Lazy imports to avoid loading everything at startup
     def make_lexical():
         from lettucedetect.utils.lexical import LexicalOverlapCalculator
-
         return LexicalOverlapCalculator()
 
     def make_numeric():
         from lettucedetect.detectors.stage1.augmentations.numeric_validator import NumericValidator
-
         return NumericValidator()
 
     def make_ner():
         from lettucedetect.detectors.stage1.augmentations.ner_verifier import NERVerifier
-
         return NERVerifier()
 
     def make_transformer():
         from lettucedetect.detectors.transformer import TransformerDetector
-
         return TransformerDetector(model_path="KRLabsOrg/lettucedect-base-modernbert-en-v1")
 
     def make_model2vec():
         from lettucedetect.detectors.stage2.model2vec_encoder import Model2VecEncoder
-
         return Model2VecEncoder()
 
     def make_nli():
         from lettucedetect.detectors.stage2.nli_detector import NLIContradictionDetector
-
         return NLIContradictionDetector()
 
     def make_stage1():
         from lettucedetect.detectors.stage1.detector import Stage1Detector
-
         return Stage1Detector(augmentations=["ner", "numeric", "lexical"])
 
     def make_stage2():
         from lettucedetect.detectors.stage2.detector import Stage2Detector
-
         return Stage2Detector()
 
-    # Predict functions
     def predict_lexical(comp, s):
         return comp.score(s.context, s.response, s.question, None).score
 
@@ -484,8 +612,6 @@ def get_component_specs() -> list[ComponentSpec]:
 
     def predict_model2vec(comp, s):
         ncs = comp.compute_ncs(s.context, s.response)
-        # Cosine similarity ranges [-1, 1], map to [0, 1] hallucination score
-        # ncs=1 (identical) -> 0, ncs=0 (orthogonal) -> 0.5, ncs=-1 (opposite) -> 1
         return (1.0 - ncs["max"]) / 2.0
 
     def predict_nli(comp, s):
@@ -493,7 +619,6 @@ def get_component_specs() -> list[ComponentSpec]:
 
     def predict_stage(comp, s):
         from lettucedetect.cascade.types import CascadeInput
-
         cascade_input = CascadeInput(context=s.context, answer=s.response, question=s.question)
         result = comp.predict_stage(input=cascade_input, has_next_stage=False)
         return result.hallucination_score
@@ -523,7 +648,6 @@ def compute_summaries(results: dict) -> dict:
     summary = {}
 
     def weighted_avg(items: list[dict], key: str, total: int) -> float | None:
-        """Compute weighted average, skipping None values."""
         valid = [(r[key], r["n_samples"]) for r in items if r.get(key) is not None]
         if not valid:
             return None
@@ -546,27 +670,28 @@ def compute_summaries(results: dict) -> dict:
                 "total_samples": total_samples,
             }
 
-    # Stage summaries
-    for stage_name in ["stage1", "stage2"]:
+    # Stage summaries (dynamic - includes whatever stages are present)
+    stage_names = set(r["component"] for r in results["stages"])
+    for stage_name in sorted(stage_names):
         stage_results = [r for r in results["stages"] if r["component"] == stage_name]
-        if stage_results:
-            total_samples = sum(r["n_samples"] for r in stage_results)
-            if total_samples > 0:
-                summary[stage_name] = {
-                    "avg_auroc": weighted_avg(stage_results, "auroc", total_samples),
-                    "avg_f1": weighted_avg(stage_results, "f1", total_samples),
-                    "avg_optimal_f1": weighted_avg(stage_results, "optimal_f1", total_samples),
-                    "avg_optimal_threshold": weighted_avg(stage_results, "optimal_threshold", total_samples),
-                    "avg_latency_mean_ms": weighted_avg(stage_results, "latency_mean_ms", total_samples),
-                    "total_samples": total_samples,
-                }
+        total_samples = sum(r["n_samples"] for r in stage_results)
+        if total_samples > 0:
+            summary[stage_name] = {
+                "avg_auroc": weighted_avg(stage_results, "auroc", total_samples),
+                "avg_f1": weighted_avg(stage_results, "f1", total_samples),
+                "avg_optimal_f1": weighted_avg(stage_results, "optimal_f1", total_samples),
+                "avg_optimal_threshold": weighted_avg(stage_results, "optimal_threshold", total_samples),
+                "avg_latency_mean_ms": weighted_avg(stage_results, "latency_mean_ms", total_samples),
+                "total_samples": total_samples,
+            }
 
-    # Cascade summary
-    cascade_results = results["cascade"]
-    if cascade_results:
+    # Cascade summaries (dynamic)
+    cascade_names = set(r["component"] for r in results["cascade"])
+    for cascade_name in sorted(cascade_names):
+        cascade_results = [r for r in results["cascade"] if r["component"] == cascade_name]
         total_samples = sum(r["n_samples"] for r in cascade_results)
         if total_samples > 0:
-            summary["cascade_stages12"] = {
+            summary[cascade_name] = {
                 "avg_auroc": weighted_avg(cascade_results, "auroc", total_samples),
                 "avg_f1": weighted_avg(cascade_results, "f1", total_samples),
                 "avg_optimal_f1": weighted_avg(cascade_results, "optimal_f1", total_samples),
@@ -588,69 +713,71 @@ def print_summary_table(results: dict):
     summary = results["summary"]
 
     # Header
-    print(f"\n{'Component':<20} {'AUROC':>8} {'F1':>8} {'Threshold':>10} {'Latency':>10} {'P95':>10} {'Samples':>8}")
+    print(f"\n{'Component':<25} {'AUROC':>8} {'F1':>8} {'Threshold':>10} {'Latency':>10} {'P95':>10} {'Samples':>8}")
     print("-" * 110)
 
     # Components
     for comp in ["lexical", "numeric", "ner", "transformer", "model2vec", "nli"]:
         if comp in summary:
             s = summary[comp]
-            auroc = f"{s['avg_auroc']:.3f}" if s.get("avg_auroc") else "N/A"
-            f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") else "N/A"
-            threshold = f"{s.get('avg_optimal_threshold', 0.5):.3f}" if s.get("avg_optimal_threshold") else "N/A"
+            auroc = f"{s['avg_auroc']:.3f}" if s.get("avg_auroc") is not None else "N/A"
+            f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") is not None else "N/A"
+            threshold = f"{s.get('avg_optimal_threshold', 0.5):.3f}" if s.get("avg_optimal_threshold") is not None else "N/A"
             latency = f"{s['avg_latency_mean_ms']:.1f}ms"
             p95 = f"{s.get('avg_latency_p95_ms', 0):.1f}ms"
             samples = str(s.get("total_samples", 0))
-            print(f"{comp:<20} {auroc:>8} {f1:>8} {threshold:>10} {latency:>10} {p95:>10} {samples:>8}")
+            print(f"{comp:<25} {auroc:>8} {f1:>8} {threshold:>10} {latency:>10} {p95:>10} {samples:>8}")
 
     print("-" * 110)
 
-    # Stages
-    for stage in ["stage1", "stage2"]:
-        if stage in summary:
-            s = summary[stage]
-            auroc = f"{s['avg_auroc']:.3f}" if s.get("avg_auroc") else "N/A"
-            f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") else "N/A"
-            threshold = f"{s.get('avg_optimal_threshold', 0.5):.3f}" if s.get("avg_optimal_threshold") else "N/A"
-            latency = f"{s['avg_latency_mean_ms']:.1f}ms"
-            samples = str(s.get("total_samples", 0))
-            print(f"{stage:<20} {auroc:>8} {f1:>8} {threshold:>10} {latency:>10} {'-':>10} {samples:>8}")
+    # Stages (dynamic)
+    stage_keys = sorted(k for k in summary if k.startswith("stage"))
+    for stage in stage_keys:
+        s = summary[stage]
+        auroc = f"{s['avg_auroc']:.3f}" if s.get("avg_auroc") is not None else "N/A"
+        f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") is not None else "N/A"
+        threshold = f"{s.get('avg_optimal_threshold', 0.5):.3f}" if s.get("avg_optimal_threshold") is not None else "N/A"
+        latency = f"{s['avg_latency_mean_ms']:.1f}ms"
+        samples = str(s.get("total_samples", 0))
+        print(f"{stage:<25} {auroc:>8} {f1:>8} {threshold:>10} {latency:>10} {'-':>10} {samples:>8}")
 
     print("-" * 110)
 
-    # Cascade
-    if "cascade_stages12" in summary:
-        s = summary["cascade_stages12"]
-        auroc = f"{s['avg_auroc']:.3f}" if s.get("avg_auroc") else "N/A"
-        f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") else "N/A"
-        threshold = f"{s.get('avg_optimal_threshold', 0.5):.3f}" if s.get("avg_optimal_threshold") else "N/A"
+    # Cascade (dynamic)
+    cascade_keys = sorted(k for k in summary if k.startswith("cascade"))
+    for cascade_name in cascade_keys:
+        s = summary[cascade_name]
+        auroc = f"{s['avg_auroc']:.3f}" if s.get("avg_auroc") is not None else "N/A"
+        f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") is not None else "N/A"
+        threshold = f"{s.get('avg_optimal_threshold', 0.5):.3f}" if s.get("avg_optimal_threshold") is not None else "N/A"
         latency = f"{s['avg_latency_mean_ms']:.1f}ms"
         stage1_pct = f"{s.get('avg_stage1_resolved_pct', 0):.0f}%S1"
         samples = str(s.get("total_samples", 0))
-        print(f"{'cascade (1+2)':<20} {auroc:>8} {f1:>8} {threshold:>10} {latency:>10} {stage1_pct:>10} {samples:>8}")
+        print(f"{cascade_name:<25} {auroc:>8} {f1:>8} {threshold:>10} {latency:>10} {stage1_pct:>10} {samples:>8}")
 
     print("=" * 110)
 
 
-def save_results(results: dict, output_dir: Path):
+def save_results(results: dict, output_dir: Path, suffix: str = ""):
     """Save results to multiple files."""
     output_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    tag = f"_{suffix}" if suffix else ""
 
     # Full results
-    full_path = output_dir / f"benchmark_full_{timestamp}.json"
+    full_path = output_dir / f"benchmark_full{tag}_{timestamp}.json"
     with open(full_path, "w") as f:
         json.dump(results, f, indent=2)
     print(f"\nFull results: {full_path}")
 
     # Summary only
-    summary_path = output_dir / f"benchmark_summary_{timestamp}.json"
+    summary_path = output_dir / f"benchmark_summary{tag}_{timestamp}.json"
     with open(summary_path, "w") as f:
         json.dump({"metadata": results["metadata"], "summary": results["summary"]}, f, indent=2)
     print(f"Summary: {summary_path}")
 
     # CSV for easy import
-    csv_path = output_dir / f"benchmark_components_{timestamp}.csv"
+    csv_path = output_dir / f"benchmark_components{tag}_{timestamp}.csv"
     with open(csv_path, "w") as f:
         f.write("component,dataset,n_samples,auroc,f1,optimal_f1,latency_mean_ms,latency_p95_ms,gpu_peak_mb\n")
         for r in results["components"] + results["stages"] + results["cascade"]:
@@ -661,56 +788,29 @@ def save_results(results: dict, output_dir: Path):
             )
     print(f"CSV: {csv_path}")
 
-    # Timing summary
-    timing_path = output_dir / f"benchmark_timing_{timestamp}.txt"
-    with open(timing_path, "w") as f:
-        f.write("TIMING SUMMARY (ms)\n")
-        f.write("=" * 60 + "\n\n")
-        f.write(f"{'Component':<25} {'Mean':>10} {'Std':>10} {'P50':>10} {'P95':>10}\n")
-        f.write("-" * 60 + "\n")
-        for r in results["components"] + results["stages"] + results["cascade"]:
-            f.write(
-                f"{r['component']:<25} {r['latency_mean_ms']:>10.2f} "
-                f"{r['latency_std_ms']:>10.2f} {r['latency_p50_ms']:>10.2f} "
-                f"{r['latency_p95_ms']:>10.2f}\n"
-            )
-    print(f"Timing: {timing_path}")
-
 
 # =============================================================================
 # Main Entry Point
 # =============================================================================
 
 
-def run_benchmarks(
+def run_shared_benchmarks(
     datasets: dict[str, list[BenchmarkSample]],
     compute_ci: bool = True,
     component_filter: list[str] | None = None,
 ) -> dict:
-    """Run all benchmarks.
+    """Run shared benchmarks (components + stage1 + stage2 + cascade[1,2]).
 
-    Args:
-        datasets: Dict mapping dataset name to list of samples
-        compute_ci: Whether to compute bootstrap confidence intervals
-        component_filter: Optional list of component names to benchmark (default: all)
+    Returns results dict with components, stages, cascade keys.
     """
     results = {
-        "metadata": {
-            "timestamp": datetime.now().isoformat(),
-            "datasets": {name: len(samples) for name, samples in datasets.items()},
-            "total_samples": sum(len(s) for s in datasets.values()),
-            "compute_ci": compute_ci,
-            "component_filter": component_filter,
-        },
         "components": [],
         "stages": [],
         "cascade": [],
-        "summary": {},
     }
 
-    all_specs = get_component_specs()
+    all_specs = get_shared_specs()
 
-    # Filter specs if component_filter is provided
     if component_filter:
         specs = [s for s in all_specs if s.name in component_filter]
         run_cascade = "cascade" in component_filter
@@ -719,31 +819,24 @@ def run_benchmarks(
         run_cascade = True
 
     n_datasets = len(datasets)
-    # Calculate total steps based on filtered specs
     total_steps = len(specs) * n_datasets + (n_datasets if run_cascade else 0)
     progress = ProgressTracker(total_steps)
 
-    # Run components and stages
     if specs:
         print("\n" + "=" * 70)
-        print("RUNNING COMPONENT AND STAGE BENCHMARKS")
+        print("RUNNING SHARED COMPONENT AND STAGE BENCHMARKS")
         print("=" * 70)
 
         component_results = run_component_suite(specs, datasets, progress, compute_ci)
         results["components"] = component_results["components"]
         results["stages"] = component_results["stages"]
 
-    # Run cascade
     if run_cascade:
         print("\n" + "=" * 70)
-        print("RUNNING CASCADE BENCHMARK")
+        print("RUNNING CASCADE [1,2] BENCHMARK")
         print("=" * 70)
 
         results["cascade"] = benchmark_cascade(datasets, progress, compute_ci)
-
-    # Compute summaries
-    print("\nComputing summaries...")
-    results["summary"] = compute_summaries(results)
 
     return results
 
@@ -766,7 +859,8 @@ def main():
         type=str,
         nargs="+",
         default=None,
-        help="Components to benchmark (default: all). Choices: lexical, numeric, ner, transformer, model2vec, nli, stage1, stage2, cascade",
+        help="Shared components to benchmark (default: all). "
+        "Choices: lexical, numeric, ner, transformer, model2vec, nli, stage1, stage2, cascade",
     )
     args = parser.parse_args()
 
@@ -784,18 +878,65 @@ def main():
         print(f"Sample limit: {args.limit} per dataset")
 
     start_time = time.time()
+    compute_ci = not args.no_ci
+    output_dir = Path(args.output)
 
+    # Load datasets
     datasets = load_all_datasets(limit=args.limit, dataset_filter=args.dataset)
-    results = run_benchmarks(datasets, compute_ci=not args.no_ci, component_filter=args.component)
+
+    # Run shared benchmarks (components + stage1 + stage2 + cascade[1,2])
+    shared_results = run_shared_benchmarks(datasets, compute_ci=compute_ci, component_filter=args.component)
+    shared_elapsed = time.time() - start_time
+
+    shared_meta = {
+        "timestamp": datetime.now().isoformat(),
+        "datasets": {name: len(samples) for name, samples in datasets.items()},
+        "total_samples": sum(len(s) for s in datasets.values()),
+        "compute_ci": compute_ci,
+        "component_filter": args.component,
+        "shared_time_sec": shared_elapsed,
+    }
+
+    # Run each Stage 3 variant and save separately
+    n_datasets = len(datasets)
+    for model_size, variant in STAGE3_VARIANTS.items():
+        print(f"\n{'='*70}")
+        print(f"STAGE 3 VARIANT: {model_size.upper()} ({variant['model']})")
+        print(f"{'='*70}")
+
+        variant_start = time.time()
+
+        # Calculate steps for this variant: stage3 standalone (n_datasets) + cascade[1,3] (n_datasets)
+        variant_progress = ProgressTracker(n_datasets * 2)
+        stage3_results, cascade_13_results = benchmark_cascade_13(
+            model_size, variant, datasets, variant_progress, compute_ci,
+        )
+        variant_elapsed = time.time() - variant_start
+
+        # Merge shared + variant results
+        merged = copy.deepcopy(shared_results)
+        merged["stages"].extend(stage3_results)
+        merged["cascade"].extend(cascade_13_results)
+
+        merged["metadata"] = {
+            **shared_meta,
+            "model_variant": model_size,
+            "model_name": variant["model"],
+            "variant_time_sec": variant_elapsed,
+            "total_time_sec": shared_elapsed + variant_elapsed,
+        }
+
+        # Compute summaries and print/save
+        merged["summary"] = compute_summaries(merged)
+        print_summary_table(merged)
+
+        merged["metadata"]["total_time_hours"] = (shared_elapsed + variant_elapsed) / 3600
+        print(f"\nVariant {model_size} total time: {(shared_elapsed + variant_elapsed)/60:.1f} minutes")
+
+        save_results(merged, output_dir, suffix=model_size)
 
     total_time = time.time() - start_time
-    results["metadata"]["total_time_sec"] = total_time
-    results["metadata"]["total_time_hours"] = total_time / 3600
-
-    print_summary_table(results)
-    print(f"\nTotal time: {total_time/60:.1f} minutes ({total_time/3600:.2f} hours)")
-
-    save_results(results, Path(args.output))
+    print(f"\nGrand total time: {total_time/60:.1f} minutes ({total_time/3600:.2f} hours)")
 
 
 if __name__ == "__main__":

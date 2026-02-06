@@ -14,7 +14,8 @@ from lettucedetect.configs.models import (
 from lettucedetect.configs.presets import (
     FULL_CASCADE,
     FAST_CASCADE,
-    STAGE1_AUGMENTED,
+    STAGE1_MINIMAL,
+    WITH_NLI,
     PRESETS,
 )
 
@@ -25,7 +26,7 @@ class TestCascadeConfigDefaults:
     def test_cascade_config_defaults(self):
         """CascadeConfig should have sensible defaults."""
         config = CascadeConfig()
-        assert config.stages == [1, 2, 3]
+        assert config.stages == [1, 3]
         assert isinstance(config.stage1, Stage1Config)
         assert isinstance(config.stage2, Stage2Config)
         assert isinstance(config.stage3, Stage3Config)
@@ -35,24 +36,31 @@ class TestCascadeConfigDefaults:
         """Stage1Config should have correct defaults."""
         config = Stage1Config()
         assert config.model_path == "KRLabsOrg/lettucedect-base-modernbert-en-v1"
-        assert config.augmentations == []
+        assert config.augmentations == ["lexical", "model2vec"]
         assert config.device == "cuda"
         assert config.max_length == 4096
+
+    def test_stage1_weights_sum(self):
+        """Stage1Config weights must sum to 1.0."""
+        config = Stage1Config()
+        assert abs(sum(config.weights.values()) - 1.0) < 0.01
 
     def test_stage2_config_defaults(self):
         """Stage2Config should have correct defaults."""
         config = Stage2Config()
-        assert config.components == ["ncs", "nli"]  # lexical removed
+        assert config.components == ["nli"]
         assert config.ncs_model == "minishlab/potion-base-32M"
-        # nli_model removed - HHEM is hardcoded in NLIContradictionDetector
-        assert config.weights == {"ncs": 0.30, "nli": 0.70}  # HHEM gets higher weight
+        assert config.weights == {"ncs": 0.0, "nli": 1.0}
 
     def test_stage3_config_defaults(self):
         """Stage3Config should have correct defaults."""
         config = Stage3Config()
-        assert config.method == Stage3Method.SEPS
-        assert config.llm_model == "meta-llama/Llama-3.2-3B"
-        assert config.num_samples == 5
+        assert config.method == Stage3Method.READING_PROBE
+        assert config.llm_model == "Qwen/Qwen2.5-3B-Instruct"
+        assert config.layer_index == -16
+        assert config.token_position == "mean"
+        assert config.load_in_4bit is True
+        assert config.threshold == 0.5
 
     def test_routing_config_defaults(self):
         """RoutingConfig should have correct defaults."""
@@ -93,11 +101,9 @@ class TestCascadeConfigValidation:
 
     def test_stage1_augmentation_validation(self):
         """Stage1 augmentations must be valid options."""
-        # Valid augmentations
-        config = Stage1Config(augmentations=["ner", "numeric", "lexical"])
-        assert config.augmentations == ["ner", "numeric", "lexical"]
+        config = Stage1Config(augmentations=["ner", "numeric", "lexical", "model2vec"])
+        assert config.augmentations == ["ner", "numeric", "lexical", "model2vec"]
 
-        # Invalid augmentation should fail
         with pytest.raises(ValueError):
             Stage1Config(augmentations=["invalid"])
 
@@ -109,27 +115,31 @@ class TestPresets:
         """All expected presets should exist."""
         assert "full_cascade" in PRESETS
         assert "fast_cascade" in PRESETS
-        assert "stage1_augmented" in PRESETS
+        assert "with_nli" in PRESETS
         assert "stage1_minimal" in PRESETS
         assert "stage2_only" in PRESETS
-        assert "stage3_seps" in PRESETS
-        assert "stage3_self_consistency" in PRESETS
+        assert "stage3_reading_probe" in PRESETS
 
     def test_full_cascade_preset(self):
-        """FULL_CASCADE should have 3 stages with augmentations."""
-        assert FULL_CASCADE.stages == [1, 2, 3]
-        assert FULL_CASCADE.stage1.augmentations == ["ner", "numeric", "lexical"]
-        assert FULL_CASCADE.stage3.method == Stage3Method.SEPS
+        """FULL_CASCADE should have stages [1, 3] with augmentations."""
+        assert FULL_CASCADE.stages == [1, 3]
+        assert FULL_CASCADE.stage1.augmentations == ["lexical", "model2vec"]
+        assert FULL_CASCADE.stage3.method == Stage3Method.READING_PROBE
 
     def test_fast_cascade_preset(self):
-        """FAST_CASCADE should have only stages 1 and 2."""
-        assert FAST_CASCADE.stages == [1, 2]
-        assert FAST_CASCADE.stage1.augmentations == ["ner", "numeric", "lexical"]
+        """FAST_CASCADE should have only stage 1."""
+        assert FAST_CASCADE.stages == [1]
+        assert FAST_CASCADE.stage1.augmentations == ["lexical", "model2vec"]
 
-    def test_stage1_augmented_preset(self):
-        """STAGE1_AUGMENTED should be stage 1 only with all augmentations."""
-        assert STAGE1_AUGMENTED.stages == [1]
-        assert STAGE1_AUGMENTED.stage1.augmentations == ["ner", "numeric", "lexical"]
+    def test_with_nli_preset(self):
+        """WITH_NLI should have all 3 stages."""
+        assert WITH_NLI.stages == [1, 2, 3]
+        assert WITH_NLI.stage1.augmentations == ["lexical", "model2vec"]
+
+    def test_stage1_minimal_preset(self):
+        """STAGE1_MINIMAL should be stage 1 only with no augmentations."""
+        assert STAGE1_MINIMAL.stages == [1]
+        assert STAGE1_MINIMAL.stage1.augmentations == []
 
 
 class TestStage3Method:
@@ -137,16 +147,15 @@ class TestStage3Method:
 
     def test_stage3_methods(self):
         """All Stage3 methods should be available."""
-        assert Stage3Method.SEPS.value == "seps"
-        assert Stage3Method.SELF_CONSISTENCY.value == "self_consistency"
+        assert Stage3Method.READING_PROBE.value == "reading_probe"
         assert Stage3Method.SEMANTIC_ENTROPY.value == "semantic_entropy"
 
     def test_stage3_method_in_config(self):
         """Stage3Method can be used in Stage3Config."""
-        config = Stage3Config(method=Stage3Method.SELF_CONSISTENCY)
-        assert config.method == Stage3Method.SELF_CONSISTENCY
+        config = Stage3Config(method=Stage3Method.SEMANTIC_ENTROPY)
+        assert config.method == Stage3Method.SEMANTIC_ENTROPY
 
     def test_stage3_method_from_string(self):
         """Stage3Method can be set from string value."""
-        config = Stage3Config(method="self_consistency")
-        assert config.method == Stage3Method.SELF_CONSISTENCY
+        config = Stage3Config(method="reading_probe")
+        assert config.method == Stage3Method.READING_PROBE
