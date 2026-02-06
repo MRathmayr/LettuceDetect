@@ -43,12 +43,16 @@ class TestScoreExtraction:
 
 
 class TestAggregation:
-    """Test score aggregation logic."""
+    """Test score aggregation logic.
+
+    These tests verify raw weighted average behavior (use_calibrated_voting=False).
+    """
 
     def setup_method(self):
         """Set up test fixtures."""
         weights = {"transformer": 0.5, "ner": 0.25, "numeric": 0.25}
-        self.aggregator = ScoreAggregator(weights)
+        config = AggregationConfig(use_calibrated_voting=False)
+        self.aggregator = ScoreAggregator(weights, config)
 
     def test_weighted_average_all_hallucination(self):
         """All components indicate hallucination.
@@ -167,6 +171,8 @@ class TestRoutingDecisions:
     - hallucination_score >= threshold_high (0.7) AND agreement >= 0.5 -> confident hallucination
     - hallucination_score <= threshold_low (0.3) AND agreement >= 0.5 -> confident supported
     - Otherwise -> uncertain, escalate
+
+    Tests use raw weighted average (use_calibrated_voting=False) for predictable scores.
     """
 
     def setup_method(self):
@@ -176,6 +182,7 @@ class TestRoutingDecisions:
             threshold_high=0.7,
             threshold_low=0.3,
             agreement_threshold=0.5,
+            use_calibrated_voting=False,
         )
         self.aggregator = ScoreAggregator(weights, config)
 
@@ -210,6 +217,7 @@ class TestRoutingDecisions:
             threshold_high=0.7,
             threshold_low=0.3,
             agreement_threshold=0.5,
+            use_calibrated_voting=False,
         )
         aggregator = ScoreAggregator(weights, config)
 
@@ -335,12 +343,16 @@ class TestSpanMerging:
 
 
 class TestInactiveComponentHandling:
-    """Test handling of inactive augmentation components (is_active=False)."""
+    """Test handling of inactive augmentation components (is_active=False).
+
+    Tests use raw weighted average (use_calibrated_voting=False) for predictable scores.
+    """
 
     def setup_method(self):
         """Set up test fixtures."""
         weights = {"transformer": 0.5, "ner": 0.25, "numeric": 0.25}
-        self.aggregator = ScoreAggregator(weights)
+        config = AggregationConfig(use_calibrated_voting=False)
+        self.aggregator = ScoreAggregator(weights, config)
 
     def test_inactive_components_excluded_from_weighted_average(self):
         """Inactive augmentations (is_active=False) don't contribute to weighted average."""
@@ -418,3 +430,89 @@ class TestInactiveComponentHandling:
         """AugmentationResult defaults to is_active=True for backwards compatibility."""
         result = AugmentationResult(score=0.5, evidence={}, details={}, flagged_spans=[])
         assert result.is_active is True
+
+
+class TestCalibratedVoting:
+    """Test calibrated voting behavior (use_calibrated_voting=True).
+
+    Calibrated voting converts raw scores to binary votes using per-component
+    optimal thresholds, fixing the score scale mismatch problem.
+    """
+
+    def setup_method(self):
+        """Set up test fixtures with calibrated voting enabled."""
+        self.weights = {"transformer": 0.5, "ner": 0.25, "numeric": 0.25}
+        self.config = AggregationConfig(
+            use_calibrated_voting=True,
+            optimal_thresholds={
+                "transformer": 0.5,  # Simpler thresholds for testing
+                "ner": 0.5,
+                "numeric": 0.5,
+            },
+        )
+        self.aggregator = ScoreAggregator(self.weights, self.config)
+
+    def test_calibrated_all_above_threshold(self):
+        """All scores above threshold -> all vote 1 -> score = 1.0."""
+        preds = [{"token": "x", "pred": 1, "prob": 0.8}]  # 0.8 >= 0.5 -> vote 1
+        aug_results = {
+            "ner": AugmentationResult(score=0.6, evidence={}, details={}, flagged_spans=[]),  # >= 0.5 -> vote 1
+            "numeric": AugmentationResult(score=0.7, evidence={}, details={}, flagged_spans=[]),  # >= 0.5 -> vote 1
+        }
+        result = self.aggregator.aggregate(preds, aug_results)
+        assert result.hallucination_score == 1.0
+
+    def test_calibrated_all_below_threshold(self):
+        """All scores below threshold -> all vote 0 -> score = 0.0."""
+        preds = [{"token": "x", "pred": 0, "prob": 0.1}]  # 0.0 < 0.5 -> vote 0
+        aug_results = {
+            "ner": AugmentationResult(score=0.4, evidence={}, details={}, flagged_spans=[]),  # < 0.5 -> vote 0
+            "numeric": AugmentationResult(score=0.3, evidence={}, details={}, flagged_spans=[]),  # < 0.5 -> vote 0
+        }
+        result = self.aggregator.aggregate(preds, aug_results)
+        assert result.hallucination_score == 0.0
+
+    def test_calibrated_mixed_votes(self):
+        """Mixed votes -> weighted average of binary votes."""
+        preds = [{"token": "x", "pred": 1, "prob": 0.8}]  # 0.8 >= 0.5 -> vote 1
+        aug_results = {
+            "ner": AugmentationResult(score=0.4, evidence={}, details={}, flagged_spans=[]),  # < 0.5 -> vote 0
+            "numeric": AugmentationResult(score=0.6, evidence={}, details={}, flagged_spans=[]),  # >= 0.5 -> vote 1
+        }
+        result = self.aggregator.aggregate(preds, aug_results)
+        # Votes: transformer=1, ner=0, numeric=1
+        # Weighted: (0.5*1 + 0.25*0 + 0.25*1) / 1.0 = 0.75
+        assert abs(result.hallucination_score - 0.75) < 0.01
+
+    def test_calibrated_asymmetric_thresholds(self):
+        """Different thresholds per component work correctly."""
+        config = AggregationConfig(
+            use_calibrated_voting=True,
+            optimal_thresholds={
+                "transformer": 0.7,  # High threshold
+                "ner": 0.1,  # Low threshold
+            },
+        )
+        weights = {"transformer": 0.5, "ner": 0.5}
+        aggregator = ScoreAggregator(weights, config)
+
+        preds = [{"token": "x", "pred": 1, "prob": 0.5}]  # 0.5 < 0.7 -> vote 0
+        aug_results = {
+            "ner": AugmentationResult(score=0.2, evidence={}, details={}, flagged_spans=[]),  # 0.2 >= 0.1 -> vote 1
+        }
+        result = aggregator.aggregate(preds, aug_results)
+        # Votes: transformer=0, ner=1 -> (0.5*0 + 0.5*1) / 1.0 = 0.5
+        assert result.hallucination_score == 0.5
+
+    def test_calibrated_voting_enabled_by_default(self):
+        """Calibrated voting is enabled by default in AggregationConfig."""
+        config = AggregationConfig()
+        assert config.use_calibrated_voting is True
+
+    def test_default_thresholds_from_ragtruth(self):
+        """Default thresholds match RAGTruth benchmark values."""
+        config = AggregationConfig()
+        assert config.optimal_thresholds["transformer"] == 0.744
+        assert config.optimal_thresholds["ner"] == 0.117
+        assert config.optimal_thresholds["numeric"] == 0.053
+        assert config.optimal_thresholds["lexical"] == 0.608

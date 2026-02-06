@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "timestamp": "2026-01-25T11:44:20.197687",
+    "datasets": {
+      "ragtruth": 2700,
+      "halueval_qa": 10000
+    },
+    "total_samples": 12700,
+    "compute_ci": false,
+    "component_filter": [
+      "numeric",
+      "ner"
+    ],
+    "total_time_sec": 324.69126534461975,
+    "total_time_hours": 0.09019201815128326
+  },
+  "summary": {
+    "numeric": {
+      "avg_auroc": 0.5721198997441458,
+      "avg_f1": 0.24861600803814368,
+      "avg_optimal_f1": 0.6356971327897469,
+      "avg_latency_mean_ms": 0.20514635134045026,
+      "avg_latency_p95_ms": 0.37778450969593047,
+      "total_samples": 12700
+    },
+    "ner": {
+      "avg_auroc": 0.7135022453241835,
+      "avg_f1": 0.5774330243317447,
+      "avg_optimal_f1": 0.6592425081788028,
+      "avg_latency_mean_ms": 24.926930741021277,
+      "avg_latency_p95_ms": 43.62321146390571,
+      "total_samples": 12700
+    }
+  }
+}

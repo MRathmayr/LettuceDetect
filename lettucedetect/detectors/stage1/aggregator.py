@@ -21,11 +21,28 @@ class AggregationConfig:
     - hallucination_score <= threshold_low → confident it's supported
     - agreement < agreement_threshold → escalate even if score is in confident zone
     - Otherwise → uncertain, may escalate to next stage
+
+    Calibrated voting converts raw scores to binary votes using per-component
+    optimal thresholds from RAGTruth benchmark, then computes weighted vote.
     """
 
     threshold_high: float = 0.7  # Above this = confident hallucination
     threshold_low: float = 0.3   # Below this = confident supported
     agreement_threshold: float = 0.5  # Below this = escalate due to component disagreement
+
+    # Calibrated voting: convert scores to binary using optimal thresholds
+    use_calibrated_voting: bool = True
+    optimal_thresholds: dict | None = None  # Per-component optimal thresholds
+
+    def __post_init__(self):
+        # Default optimal thresholds from RAGTruth benchmark (run_4)
+        if self.optimal_thresholds is None:
+            self.optimal_thresholds = {
+                "transformer": 0.744,
+                "lexical": 0.608,
+                "ner": 0.117,
+                "numeric": 0.053,
+            }
 
 
 @dataclass
@@ -58,10 +75,10 @@ class ScoreAggregator:
             config: AggregationConfig with thresholds
         """
         self.weights = weights
-        config = config or AggregationConfig()
-        self.threshold_high = config.threshold_high
-        self.threshold_low = config.threshold_low
-        self.agreement_threshold = config.agreement_threshold
+        self.config = config or AggregationConfig()
+        self.threshold_high = self.config.threshold_high
+        self.threshold_low = self.config.threshold_low
+        self.agreement_threshold = self.config.agreement_threshold
 
     def _extract_transformer_score(self, preds: list[dict]) -> float:
         """Extract hallucination score from transformer predictions.
@@ -73,6 +90,52 @@ class ScoreAggregator:
         hal_probs = [p["prob"] for p in preds if p.get("pred") == 1]
         return max(hal_probs) if hal_probs else 0.0
 
+    def _calibrated_voting(self, components: dict[str, tuple]) -> float:
+        """Compute weighted vote using calibrated binary thresholds.
+
+        Each component's score is converted to a binary vote (0 or 1) based on
+        its optimal threshold from RAGTruth benchmark. This fixes the score
+        scale mismatch problem where different components use different ranges.
+
+        Args:
+            components: Dict of name -> (score, weight, is_active)
+
+        Returns:
+            Weighted average of binary votes (0.0 to 1.0)
+        """
+        weighted_sum = 0.0
+        total_weight = 0.0
+
+        for name, (score, weight, is_active) in components.items():
+            if not is_active:
+                continue
+            threshold = self.config.optimal_thresholds.get(name, 0.5)
+            vote = 1.0 if score >= threshold else 0.0
+            weighted_sum += vote * weight
+            total_weight += weight
+
+        return weighted_sum / total_weight if total_weight > 0 else 0.5
+
+    def _raw_weighted_average(self, components: dict[str, tuple]) -> float:
+        """Compute weighted average of raw scores (original behavior).
+
+        Args:
+            components: Dict of name -> (score, weight, is_active)
+
+        Returns:
+            Weighted average of raw scores
+        """
+        weighted_sum = 0.0
+        total_weight = 0.0
+
+        for name, (score, weight, is_active) in components.items():
+            if not is_active:
+                continue
+            weighted_sum += score * weight
+            total_weight += weight
+
+        return weighted_sum / total_weight if total_weight > 0 else 0.5
+
     def aggregate(
         self,
         transformer_preds: list[dict],
@@ -82,6 +145,9 @@ class ScoreAggregator:
 
         All scores use unified direction: 0.0 = supported, 1.0 = hallucinated.
 
+        With calibrated voting enabled, raw scores are converted to binary votes
+        using per-component optimal thresholds before weighted averaging.
+
         Args:
             transformer_preds: Token predictions from TransformerDetector
             aug_results: Dict of augmentation name -> AugmentationResult
@@ -90,30 +156,27 @@ class ScoreAggregator:
             AggregatedScore with unified hallucination score and routing decision
         """
         scores = {}
-        total_weight = 0.0
-        weighted_sum = 0.0
+        active_components = {}  # name -> (score, weight, is_active)
 
         # Transformer score (0 = supported, 1 = hallucinated)
         t_score = self._extract_transformer_score(transformer_preds)
         scores["transformer"] = t_score
         t_weight = self.weights.get("transformer", 0.5)
-        weighted_sum += t_score * t_weight
-        total_weight += t_weight
+        active_components["transformer"] = (t_score, t_weight, True)
 
         # Augmentation scores (already in correct direction: 0 = supported, 1 = hallucinated)
         for name, result in aug_results.items():
             if result.score is None:
                 continue
             scores[name] = result.score  # Always record for observability
-            # Skip inactive augmentations from weighted average
-            if not result.is_active:
-                continue
             weight = self.weights.get(name, 0.1)
-            weighted_sum += result.score * weight
-            total_weight += weight
+            active_components[name] = (result.score, weight, result.is_active)
 
-        # Default to 0.5 (neutral/uncertain) if no weights configured
-        hallucination_score = weighted_sum / total_weight if total_weight > 0 else 0.5
+        # Compute weighted score (either calibrated voting or raw average)
+        if self.config.use_calibrated_voting:
+            hallucination_score = self._calibrated_voting(active_components)
+        else:
+            hallucination_score = self._raw_weighted_average(active_components)
 
         # Compute agreement (ensemble disagreement measure)
         # agreement = 1.0 - min(std * 2, 1.0)

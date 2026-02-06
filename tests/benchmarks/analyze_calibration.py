@@ -18,12 +18,18 @@ Usage:
 
 import argparse
 import json
+import os
 import sys
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+# Disable torch.compile for older GPUs (GTX 1080 = CUDA 6.1, triton needs 7.0+)
+os.environ["TORCHDYNAMO_DISABLE"] = "1"
+
+import torch
 
 import matplotlib
 

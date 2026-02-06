@@ -332,9 +332,8 @@ def run_component_suite(
 
             # Print result summary
             gpu_info = f", GPU={result.gpu_peak_mb:.0f}MB" if result.gpu_peak_mb else ""
-            f1_info = f", F1={result.f1:.3f}" if result.f1 else ""
-            opt_info = f" (opt={result.optimal_f1:.3f}@{result.optimal_threshold:.2f})" if result.optimal_f1 else ""
-            print(f"  Result: AUROC={result.auroc:.3f}{f1_info}{opt_info}, latency={result.latency_mean_ms:.2f}ms{gpu_info}")
+            f1_info = f", F1={result.optimal_f1:.3f}@{result.optimal_threshold:.2f}" if result.optimal_f1 else ""
+            print(f"  Result: AUROC={result.auroc:.3f}{f1_info}, latency={result.latency_mean_ms:.2f}ms{gpu_info}")
 
         # Cleanup
         del component
@@ -411,9 +410,8 @@ def benchmark_cascade(
         results.append(result_dict)
 
         stage1_pct = result_dict["stage1_resolved_pct"]
-        f1_info = f", F1={result.f1:.3f}" if result.f1 else ""
-        opt_info = f" (opt={result.optimal_f1:.3f}@{result.optimal_threshold:.2f})" if result.optimal_f1 else ""
-        print(f"  Result: AUROC={result.auroc:.3f}{f1_info}{opt_info}, latency={result.latency_mean_ms:.2f}ms, Stage1={stage1_pct:.1f}%")
+        f1_info = f", F1={result.optimal_f1:.3f}@{result.optimal_threshold:.2f}" if result.optimal_f1 else ""
+        print(f"  Result: AUROC={result.auroc:.3f}{f1_info}, latency={result.latency_mean_ms:.2f}ms, Stage1={stage1_pct:.1f}%")
 
     del cascade
     clear_gpu()
@@ -539,6 +537,7 @@ def compute_summaries(results: dict) -> dict:
                 "avg_auroc": weighted_avg(comp_results, "auroc", total_samples),
                 "avg_f1": weighted_avg(comp_results, "f1", total_samples),
                 "avg_optimal_f1": weighted_avg(comp_results, "optimal_f1", total_samples),
+                "avg_optimal_threshold": weighted_avg(comp_results, "optimal_threshold", total_samples),
                 "avg_latency_mean_ms": weighted_avg(comp_results, "latency_mean_ms", total_samples),
                 "avg_latency_p95_ms": weighted_avg(comp_results, "latency_p95_ms", total_samples),
                 "total_samples": total_samples,
@@ -554,6 +553,7 @@ def compute_summaries(results: dict) -> dict:
                     "avg_auroc": weighted_avg(stage_results, "auroc", total_samples),
                     "avg_f1": weighted_avg(stage_results, "f1", total_samples),
                     "avg_optimal_f1": weighted_avg(stage_results, "optimal_f1", total_samples),
+                    "avg_optimal_threshold": weighted_avg(stage_results, "optimal_threshold", total_samples),
                     "avg_latency_mean_ms": weighted_avg(stage_results, "latency_mean_ms", total_samples),
                     "total_samples": total_samples,
                 }
@@ -567,6 +567,7 @@ def compute_summaries(results: dict) -> dict:
                 "avg_auroc": weighted_avg(cascade_results, "auroc", total_samples),
                 "avg_f1": weighted_avg(cascade_results, "f1", total_samples),
                 "avg_optimal_f1": weighted_avg(cascade_results, "optimal_f1", total_samples),
+                "avg_optimal_threshold": weighted_avg(cascade_results, "optimal_threshold", total_samples),
                 "avg_latency_mean_ms": weighted_avg(cascade_results, "latency_mean_ms", total_samples),
                 "avg_stage1_resolved_pct": weighted_avg(cascade_results, "stage1_resolved_pct", total_samples),
                 "total_samples": total_samples,
@@ -584,7 +585,7 @@ def print_summary_table(results: dict):
     summary = results["summary"]
 
     # Header
-    print(f"\n{'Component':<20} {'AUROC':>8} {'F1@0.5':>8} {'Opt F1':>8} {'Latency':>10} {'P95':>10} {'Samples':>8}")
+    print(f"\n{'Component':<20} {'AUROC':>8} {'F1':>8} {'Threshold':>10} {'Latency':>10} {'P95':>10} {'Samples':>8}")
     print("-" * 110)
 
     # Components
@@ -592,12 +593,12 @@ def print_summary_table(results: dict):
         if comp in summary:
             s = summary[comp]
             auroc = f"{s['avg_auroc']:.3f}" if s.get("avg_auroc") else "N/A"
-            f1 = f"{s['avg_f1']:.3f}" if s.get("avg_f1") else "N/A"
-            opt_f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") else "N/A"
+            f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") else "N/A"
+            threshold = f"{s.get('avg_optimal_threshold', 0.5):.3f}" if s.get("avg_optimal_threshold") else "N/A"
             latency = f"{s['avg_latency_mean_ms']:.1f}ms"
             p95 = f"{s.get('avg_latency_p95_ms', 0):.1f}ms"
             samples = str(s.get("total_samples", 0))
-            print(f"{comp:<20} {auroc:>8} {f1:>8} {opt_f1:>8} {latency:>10} {p95:>10} {samples:>8}")
+            print(f"{comp:<20} {auroc:>8} {f1:>8} {threshold:>10} {latency:>10} {p95:>10} {samples:>8}")
 
     print("-" * 110)
 
@@ -606,11 +607,11 @@ def print_summary_table(results: dict):
         if stage in summary:
             s = summary[stage]
             auroc = f"{s['avg_auroc']:.3f}" if s.get("avg_auroc") else "N/A"
-            f1 = f"{s['avg_f1']:.3f}" if s.get("avg_f1") else "N/A"
-            opt_f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") else "N/A"
+            f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") else "N/A"
+            threshold = f"{s.get('avg_optimal_threshold', 0.5):.3f}" if s.get("avg_optimal_threshold") else "N/A"
             latency = f"{s['avg_latency_mean_ms']:.1f}ms"
             samples = str(s.get("total_samples", 0))
-            print(f"{stage:<20} {auroc:>8} {f1:>8} {opt_f1:>8} {latency:>10} {'-':>10} {samples:>8}")
+            print(f"{stage:<20} {auroc:>8} {f1:>8} {threshold:>10} {latency:>10} {'-':>10} {samples:>8}")
 
     print("-" * 110)
 
@@ -618,12 +619,12 @@ def print_summary_table(results: dict):
     if "cascade_stages12" in summary:
         s = summary["cascade_stages12"]
         auroc = f"{s['avg_auroc']:.3f}" if s.get("avg_auroc") else "N/A"
-        f1 = f"{s['avg_f1']:.3f}" if s.get("avg_f1") else "N/A"
-        opt_f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") else "N/A"
+        f1 = f"{s['avg_optimal_f1']:.3f}" if s.get("avg_optimal_f1") else "N/A"
+        threshold = f"{s.get('avg_optimal_threshold', 0.5):.3f}" if s.get("avg_optimal_threshold") else "N/A"
         latency = f"{s['avg_latency_mean_ms']:.1f}ms"
         stage1_pct = f"{s.get('avg_stage1_resolved_pct', 0):.0f}%S1"
         samples = str(s.get("total_samples", 0))
-        print(f"{'cascade (1+2)':<20} {auroc:>8} {f1:>8} {opt_f1:>8} {latency:>10} {stage1_pct:>10} {samples:>8}")
+        print(f"{'cascade (1+2)':<20} {auroc:>8} {f1:>8} {threshold:>10} {latency:>10} {stage1_pct:>10} {samples:>8}")
 
     print("=" * 110)
 

@@ -44,6 +44,9 @@ class Stage2Aggregator:
         All component scores use convention: high = supported, low = hallucination.
         Final score is converted to: high = hallucination probability.
 
+        With calibrated voting enabled, scores are converted to binary votes
+        using per-component optimal thresholds before weighted averaging.
+
         Args:
             scores: Stage2Scores with ncs_score and nli_score.
 
@@ -52,15 +55,61 @@ class Stage2Aggregator:
             - hallucination_score: 0.0 = supported, 1.0 = hallucinated
             - is_hallucination: True if score >= 0.5
         """
-        component_scores = {
+        # Support scores: high = supported, low = hallucination
+        support_scores = {
             "ncs": scores.ncs_score,
             "nli": scores.nli_score,
         }
 
+        if self.config.use_calibrated_voting:
+            hallucination_score = self._calibrated_voting(support_scores)
+        else:
+            hallucination_score = self._raw_weighted_average(support_scores)
+
+        is_hallucination = hallucination_score >= 0.5
+        return hallucination_score, is_hallucination
+
+    def _calibrated_voting(self, support_scores: dict[str, float]) -> float:
+        """Compute weighted vote using calibrated binary thresholds.
+
+        Converts support scores to hallucination scores, then applies
+        per-component optimal thresholds to get binary votes.
+
+        Args:
+            support_scores: Dict of name -> support score (high = supported)
+
+        Returns:
+            Weighted average of binary votes (0.0 to 1.0, hallucination direction)
+        """
         weighted_sum = 0.0
         total_weight = 0.0
 
-        for name, score in component_scores.items():
+        for name, support_score in support_scores.items():
+            weight = self.weights.get(name, 0.0)
+            if weight <= 0:
+                continue
+            # Convert support score to hallucination score
+            hal_score = 1.0 - support_score
+            threshold = self.config.optimal_thresholds.get(name, 0.5)
+            vote = 1.0 if hal_score >= threshold else 0.0
+            weighted_sum += vote * weight
+            total_weight += weight
+
+        return weighted_sum / total_weight if total_weight > 0 else 0.5
+
+    def _raw_weighted_average(self, support_scores: dict[str, float]) -> float:
+        """Compute weighted average of raw scores (original behavior).
+
+        Args:
+            support_scores: Dict of name -> support score (high = supported)
+
+        Returns:
+            Hallucination score (weighted average converted from support)
+        """
+        weighted_sum = 0.0
+        total_weight = 0.0
+
+        for name, score in support_scores.items():
             weight = self.weights.get(name, 0.0)
             if weight > 0:
                 weighted_sum += score * weight
@@ -71,11 +120,7 @@ class Stage2Aggregator:
         else:
             support_score = weighted_sum / total_weight
 
-        # Convert from support score (high=supported) to hallucination score (high=hallucinated)
-        hallucination_score = 1.0 - support_score
-        is_hallucination = hallucination_score >= 0.5
-
-        return hallucination_score, is_hallucination
+        return 1.0 - support_score
 
     def make_routing_decision(
         self, hallucination_score: float, agreement: float, has_next_stage: bool

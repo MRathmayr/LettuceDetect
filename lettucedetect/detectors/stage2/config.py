@@ -46,6 +46,9 @@ class AggregatorConfig:
     - hallucination_score <= threshold_low -> confident it's supported
     - agreement < agreement_threshold -> escalate even if score is in confident zone
     - Otherwise -> uncertain, may escalate to next stage
+
+    Calibrated voting converts raw scores to binary votes using per-component
+    optimal thresholds from RAGTruth benchmark, then computes weighted vote.
     """
 
     threshold_high: float = 0.85  # Above this = confident hallucination
@@ -53,3 +56,16 @@ class AggregatorConfig:
     agreement_threshold: float = 0.5  # Below this = escalate due to component disagreement
     use_stage1_score: bool = True
     stage1_weight: float = 0.3
+
+    # Calibrated voting: convert scores to binary using optimal thresholds
+    use_calibrated_voting: bool = True
+    optimal_thresholds: dict | None = None  # Per-component optimal thresholds
+
+    def __post_init__(self):
+        # Default optimal thresholds from RAGTruth benchmark (run_4)
+        # NCS uses hallucination score direction (low similarity = high hallucination)
+        if self.optimal_thresholds is None:
+            self.optimal_thresholds = {
+                "ncs": 0.123,  # model2vec hallucination score threshold
+                "nli": 0.472,  # NLI hallucination score threshold
+            }

@@ -33,12 +33,16 @@ class TestStage2Scores:
 
 
 class TestAggregation:
-    """Test score aggregation logic."""
+    """Test score aggregation logic.
+
+    Tests use raw weighted average (use_calibrated_voting=False) for predictable scores.
+    """
 
     def setup_method(self):
         """Set up aggregator for tests."""
         self.weights = {"ncs": 0.5, "nli": 0.5}
-        self.aggregator = Stage2Aggregator(self.weights)
+        config = InternalConfig(use_calibrated_voting=False)
+        self.aggregator = Stage2Aggregator(self.weights, config)
 
     def test_equal_weights_equal_scores(self):
         """Equal weights with equal scores returns expected value."""
@@ -52,7 +56,8 @@ class TestAggregation:
     def test_different_weights(self):
         """Different weights affect aggregation correctly."""
         weights = {"ncs": 0.7, "nli": 0.3}
-        aggregator = Stage2Aggregator(weights)
+        config = InternalConfig(use_calibrated_voting=False)
+        aggregator = Stage2Aggregator(weights, config)
 
         scores = Stage2Scores(ncs_score=1.0, nli_score=0.0)
         hal_score, _ = aggregator.aggregate(scores)
@@ -87,7 +92,8 @@ class TestAggregation:
 
     def test_zero_weights_returns_neutral(self):
         """Zero weights return neutral 0.5."""
-        aggregator = Stage2Aggregator({"ncs": 0, "nli": 0})
+        config = InternalConfig(use_calibrated_voting=False)
+        aggregator = Stage2Aggregator({"ncs": 0, "nli": 0}, config)
         scores = Stage2Scores(ncs_score=0.9, nli_score=0.1)
         hal_score, _ = aggregator.aggregate(scores)
 
@@ -285,3 +291,63 @@ class TestStageResultCreation:
 
         # NCS=0.9, NLI=0.1, std=0.4 -> agreement = 1.0 - min(0.4*2, 1.0) = 0.2
         assert abs(result.agreement - 0.2) < 0.01
+
+
+class TestCalibratedVoting:
+    """Test calibrated voting behavior (use_calibrated_voting=True).
+
+    Calibrated voting converts support scores to hallucination scores,
+    then applies per-component optimal thresholds to get binary votes.
+    """
+
+    def setup_method(self):
+        """Set up aggregator with calibrated voting enabled."""
+        self.weights = {"ncs": 0.5, "nli": 0.5}
+        self.config = InternalConfig(
+            use_calibrated_voting=True,
+            optimal_thresholds={
+                "ncs": 0.5,  # Simpler thresholds for testing
+                "nli": 0.5,
+            },
+        )
+        self.aggregator = Stage2Aggregator(self.weights, self.config)
+
+    def test_calibrated_all_below_threshold_hallucination(self):
+        """High support (low hallucination) below threshold -> vote 0 -> hal_score = 0."""
+        # Support scores: ncs=0.8, nli=0.8
+        # Hallucination scores: 1-0.8=0.2, 1-0.8=0.2
+        # Both < 0.5 threshold -> votes = 0, 0 -> weighted avg = 0.0
+        scores = Stage2Scores(ncs_score=0.8, nli_score=0.8)
+        hal_score, is_hal = self.aggregator.aggregate(scores)
+        assert hal_score == 0.0
+        assert is_hal is False
+
+    def test_calibrated_all_above_threshold_hallucination(self):
+        """Low support (high hallucination) above threshold -> vote 1 -> hal_score = 1."""
+        # Support scores: ncs=0.2, nli=0.2
+        # Hallucination scores: 1-0.2=0.8, 1-0.2=0.8
+        # Both >= 0.5 threshold -> votes = 1, 1 -> weighted avg = 1.0
+        scores = Stage2Scores(ncs_score=0.2, nli_score=0.2)
+        hal_score, is_hal = self.aggregator.aggregate(scores)
+        assert hal_score == 1.0
+        assert is_hal is True
+
+    def test_calibrated_mixed_votes(self):
+        """Mixed support scores -> mixed votes."""
+        # Support scores: ncs=0.8 (hal=0.2 < 0.5 -> vote 0), nli=0.2 (hal=0.8 >= 0.5 -> vote 1)
+        # Weighted: (0.5*0 + 0.5*1) / 1.0 = 0.5
+        scores = Stage2Scores(ncs_score=0.8, nli_score=0.2)
+        hal_score, is_hal = self.aggregator.aggregate(scores)
+        assert hal_score == 0.5
+        assert is_hal is True  # >= 0.5 is hallucination
+
+    def test_calibrated_voting_enabled_by_default(self):
+        """Calibrated voting is enabled by default in AggregatorConfig."""
+        config = InternalConfig()
+        assert config.use_calibrated_voting is True
+
+    def test_default_thresholds_from_ragtruth(self):
+        """Default thresholds match RAGTruth benchmark values."""
+        config = InternalConfig()
+        assert config.optimal_thresholds["ncs"] == 0.123
+        assert config.optimal_thresholds["nli"] == 0.472
