@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=bench-cascade-7b
+#SBATCH --job-name=bench-all
 #SBATCH --partition=zen3_0512_a100x2
 #SBATCH --qos=zen3_0512_a100x2
 #SBATCH --account=p73025
@@ -7,16 +7,16 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:2
-#SBATCH --time=06:00:00
+#SBATCH --time=04:00:00
 #SBATCH --output=/gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/%x_%j.out
 #SBATCH --error=/gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/%x_%j.err
 
 # ============================================================
-# FULL CASCADE BENCHMARK - Qwen 2.5 7B
+# FULL CASCADE BENCHMARK - All Stage 3 Variants
 # ============================================================
-# Runs on feature/task-routing which benchmarks BOTH:
-#   - Plain Cascade [1,3] (pre-refactor baseline)
-#   - Task-Routed Cascade [1,3] (QA -> [1,3], other -> [1])
+# Runs shared benchmarks once, then all stage3 variants in sequence.
+# Default dataset: RAGTruth test (~2.7k samples).
+# If a variant OOMs, the script skips it and continues.
 # ============================================================
 
 set -e
@@ -26,7 +26,7 @@ export PYTHONUNBUFFERED=1
 export TORCH_FORCE_WEIGHTS_ONLY=0
 
 echo "========================================"
-echo "Full Cascade Benchmark - Qwen 2.5 7B"
+echo "Full Cascade Benchmark - All Variants"
 echo "========================================"
 echo "Job ID: $SLURM_JOB_ID"
 echo "Node: $SLURMD_NODENAME"
@@ -48,13 +48,11 @@ nvidia-smi --query-gpu=name,memory.total --format=csv
 mkdir -p "$LD_ROOT/tests/benchmarks/results"
 
 echo ""
-echo "Running full benchmark (--all-datasets --stage3 7b)..."
-python tests/benchmarks/run_full_benchmark.py \
-    --all-datasets \
-    --stage3 7b
+echo "Running full benchmark (all stage3 variants)..."
+python tests/benchmarks/run_full_benchmark.py
 
 echo ""
 echo "========================================"
 echo "Benchmark Complete - $(date)"
 echo "========================================"
-ls -lh "$LD_ROOT/tests/benchmarks/results"/benchmark_7b_*.json 2>/dev/null | tail -2
+ls -lh "$LD_ROOT/tests/benchmarks/results"/benchmark_*_*.json 2>/dev/null | tail -8

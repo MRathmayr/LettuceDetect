@@ -1,6 +1,6 @@
 """Shared Stage 3 model variant configurations.
 
-Used by run_full_benchmark.py, run_complete_benchmark.py, and conftest.py
+Used by run_full_benchmark.py and conftest.py
 to keep probe paths, layer indices, and model names in sync.
 """
 

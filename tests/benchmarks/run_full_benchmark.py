@@ -728,7 +728,18 @@ def main():
         print(f"{'='*60}")
 
         variant_start = time.time()
-        variant_results = run_stage3_variant(valid_samples, model_size, variant)
+        try:
+            variant_results = run_stage3_variant(valid_samples, model_size, variant)
+        except Exception as e:
+            print(f"\n   FAILED: {model_size} variant crashed: {e}")
+            print(f"   Skipping to next variant...")
+            gc.collect()
+            try:
+                import torch
+                torch.cuda.empty_cache()
+            except Exception:
+                pass
+            continue
         variant_elapsed = time.time() - variant_start
 
         # Merge shared + variant results
