@@ -64,6 +64,11 @@ echo "Installing LettuceDetect[cascade]..."
 cd "$LD_ROOT"
 pip install -e ".[cascade,dev]"
 
+# Benchmark dependencies (not in package extras)
+echo ""
+echo "Installing benchmark dependencies..."
+pip install datasets
+
 # Download spaCy model
 echo ""
 echo "Downloading spaCy model..."
@@ -86,6 +91,7 @@ python -c "import spacy; nlp = spacy.load('en_core_web_sm'); print(f'spaCy: {spa
 python -c "import model2vec; print(f'Model2Vec: OK')"
 python -c "import bitsandbytes; print(f'BitsAndBytes: {bitsandbytes.__version__}')"
 python -c "import pydantic; print(f'Pydantic: {pydantic.__version__}')"
+python -c "import datasets; print(f'Datasets: {datasets.__version__}')"
 
 echo ""
 echo "=============================================="
