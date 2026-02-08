@@ -18,10 +18,13 @@ import copy
 import gc
 import json
 import os
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
 
+# Add project root to path for standalone execution
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from tests.benchmarks.core.stage3_variants import STAGE3_VARIANTS, resolve_probe_path
 

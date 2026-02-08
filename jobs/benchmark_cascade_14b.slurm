@@ -36,6 +36,7 @@ LD_ROOT="$DATA/LettuceDetect"
 
 source "$LD_ROOT/venv/bin/activate"
 cd "$LD_ROOT"
+export PYTHONPATH="$LD_ROOT:$PYTHONPATH"
 
 python --version
 python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda.is_available()}, GPUs: {torch.cuda.device_count()}')"
