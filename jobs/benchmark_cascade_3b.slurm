@@ -23,6 +23,9 @@
 
 set -e
 export PYTHONUNBUFFERED=1
+# MiniCheck-Flan-T5-Large uses legacy .tar checkpoint format,
+# incompatible with PyTorch 2.6's weights_only=True default
+export TORCH_FORCE_WEIGHTS_ONLY=0
 
 echo "========================================"
 echo "Full Cascade Benchmark - Qwen 2.5 3B"

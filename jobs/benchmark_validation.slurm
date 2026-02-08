@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=bench-cascade-7b
+#SBATCH --job-name=bench-val
 #SBATCH --partition=zen3_0512_a100x2
 #SBATCH --qos=zen3_0512_a100x2
 #SBATCH --account=p73025
@@ -7,16 +7,15 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:2
-#SBATCH --time=06:00:00
+#SBATCH --time=01:00:00
 #SBATCH --output=/gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/%x_%j.out
 #SBATCH --error=/gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/%x_%j.err
 
 # ============================================================
-# FULL CASCADE BENCHMARK - Qwen 2.5 7B
+# VALIDATION RUN - Download models + verify pipeline
 # ============================================================
-# Runs on feature/task-routing which benchmarks BOTH:
-#   - Plain Cascade [1,3] (pre-refactor baseline)
-#   - Task-Routed Cascade [1,3] (QA -> [1,3], other -> [1])
+# Quick mode: 100 samples, all datasets, Stage 3 8B
+# Purpose: ensure all models download and pipeline runs end-to-end
 # ============================================================
 
 set -e
@@ -26,7 +25,7 @@ export PYTHONUNBUFFERED=1
 export TORCH_FORCE_WEIGHTS_ONLY=0
 
 echo "========================================"
-echo "Full Cascade Benchmark - Qwen 2.5 7B"
+echo "Benchmark Validation Run (--quick)"
 echo "========================================"
 echo "Job ID: $SLURM_JOB_ID"
 echo "Node: $SLURMD_NODENAME"
@@ -48,13 +47,13 @@ nvidia-smi --query-gpu=name,memory.total --format=csv
 mkdir -p "$LD_ROOT/tests/benchmarks/results"
 
 echo ""
-echo "Running full benchmark (--all-datasets --stage3 7b)..."
+echo "Running quick validation (100 samples, all datasets, stage3=8b)..."
 python tests/benchmarks/run_full_benchmark.py \
+    --quick \
     --all-datasets \
-    --stage3 7b
+    --stage3 8b
 
 echo ""
 echo "========================================"
-echo "Benchmark Complete - $(date)"
+echo "Validation Complete - $(date)"
 echo "========================================"
-ls -lh "$LD_ROOT/tests/benchmarks/results"/benchmark_7b_*.json 2>/dev/null | tail -2
