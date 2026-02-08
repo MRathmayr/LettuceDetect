@@ -15,6 +15,7 @@ from lettucedetect.configs.presets import (
     FULL_CASCADE,
     FAST_CASCADE,
     STAGE1_MINIMAL,
+    TASK_ROUTED,
     WITH_NLI,
     PRESETS,
 )
@@ -107,6 +108,39 @@ class TestCascadeConfigValidation:
         with pytest.raises(ValueError):
             Stage1Config(augmentations=["invalid"])
 
+    def test_task_routing_none_by_default(self):
+        """task_routing should be None by default (backward compat)."""
+        config = CascadeConfig()
+        assert config.task_routing is None
+
+    def test_task_routing_valid(self):
+        """Valid task_routing should pass validation."""
+        config = CascadeConfig(
+            stages=[1, 3],
+            task_routing={"qa": [1, 3], "summarization": [1]},
+        )
+        assert config.task_routing == {"qa": [1, 3], "summarization": [1]}
+
+    def test_task_routing_invalid_stage_number(self):
+        """task_routing with invalid stage number should fail."""
+        with pytest.raises(ValueError, match="Invalid stage 5"):
+            CascadeConfig(stages=[1, 3], task_routing={"qa": [1, 5]})
+
+    def test_task_routing_references_uninitialized_stage(self):
+        """task_routing referencing a stage not in stages should fail."""
+        with pytest.raises(ValueError, match="not in stages"):
+            CascadeConfig(stages=[1], task_routing={"qa": [1, 3]})
+
+    def test_task_routing_serialization_roundtrip(self):
+        """task_routing should survive JSON serialization roundtrip."""
+        config = CascadeConfig(
+            stages=[1, 3],
+            task_routing={"qa": [1, 3], "data2txt": [1]},
+        )
+        json_str = config.model_dump_json()
+        restored = CascadeConfig.model_validate_json(json_str)
+        assert restored.task_routing == config.task_routing
+
 
 class TestPresets:
     """Test preset configurations."""
@@ -119,6 +153,7 @@ class TestPresets:
         assert "stage1_minimal" in PRESETS
         assert "stage2_only" in PRESETS
         assert "stage3_reading_probe" in PRESETS
+        assert "task_routed" in PRESETS
 
     def test_full_cascade_preset(self):
         """FULL_CASCADE should have stages [1, 3] with augmentations."""
@@ -140,6 +175,16 @@ class TestPresets:
         """STAGE1_MINIMAL should be stage 1 only with no augmentations."""
         assert STAGE1_MINIMAL.stages == [1]
         assert STAGE1_MINIMAL.stage1.augmentations == []
+
+    def test_task_routed_preset(self):
+        """TASK_ROUTED should have stages [1, 3] with routing config."""
+        assert TASK_ROUTED.stages == [1, 3]
+        assert TASK_ROUTED.task_routing == {
+            "qa": [1, 3],
+            "summarization": [1],
+            "data2txt": [1],
+        }
+        assert TASK_ROUTED.stage3.method == Stage3Method.READING_PROBE
 
 
 class TestStage3Method:

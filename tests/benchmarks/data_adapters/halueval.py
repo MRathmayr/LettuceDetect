@@ -64,6 +64,7 @@ class HaluEvalAdapter(DatasetAdapter):
                 knowledge = item.get("knowledge", "")
                 response = item.get("answer", "")
                 context = [knowledge] if knowledge else None
+                task_type = "qa"
 
             elif self.subset == "dialogue_samples":
                 dialogue_history = item.get("dialogue_history") or ""
@@ -77,12 +78,14 @@ class HaluEvalAdapter(DatasetAdapter):
                 else:
                     question = ""
                 context = [knowledge] if knowledge else None
+                task_type = "dialogue"
 
             elif self.subset == "summarization_samples":
                 document = item.get("document", "")
                 response = item.get("summary", "")
                 question = "Summarize the following document."
                 context = [document] if document else None
+                task_type = "summarization"
 
             else:
                 raise ValueError(f"Unknown HaluEval subset: {self.subset}")
@@ -98,6 +101,7 @@ class HaluEvalAdapter(DatasetAdapter):
                     context=context,
                     response=response,
                     ground_truth=ground_truth,
+                    task_type=task_type,
                     hallucination_spans=None,
                 )
             )

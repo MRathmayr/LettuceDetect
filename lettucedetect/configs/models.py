@@ -6,7 +6,7 @@ import json
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class Stage3Method(str, Enum):
@@ -143,6 +143,7 @@ class CascadeConfig(BaseModel):
     stage2: Stage2Config = Field(default_factory=Stage2Config)
     stage3: Stage3Config = Field(default_factory=Stage3Config)
     routing: RoutingConfig = Field(default_factory=RoutingConfig)
+    task_routing: dict[str, list[int]] | None = None
 
     @field_validator("stages")
     @classmethod
@@ -151,6 +152,23 @@ class CascadeConfig(BaseModel):
         if v != sorted(v):
             raise ValueError(f"Stages must be in ascending order, got {v}")
         return v
+
+    @model_validator(mode="after")
+    def _validate_task_routing(self) -> CascadeConfig:
+        if self.task_routing:
+            all_routed_stages: set[int] = set()
+            for stages_list in self.task_routing.values():
+                for s in stages_list:
+                    if s not in (1, 2, 3):
+                        raise ValueError(f"Invalid stage {s} in task_routing (must be 1, 2, or 3)")
+                    all_routed_stages.add(s)
+            missing = all_routed_stages - set(self.stages)
+            if missing:
+                raise ValueError(
+                    f"task_routing references stages {missing} not in stages={self.stages}. "
+                    f"Add them to stages so they get initialized."
+                )
+        return self
 
     @classmethod
     def from_json(cls, path: str) -> CascadeConfig:

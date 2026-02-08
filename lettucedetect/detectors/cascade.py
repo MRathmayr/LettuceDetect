@@ -27,6 +27,11 @@ class CascadeDetector(BaseDetector):
         """Initialize cascade detector with config."""
         self.config = config
         self._stages: dict = {}
+        self._classifier = None
+        if config.task_routing:
+            from lettucedetect.detectors.task_classifier import TaskTypeClassifier
+
+            self._classifier = TaskTypeClassifier()
         self._initialize_stages()
 
     def _initialize_stages(self) -> None:
@@ -79,26 +84,48 @@ class CascadeDetector(BaseDetector):
         context: list[str],
         answer: str,
         question: str | None = None,
+        task_type: str | None = None,
         output_format: str = "tokens",
     ) -> list | dict:
-        """Main prediction - routes through cascade stages."""
+        """Main prediction - routes through cascade stages.
+
+        Args:
+            context: List of context passages.
+            answer: The answer to check for hallucination.
+            question: Optional question (used for task-type classification).
+            task_type: Explicit task type ('qa', 'summarization', 'data2txt', 'unknown').
+                If None and task_routing is configured, auto-detects from question/context.
+            output_format: 'tokens', 'spans', or 'detailed'.
+        """
         start_time = time.perf_counter()
+
+        # Auto-detect task type if routing is configured and type not provided
+        if self.config.task_routing and task_type is None and self._classifier is not None:
+            task_type = self._classifier.classify(question, context)
+            logger.debug("Auto-detected task_type=%s", task_type)
+
+        # Determine active stages for this input
+        if self.config.task_routing and task_type:
+            active_stages = self.config.task_routing.get(task_type, [1])
+        else:
+            active_stages = self.config.stages
 
         cascade_input = CascadeInput(
             context=context,
             answer=answer,
             question=question,
+            task_type=task_type,
         )
 
         stage_results = []
         final_result = None
 
-        for stage_num in sorted(self.config.stages):
+        for stage_num in sorted(active_stages):
             stage = self._stages.get(stage_num)
             if stage is None:
                 continue
 
-            has_next_stage = stage_num < max(self.config.stages)
+            has_next_stage = stage_num < max(active_stages)
             result = self._run_stage(
                 stage, stage_num, cascade_input, has_next_stage, output_format
             )
@@ -119,7 +146,9 @@ class CascadeDetector(BaseDetector):
         total_latency = (time.perf_counter() - start_time) * 1000
 
         if output_format == "detailed":
-            return self._format_detailed(final_result, stage_results, total_latency)
+            return self._format_detailed(
+                final_result, stage_results, total_latency, task_type
+            )
         elif output_format == "spans":
             return final_result.output if final_result else []
         else:
@@ -172,6 +201,7 @@ class CascadeDetector(BaseDetector):
         final_result: StageResult | None,
         stage_results: list[StageResult],
         total_latency: float,
+        task_type: str | None = None,
     ) -> dict:
         """Format detailed output with routing info."""
         if final_result is None:
@@ -180,6 +210,7 @@ class CascadeDetector(BaseDetector):
         return {
             "spans": final_result.output,
             "routing": {
+                "task_type": task_type,
                 "resolved_at_stage": int(final_result.stage_name[-1]),
                 "stages_executed": [int(r.stage_name[-1]) for r in stage_results],
                 "total_latency_ms": total_latency,
@@ -199,18 +230,32 @@ class CascadeDetector(BaseDetector):
         }
 
     def predict_prompt(
-        self, prompt: str, answer: str, output_format: str = "tokens"
+        self,
+        prompt: str,
+        answer: str,
+        task_type: str | None = None,
+        output_format: str = "tokens",
     ) -> list | dict:
         """Predict with pre-formatted prompt - implements BaseDetector interface."""
-        context = [prompt]
-        return self.predict(context, answer, question=None, output_format=output_format)
+        return self.predict(
+            context=[prompt],
+            answer=answer,
+            question=None,
+            task_type=task_type,
+            output_format=output_format,
+        )
 
     def predict_prompt_batch(
-        self, prompts: list[str], answers: list[str], output_format: str = "tokens"
+        self,
+        prompts: list[str],
+        answers: list[str],
+        task_type: str | None = None,
+        output_format: str = "tokens",
     ) -> list:
         """Batch prediction with prompts - implements BaseDetector interface."""
         return [
-            self.predict_prompt(p, a, output_format) for p, a in zip(prompts, answers)
+            self.predict_prompt(p, a, task_type=task_type, output_format=output_format)
+            for p, a in zip(prompts, answers)
         ]
 
     def warmup(self) -> None:

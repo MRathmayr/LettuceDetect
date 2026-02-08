@@ -180,19 +180,18 @@ def stage3_detector_3b():
     )
     yield detector
 
-    # Free VRAM so 7B can load
     del detector
     gc.collect()
     torch.cuda.empty_cache()
 
 
 @pytest.fixture(scope="module")
-def stage3_detector_7b():
-    """Create Stage 3 Reading Probe detector with Qwen 2.5 7B.
+def stage3_detector_8b():
+    """Create Stage 3 Reading Probe detector with Llama 3.1 8B.
 
     Requires:
-    - CUDA GPU with >= 7 GB VRAM (marginal on GTX 1080)
-    - Probe file: read-training/results/training_430k_7b/reading_probe_7b_qwen.joblib
+    - CUDA GPU with >= 8 GB VRAM
+    - Probe file: read-training/results/training_100k_8b_llama/reading_probe_8b_llama.joblib
     """
     import gc
 
@@ -201,17 +200,15 @@ def stage3_detector_7b():
     if not torch.cuda.is_available():
         pytest.skip("CUDA GPU required for Stage 3 benchmarks")
 
-    # Check VRAM - 7B needs ~5-7 GB in 4-bit, plus overhead for activations/KV cache
     gpu_mem = torch.cuda.get_device_properties(0).total_memory / (1024**3)
     if gpu_mem < 7.5:
-        pytest.skip(f"Insufficient VRAM for 7B model: {gpu_mem:.1f} GB (need >= 7.5 GB)")
+        pytest.skip(f"Insufficient VRAM for 8B model: {gpu_mem:.1f} GB (need >= 7.5 GB)")
 
-    variant = STAGE3_VARIANTS["7b"]
+    variant = STAGE3_VARIANTS["8b"]
     probe_path = resolve_probe_path(variant["probe_subdir"])
     if not probe_path:
-        pytest.skip(f"Probe file not found for 7b")
+        pytest.skip("Probe file not found for 8b")
 
-    # Force cleanup before loading 7B
     gc.collect()
     torch.cuda.empty_cache()
 

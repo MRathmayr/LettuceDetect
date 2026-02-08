@@ -10,13 +10,23 @@ import os
 STAGE3_VARIANTS = {
     "3b": {
         "model": "Qwen/Qwen2.5-3B-Instruct",
-        "probe_subdir": "training_430k_3b/reading_probe_3b_qwen.joblib",
-        "layer_index": -16,
+        "probe_subdir": "training_430k_3b_qwen/reading_probe_3b_qwen.joblib",
+        "layer_index": -12,  # From sweep: AUROC 0.767
     },
     "7b": {
         "model": "Qwen/Qwen2.5-7B-Instruct",
-        "probe_subdir": "training_430k_7b/reading_probe_7b_qwen.joblib",
-        "layer_index": -9,
+        "probe_subdir": "training_430k_7b_qwen/reading_probe_7b_qwen.joblib",
+        "layer_index": -9,  # From sweep: AUROC 0.792
+    },
+    "8b": {
+        "model": "meta-llama/Llama-3.1-8B-Instruct",
+        "probe_subdir": "training_100k_8b_llama/reading_probe_8b_llama.joblib",
+        "layer_index": -16,  # From sweep: AUROC 0.815
+    },
+    "14b": {
+        "model": "Qwen/Qwen2.5-14B-Instruct",
+        "probe_subdir": "training_430k_14b_qwen/reading_probe_14b_qwen.joblib",
+        "layer_index": -16,  # From sweep: AUROC 0.826
     },
 }
 

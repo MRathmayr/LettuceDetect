@@ -3,7 +3,7 @@
 
 Results are saved separately per Stage 3 model variant:
 - benchmark_3b_{timestamp}.json: Components + Stage1/2 + Stage3(3B) + Cascade[1,3](3B)
-- benchmark_7b_{timestamp}.json: Components + Stage1/2 + Stage3(7B) + Cascade[1,3](7B)
+- benchmark_8b_{timestamp}.json: Components + Stage1/2 + Stage3(8B) + Cascade[1,3](8B)
 
 If a variant is unavailable (no probe file, no GPU, OOM), earlier variants are still saved.
 
@@ -47,10 +47,14 @@ def _compute_per_task_metrics(predictions, valid_samples, component_name):
         metrics = compute_accuracy_metrics(task_preds, compute_ci=False)
         results[task_type] = {
             "auroc": metrics.auroc, "f1": metrics.f1,
+            "optimal_f1": metrics.optimal_f1,
+            "optimal_threshold": metrics.optimal_threshold,
             "n_samples": metrics.n_samples,
         }
         auroc_str = f"{metrics.auroc:.3f}" if metrics.auroc is not None else "N/A"
-        print(f"     {component_name} [{task_type}]: AUROC={auroc_str}, n={metrics.n_samples}")
+        f1_str = f"{metrics.f1:.3f}" if metrics.f1 is not None else "N/A"
+        opt_f1_str = f"{metrics.optimal_f1:.3f}" if metrics.optimal_f1 is not None else "N/A"
+        print(f"     {component_name} [{task_type}]: AUROC={auroc_str}, F1={f1_str}, OptF1={opt_f1_str}, n={metrics.n_samples}")
 
     return results
 
@@ -103,7 +107,8 @@ def run_shared_benchmarks(valid_samples: list) -> dict:
     results["components"]["lexical"] = {
         "auroc": metrics.auroc, "f1": metrics.f1,
         "latency_mean_ms": stats.mean_ms, "latency_p95_ms": stats.p95_ms,
-        "n_samples": metrics.n_samples
+        "n_samples": metrics.n_samples,
+        "per_task": _compute_per_task_metrics(predictions, valid_samples, "lexical"),
     }
     _print_component_result(metrics, stats)
 
@@ -123,7 +128,8 @@ def run_shared_benchmarks(valid_samples: list) -> dict:
     results["components"]["numeric"] = {
         "auroc": metrics.auroc, "f1": metrics.f1,
         "latency_mean_ms": stats.mean_ms, "latency_p95_ms": stats.p95_ms,
-        "n_samples": metrics.n_samples
+        "n_samples": metrics.n_samples,
+        "per_task": _compute_per_task_metrics(predictions, valid_samples, "numeric"),
     }
     _print_component_result(metrics, stats)
 
@@ -143,7 +149,8 @@ def run_shared_benchmarks(valid_samples: list) -> dict:
     results["components"]["ner"] = {
         "auroc": metrics.auroc, "f1": metrics.f1,
         "latency_mean_ms": stats.mean_ms, "latency_p95_ms": stats.p95_ms,
-        "n_samples": metrics.n_samples
+        "n_samples": metrics.n_samples,
+        "per_task": _compute_per_task_metrics(predictions, valid_samples, "ner"),
     }
     _print_component_result(metrics, stats)
 
@@ -168,7 +175,8 @@ def run_shared_benchmarks(valid_samples: list) -> dict:
         "auroc": metrics.auroc, "f1": metrics.f1,
         "latency_mean_ms": stats.mean_ms, "latency_p95_ms": stats.p95_ms,
         "gpu_peak_mb": mem_stats.gpu_peak_mb,
-        "n_samples": metrics.n_samples
+        "n_samples": metrics.n_samples,
+        "per_task": _compute_per_task_metrics(predictions, valid_samples, "transformer"),
     }
     _print_component_result(metrics, stats, mem_stats)
     del transformer
@@ -191,7 +199,8 @@ def run_shared_benchmarks(valid_samples: list) -> dict:
     results["components"]["model2vec"] = {
         "auroc": metrics.auroc, "f1": metrics.f1,
         "latency_mean_ms": stats.mean_ms, "latency_p95_ms": stats.p95_ms,
-        "n_samples": metrics.n_samples
+        "n_samples": metrics.n_samples,
+        "per_task": _compute_per_task_metrics(predictions, valid_samples, "model2vec"),
     }
     _print_component_result(metrics, stats)
 
@@ -216,7 +225,8 @@ def run_shared_benchmarks(valid_samples: list) -> dict:
         "auroc": metrics.auroc, "f1": metrics.f1,
         "latency_mean_ms": stats.mean_ms, "latency_p95_ms": stats.p95_ms,
         "gpu_peak_mb": mem_stats.gpu_peak_mb,
-        "n_samples": metrics.n_samples
+        "n_samples": metrics.n_samples,
+        "per_task": _compute_per_task_metrics(predictions, valid_samples, "nli"),
     }
     _print_component_result(metrics, stats, mem_stats)
     del nli
@@ -456,7 +466,92 @@ def run_stage3_variant(valid_samples: list, model_size: str, variant: dict) -> d
     if total > 0:
         print(f"   Routing: {stage1_resolved}/{total} ({100*stage1_resolved/total:.1f}%) resolved at Stage 1")
 
-    del cascade
+    # --- Task-Routed Cascade [1,3] ---
+    print(f"\n   [Task-Routed Cascade 1+3] ({model_size.upper()})...")
+    print("   (QA -> [1,3], summarization/data2txt/other -> [1] only)")
+
+    from lettucedetect.configs.models import Stage1Config as _S1, Stage3Config as _S3
+    routed_config = CascadeConfig(
+        stages=[1, 3],
+        stage1=_S1(augmentations=["ner", "numeric", "lexical"]),
+        stage3=_S3(
+            llm_model=variant["model"],
+            probe_path=probe_path,
+            layer_index=variant["layer_index"],
+            token_position="mean",
+            load_in_4bit=True,
+        ),
+        task_routing={
+            "qa": [1, 3],
+            "summarization": [1],
+            "data2txt": [1],
+        },
+    )
+    # Reuse already-loaded stage detectors to avoid reloading the LLM
+    routed_cascade = CascadeDetector.__new__(CascadeDetector)
+    routed_cascade.config = routed_config
+    routed_cascade._stages = cascade._stages
+    from lettucedetect.detectors.task_classifier import TaskTypeClassifier
+    routed_cascade._classifier = TaskTypeClassifier()
+
+    timer = BenchmarkTimer(sync_cuda=True)
+    memory = MemoryTracker()
+    predictions = []
+    routed_stage1_resolved = 0
+    routed_stage3_resolved = 0
+    routed_task_routing = {}  # task_type -> {"stage1": N, "stage3": N}
+
+    with memory.track():
+        for s in valid_samples:
+            with timer.measure():
+                result = routed_cascade.predict(
+                    s.context, s.response, s.question,
+                    task_type=s.task_type,
+                    output_format="detailed",
+                )
+
+            if isinstance(result, dict):
+                score = result.get("scores", {}).get("final_score", 0.0)
+                resolved_at = result.get("routing", {}).get("resolved_at_stage", 1)
+                task = s.task_type or "unknown"
+                routed_task_routing.setdefault(task, {"stage1": 0, "stage3": 0})
+                if resolved_at == 1:
+                    routed_stage1_resolved += 1
+                    routed_task_routing[task]["stage1"] += 1
+                else:
+                    routed_stage3_resolved += 1
+                    routed_task_routing[task]["stage3"] += 1
+            else:
+                score = max((sp.get("confidence", 0.5) for sp in result), default=0.0)
+
+            predictions.append(PredictionResult(
+                s.id, s.ground_truth, score, int(score >= 0.5),
+                timer.last_ms, f"cascade_routed_{model_size}",
+            ))
+
+    stats = timer.get_stats()
+    mem_stats = memory.get_stats()
+    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+
+    total = routed_stage1_resolved + routed_stage3_resolved
+    results["cascade"][f"task_routed_{model_size}"] = {
+        "auroc": metrics.auroc, "f1": metrics.f1,
+        "latency_mean_ms": stats.mean_ms, "latency_p95_ms": stats.p95_ms,
+        "gpu_peak_mb": mem_stats.gpu_peak_mb,
+        "n_samples": metrics.n_samples,
+        "stage1_resolved_pct": 100 * routed_stage1_resolved / total if total > 0 else 0,
+        "stage3_resolved_pct": 100 * routed_stage3_resolved / total if total > 0 else 0,
+        "task_routing_breakdown": routed_task_routing,
+        "per_task": _compute_per_task_metrics(predictions, valid_samples, f"cascade_routed_{model_size}"),
+    }
+    _print_component_result(metrics, stats, mem_stats)
+    if total > 0:
+        print(f"   Routing: {routed_stage1_resolved}/{total} ({100*routed_stage1_resolved/total:.1f}%) resolved at Stage 1")
+        for task, counts in sorted(routed_task_routing.items()):
+            t = counts["stage1"] + counts["stage3"]
+            print(f"     {task}: {t} samples -> Stage1={counts['stage1']}, Stage3={counts['stage3']}")
+
+    del cascade, routed_cascade
     gc.collect()
     torch.cuda.empty_cache()
 
@@ -507,6 +602,56 @@ def print_summary(results: dict):
 
     print("=" * 80)
 
+    # Per-task breakdown
+    has_per_task = any(
+        data.get("per_task")
+        for section in ("components", "stages", "cascade")
+        for data in results.get(section, {}).values()
+    )
+    if has_per_task:
+        print("\n" + "=" * 80)
+        print("PER-TASK BREAKDOWN")
+        print("=" * 80)
+        print("\n{:<20} {:<12} {:>10} {:>10} {:>10} {:>8}".format(
+            "Component", "Task Type", "AUROC", "F1@0.5", "OptF1", "N"
+        ))
+        print("-" * 80)
+        for section in ("components", "stages", "cascade"):
+            for name, data in results.get(section, {}).items():
+                per_task = data.get("per_task", {})
+                if not per_task:
+                    continue
+                for task_type, tm in sorted(per_task.items()):
+                    auroc = f"{tm['auroc']:.3f}" if tm.get('auroc') is not None else "N/A"
+                    f1 = f"{tm['f1']:.3f}" if tm.get('f1') is not None else "N/A"
+                    opt_f1 = f"{tm['optimal_f1']:.3f}" if tm.get('optimal_f1') is not None else "N/A"
+                    n = tm.get('n_samples', 0)
+                    print(f"{name:<20} {task_type:<12} {auroc:>10} {f1:>10} {opt_f1:>10} {n:>8}")
+                print()
+        print("=" * 80)
+
+    # Task routing breakdown (for task-routed cascades)
+    has_routing = any(
+        data.get("task_routing_breakdown")
+        for data in results.get("cascade", {}).values()
+    )
+    if has_routing:
+        print("\n" + "=" * 80)
+        print("TASK ROUTING BREAKDOWN")
+        print("=" * 80)
+        for name, data in results.get("cascade", {}).items():
+            breakdown = data.get("task_routing_breakdown")
+            if not breakdown:
+                continue
+            print(f"\n  {name}:")
+            print(f"    {'Task Type':<16} {'Samples':>8} {'Stage1':>8} {'Stage3':>8} {'Stage3%':>8}")
+            print(f"    {'-'*48}")
+            for task, counts in sorted(breakdown.items()):
+                t = counts["stage1"] + counts["stage3"]
+                pct = 100 * counts["stage3"] / t if t > 0 else 0
+                print(f"    {task:<16} {t:>8} {counts['stage1']:>8} {counts['stage3']:>8} {pct:>7.1f}%")
+        print("=" * 80)
+
 
 def _save_results(results: dict, output_dir: Path, filename: str):
     """Save results dict to JSON."""
@@ -521,18 +666,36 @@ def main():
     parser = argparse.ArgumentParser(description="Run full benchmark suite")
     parser.add_argument("--quick", action="store_true", help="Quick mode (100 samples)")
     parser.add_argument("--limit", type=int, default=None, help="Sample limit")
+    parser.add_argument("--all-datasets", action="store_true",
+                        help="Load all datasets (RAGTruth + HaluEval QA/Dialogue/Summarization)")
+    parser.add_argument("--stage3", type=str, default=None,
+                        choices=list(STAGE3_VARIANTS.keys()),
+                        help="Run only this Stage 3 variant (default: all)")
     parser.add_argument("--output", type=str, default="tests/benchmarks/results", help="Output directory")
     args = parser.parse_args()
 
     limit = 100 if args.quick else args.limit
 
-    # Load dataset
-    from tests.benchmarks.data_adapters import RAGTruthAdapter
-    print(f"Loading RAGTruth (limit={limit})...")
-    adapter = RAGTruthAdapter()
-    samples = adapter.load(limit=limit)
+    # Load datasets
+    if args.all_datasets:
+        from tests.benchmarks.data_adapters.base import load_all_datasets
+        print(f"Loading all datasets (limit={limit} per dataset)...")
+        samples = load_all_datasets(limit=limit)
+    else:
+        from tests.benchmarks.data_adapters import RAGTruthAdapter
+        print(f"Loading RAGTruth (limit={limit})...")
+        adapter = RAGTruthAdapter()
+        samples = adapter.load(limit=limit)
+
     valid_samples = [s for s in samples if s.context and s.response]
     print(f"Loaded {len(samples)} samples ({len(valid_samples)} valid)")
+
+    # Show task type distribution
+    task_counts = {}
+    for s in valid_samples:
+        key = s.task_type or "unknown"
+        task_counts[key] = task_counts.get(key, 0) + 1
+    print(f"Task types: {task_counts}")
 
     output_dir = Path(args.output)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -544,12 +707,19 @@ def main():
 
     shared_meta = {
         "timestamp": datetime.now().isoformat(),
-        "config": {"limit": limit, "n_samples": len(samples), "n_valid": len(valid_samples)},
+        "config": {
+            "limit": limit,
+            "all_datasets": args.all_datasets,
+            "n_samples": len(samples),
+            "n_valid": len(valid_samples),
+            "task_type_distribution": task_counts,
+        },
         "shared_time_sec": shared_elapsed,
     }
 
-    # Run each Stage 3 variant and save separately
-    for model_size, variant in STAGE3_VARIANTS.items():
+    # Run Stage 3 variant(s)
+    variants = {args.stage3: STAGE3_VARIANTS[args.stage3]} if args.stage3 else STAGE3_VARIANTS
+    for model_size, variant in variants.items():
         print(f"\n{'='*60}")
         print(f"STAGE 3 VARIANT: {model_size.upper()} ({variant['model']})")
         print(f"{'='*60}")

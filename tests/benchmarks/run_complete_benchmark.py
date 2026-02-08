@@ -4,7 +4,7 @@
 Runs all components, stages, and cascade on benchmark datasets (RAGTruth + HaluEval QA).
 Saves results separately per Stage 3 model variant:
 - benchmark_full_3b_{timestamp}.json: Shared components + Stage3(3B) + Cascade[1,3](3B)
-- benchmark_full_7b_{timestamp}.json: Shared components + Stage3(7B) + Cascade[1,3](7B)
+- benchmark_full_8b_{timestamp}.json: Shared components + Stage3(8B) + Cascade[1,3](8B)
 
 If a variant is unavailable (no probe file, no GPU, OOM), earlier variants are still saved.
 

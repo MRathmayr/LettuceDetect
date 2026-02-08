@@ -47,6 +47,18 @@ STAGE3_READING_PROBE = CascadeConfig(
     stage3=Stage3Config(method=Stage3Method.READING_PROBE),
 )
 
+# Task-routed: Stage 1 + probe on QA only, Stage 1 only for other types
+TASK_ROUTED = CascadeConfig(
+    stages=[1, 3],
+    stage1=Stage1Config(augmentations=["lexical", "model2vec"]),
+    stage3=Stage3Config(method=Stage3Method.READING_PROBE),
+    task_routing={
+        "qa": [1, 3],
+        "summarization": [1],
+        "data2txt": [1],
+    },
+)
+
 # All presets dict for easy access
 PRESETS = {
     "full_cascade": FULL_CASCADE,
@@ -55,4 +67,5 @@ PRESETS = {
     "stage1_minimal": STAGE1_MINIMAL,
     "stage2_only": STAGE2_ONLY,
     "stage3_reading_probe": STAGE3_READING_PROBE,
+    "task_routed": TASK_ROUTED,
 }

@@ -61,6 +61,7 @@ class CascadeInput:
     answer: str
     question: str | None = None
     prompt: str | None = None
+    task_type: str | None = None
     previous_stage_result: StageResult | None = None
 
 

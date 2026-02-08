@@ -15,6 +15,7 @@ from lettucedetect.configs.presets import (
     STAGE1_MINIMAL,
     STAGE2_ONLY,
     STAGE3_READING_PROBE,
+    TASK_ROUTED,
     WITH_NLI,
 )
 
@@ -33,5 +34,6 @@ __all__ = [
     "STAGE1_MINIMAL",
     "STAGE2_ONLY",
     "STAGE3_READING_PROBE",
+    "TASK_ROUTED",
     "PRESETS",
 ]
