@@ -54,7 +54,14 @@ class NLIContradictionDetector:
 
         logger.info(f"Loading MiniCheck model: {self.MODEL_NAME}")
         self._tokenizer = AutoTokenizer.from_pretrained(self.MODEL_NAME)
-        self._model = AutoModelForSeq2SeqLM.from_pretrained(self.MODEL_NAME)
+        # MiniCheck uses legacy .tar checkpoint format, incompatible with
+        # PyTorch 2.6's weights_only=True default. Temporarily override.
+        _orig_load = torch.load
+        torch.load = lambda *a, **kw: _orig_load(*a, **{**kw, "weights_only": False})
+        try:
+            self._model = AutoModelForSeq2SeqLM.from_pretrained(self.MODEL_NAME)
+        finally:
+            torch.load = _orig_load
 
         # Move to device
         if self._device is None:
