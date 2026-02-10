@@ -14,8 +14,8 @@
 # ============================================================
 # VALIDATION RUN - Download models + verify pipeline
 # ============================================================
-# Quick mode: 100 samples, RAGTruth test, all Stage 3 variants
-# Purpose: ensure all models download and pipeline runs end-to-end
+# Quick mode: 50 samples, RAGTruth test, 3B variant only
+# Purpose: ensure pipeline runs end-to-end with hallu probes
 # ============================================================
 
 set -e
@@ -47,9 +47,10 @@ nvidia-smi --query-gpu=name,memory.total --format=csv
 mkdir -p "$LD_ROOT/tests/benchmarks/results"
 
 echo ""
-echo "Running quick validation (100 samples, all stage3 variants)..."
+echo "Running quick validation (50 samples, 3B only)..."
 python tests/benchmarks/run_full_benchmark.py \
-    --quick
+    --limit 50 \
+    --stage3 3b
 
 echo ""
 echo "========================================"
