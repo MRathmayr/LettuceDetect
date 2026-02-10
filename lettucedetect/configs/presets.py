@@ -8,7 +8,7 @@ from lettucedetect.configs.models import (
     Stage3Method,
 )
 
-# Main preset: Stage 1 + Reading Probes (default)
+# Main preset: Stage 1 + Hallu Probes (default)
 FULL_CASCADE = CascadeConfig(
     stages=[1, 3],
     stage1=Stage1Config(augmentations=["lexical", "model2vec"]),
@@ -41,13 +41,14 @@ STAGE2_ONLY = CascadeConfig(
     stage2=Stage2Config(),
 )
 
-# Stage 3 Reading Probe only (for standalone probe evaluation)
+# Stage 3 Hallu Probe only (for standalone probe evaluation)
 STAGE3_READING_PROBE = CascadeConfig(
     stages=[3],
     stage3=Stage3Config(method=Stage3Method.READING_PROBE),
 )
 
-# Task-routed: Stage 1 + probe on QA only, Stage 1 only for other types
+# Deprecated: Task-routed cascade. Hallu probes work on all task types,
+# so task routing is no longer needed.
 TASK_ROUTED = CascadeConfig(
     stages=[1, 3],
     stage1=Stage1Config(augmentations=["lexical", "model2vec"]),

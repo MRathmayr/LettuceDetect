@@ -244,7 +244,7 @@ def run_shared_benchmarks(valid_samples: list) -> dict:
     # --- Stage 1 ---
     print("\n[Stage 1] Full pipeline with augmentations...")
     from lettucedetect.detectors.stage1.detector import Stage1Detector
-    stage1 = Stage1Detector(augmentations=["ner", "numeric", "lexical"])
+    stage1 = Stage1Detector(augmentations=["lexical", "model2vec"])
     stage1.warmup()
     timer = BenchmarkTimer(sync_cuda=True)
     memory = MemoryTracker()
@@ -307,7 +307,7 @@ def run_shared_benchmarks(valid_samples: list) -> dict:
 
     config = CascadeConfig(
         stages=[1, 2],
-        stage1=Stage1Config(augmentations=["ner", "numeric", "lexical"]),
+        stage1=Stage1Config(augmentations=["lexical", "model2vec"]),
         stage2=Stage2Config(components=["ncs", "nli"]),
     )
     cascade = CascadeDetector(config)
@@ -390,7 +390,7 @@ def run_stage3_variant(valid_samples: list, model_size: str, variant: dict) -> d
     print(f"\n   Loading cascade [1,3] with {variant['model']}...")
     config = CascadeConfig(
         stages=[1, 3],
-        stage1=Stage1Config(augmentations=["ner", "numeric", "lexical"]),
+        stage1=Stage1Config(augmentations=["lexical", "model2vec"]),
         stage3=Stage3Config(
             llm_model=variant["model"],
             probe_path=probe_path,
@@ -403,7 +403,7 @@ def run_stage3_variant(valid_samples: list, model_size: str, variant: dict) -> d
     cascade.warmup()
 
     # --- Stage 3 standalone ---
-    print(f"\n   [Stage 3] Reading Probe ({model_size.upper()}) standalone...")
+    print(f"\n   [Stage 3] Hallu Probe ({model_size.upper()}) standalone...")
     stage3 = cascade._stages[3]
     timer = BenchmarkTimer(sync_cuda=True)
     memory = MemoryTracker()
@@ -469,92 +469,7 @@ def run_stage3_variant(valid_samples: list, model_size: str, variant: dict) -> d
     if total > 0:
         print(f"   Routing: {stage1_resolved}/{total} ({100*stage1_resolved/total:.1f}%) resolved at Stage 1")
 
-    # --- Task-Routed Cascade [1,3] ---
-    print(f"\n   [Task-Routed Cascade 1+3] ({model_size.upper()})...")
-    print("   (QA -> [1,3], summarization/data2txt/other -> [1] only)")
-
-    from lettucedetect.configs.models import Stage1Config as _S1, Stage3Config as _S3
-    routed_config = CascadeConfig(
-        stages=[1, 3],
-        stage1=_S1(augmentations=["ner", "numeric", "lexical"]),
-        stage3=_S3(
-            llm_model=variant["model"],
-            probe_path=probe_path,
-            layer_index=variant["layer_index"],
-            token_position="mean",
-            load_in_4bit=True,
-        ),
-        task_routing={
-            "qa": [1, 3],
-            "summarization": [1],
-            "data2txt": [1],
-        },
-    )
-    # Reuse already-loaded stage detectors to avoid reloading the LLM
-    routed_cascade = CascadeDetector.__new__(CascadeDetector)
-    routed_cascade.config = routed_config
-    routed_cascade._stages = cascade._stages
-    from lettucedetect.detectors.task_classifier import TaskTypeClassifier
-    routed_cascade._classifier = TaskTypeClassifier()
-
-    timer = BenchmarkTimer(sync_cuda=True)
-    memory = MemoryTracker()
-    predictions = []
-    routed_stage1_resolved = 0
-    routed_stage3_resolved = 0
-    routed_task_routing = {}  # task_type -> {"stage1": N, "stage3": N}
-
-    with memory.track():
-        for s in valid_samples:
-            with timer.measure():
-                result = routed_cascade.predict(
-                    s.context, s.response, s.question,
-                    task_type=s.task_type,
-                    output_format="detailed",
-                )
-
-            if isinstance(result, dict):
-                score = result.get("scores", {}).get("final_score", 0.0)
-                resolved_at = result.get("routing", {}).get("resolved_at_stage", 1)
-                task = s.task_type or "unknown"
-                routed_task_routing.setdefault(task, {"stage1": 0, "stage3": 0})
-                if resolved_at == 1:
-                    routed_stage1_resolved += 1
-                    routed_task_routing[task]["stage1"] += 1
-                else:
-                    routed_stage3_resolved += 1
-                    routed_task_routing[task]["stage3"] += 1
-            else:
-                score = max((sp.get("confidence", 0.5) for sp in result), default=0.0)
-
-            predictions.append(PredictionResult(
-                s.id, s.ground_truth, score, int(score >= 0.5),
-                timer.last_ms, f"cascade_routed_{model_size}",
-            ))
-
-    stats = timer.get_stats()
-    mem_stats = memory.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
-
-    total = routed_stage1_resolved + routed_stage3_resolved
-    results["cascade"][f"task_routed_{model_size}"] = {
-        "auroc": metrics.auroc, "f1": metrics.f1,
-        "latency_mean_ms": stats.mean_ms, "latency_p95_ms": stats.p95_ms,
-        "gpu_peak_mb": mem_stats.gpu_peak_mb,
-        "n_samples": metrics.n_samples,
-        "stage1_resolved_pct": 100 * routed_stage1_resolved / total if total > 0 else 0,
-        "stage3_resolved_pct": 100 * routed_stage3_resolved / total if total > 0 else 0,
-        "task_routing_breakdown": routed_task_routing,
-        "per_task": _compute_per_task_metrics(predictions, valid_samples, f"cascade_routed_{model_size}"),
-    }
-    _print_component_result(metrics, stats, mem_stats)
-    if total > 0:
-        print(f"   Routing: {routed_stage1_resolved}/{total} ({100*routed_stage1_resolved/total:.1f}%) resolved at Stage 1")
-        for task, counts in sorted(routed_task_routing.items()):
-            t = counts["stage1"] + counts["stage3"]
-            print(f"     {task}: {t} samples -> Stage1={counts['stage1']}, Stage3={counts['stage3']}")
-
-    del cascade, routed_cascade
+    del cascade
     gc.collect()
     torch.cuda.empty_cache()
 
@@ -633,27 +548,6 @@ def print_summary(results: dict):
                 print()
         print("=" * 80)
 
-    # Task routing breakdown (for task-routed cascades)
-    has_routing = any(
-        data.get("task_routing_breakdown")
-        for data in results.get("cascade", {}).values()
-    )
-    if has_routing:
-        print("\n" + "=" * 80)
-        print("TASK ROUTING BREAKDOWN")
-        print("=" * 80)
-        for name, data in results.get("cascade", {}).items():
-            breakdown = data.get("task_routing_breakdown")
-            if not breakdown:
-                continue
-            print(f"\n  {name}:")
-            print(f"    {'Task Type':<16} {'Samples':>8} {'Stage1':>8} {'Stage3':>8} {'Stage3%':>8}")
-            print(f"    {'-'*48}")
-            for task, counts in sorted(breakdown.items()):
-                t = counts["stage1"] + counts["stage3"]
-                pct = 100 * counts["stage3"] / t if t > 0 else 0
-                print(f"    {task:<16} {t:>8} {counts['stage1']:>8} {counts['stage3']:>8} {pct:>7.1f}%")
-        print("=" * 80)
 
 
 def _save_results(results: dict, output_dir: Path, filename: str):

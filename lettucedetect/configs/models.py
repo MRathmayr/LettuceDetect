@@ -111,18 +111,18 @@ class Stage2Config(BaseModel):
 
 
 class Stage3Config(BaseModel):
-    """Configuration for Stage 3: Reading Probe / Semantic Entropy."""
+    """Configuration for Stage 3: Hallu Probe / Semantic Entropy."""
 
     method: Stage3Method = Stage3Method.READING_PROBE
 
-    # Reading Probe config
+    # Hallu Probe config
     llm_model: str = "Qwen/Qwen2.5-3B-Instruct"
     probe_path: str | None = None
-    layer_index: int = -16
+    layer_index: int = -15
     token_position: Literal["slt", "tbg", "mean"] = "mean"
     load_in_4bit: bool = True
     load_in_8bit: bool = False
-    threshold: float = 0.5  # P(correct) below this = hallucination
+    threshold: float = 0.5  # P(hallucinated) above this = hallucination
 
     # Semantic Entropy config (offline baseline, not yet implemented)
     clustering_method: Literal["nli", "embedding"] = "nli"

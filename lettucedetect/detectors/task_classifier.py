@@ -1,8 +1,7 @@
 """Heuristic task-type classifier for cascade routing.
 
 Classifies RAG inputs as 'qa', 'summarization', 'data2txt', or 'unknown'
-to route them through the appropriate cascade stages. The reading probe
-only helps on QA inputs (AUROC +0.093); it hurts on all other types.
+to route them through the appropriate cascade stages.
 """
 
 from __future__ import annotations

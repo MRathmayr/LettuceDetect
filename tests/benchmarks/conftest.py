@@ -131,7 +131,7 @@ def stage1_detector():
     """Create Stage 1 detector with all augmentations."""
     from lettucedetect.detectors.stage1.detector import Stage1Detector
 
-    detector = Stage1Detector(augmentations=["ner", "numeric", "lexical"])
+    detector = Stage1Detector(augmentations=["lexical", "model2vec"])
     detector.warmup()
     return detector
 
@@ -150,11 +150,11 @@ def stage2_detector():
 # Use yield fixtures with explicit cleanup to free VRAM between model sizes.
 @pytest.fixture(scope="module")
 def stage3_detector_3b():
-    """Create Stage 3 Reading Probe detector with Qwen 2.5 3B.
+    """Create Stage 3 Hallu Probe detector with Qwen 2.5 3B.
 
     Requires:
     - CUDA GPU with >= 4 GB VRAM
-    - Probe file: read-training/results/training_430k_3b/reading_probe_3b_qwen.joblib
+    - Probe file: hallu-training/results/training_3b_qwen/probe_3b_qwen.joblib
     """
     import gc
 
@@ -187,11 +187,11 @@ def stage3_detector_3b():
 
 @pytest.fixture(scope="module")
 def stage3_detector_8b():
-    """Create Stage 3 Reading Probe detector with Llama 3.1 8B.
+    """Create Stage 3 Hallu Probe detector with Llama 3.1 8B.
 
     Requires:
     - CUDA GPU with >= 8 GB VRAM
-    - Probe file: read-training/results/training_100k_8b_llama/reading_probe_8b_llama.joblib
+    - Probe file: hallu-training/results/training_8b_llama/probe_8b_llama.joblib
     """
     import gc
 

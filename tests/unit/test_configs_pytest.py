@@ -58,7 +58,7 @@ class TestCascadeConfigDefaults:
         config = Stage3Config()
         assert config.method == Stage3Method.READING_PROBE
         assert config.llm_model == "Qwen/Qwen2.5-3B-Instruct"
-        assert config.layer_index == -16
+        assert config.layer_index == -15
         assert config.token_position == "mean"
         assert config.load_in_4bit is True
         assert config.threshold == 0.5

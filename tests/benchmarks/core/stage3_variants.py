@@ -6,27 +6,27 @@ to keep probe paths, layer indices, and model names in sync.
 
 import os
 
-# Stage 3 model variant configs
+# Stage 3 model variant configs (hallu probes trained on RAGTruth)
 STAGE3_VARIANTS = {
     "3b": {
         "model": "Qwen/Qwen2.5-3B-Instruct",
-        "probe_subdir": "training_430k_3b_qwen/reading_probe_3b_qwen.joblib",
-        "layer_index": -12,  # From sweep: AUROC 0.767
+        "probe_subdir": "training_3b_qwen/probe_3b_qwen.joblib",
+        "layer_index": -15,  # From sweep: AUROC 0.733
     },
     "7b": {
         "model": "Qwen/Qwen2.5-7B-Instruct",
-        "probe_subdir": "training_430k_7b_qwen/reading_probe_7b_qwen.joblib",
-        "layer_index": -9,  # From sweep: AUROC 0.792
+        "probe_subdir": "training_7b_qwen/probe_7b_qwen.joblib",
+        "layer_index": -12,  # From sweep: AUROC 0.778
     },
     "8b": {
         "model": "meta-llama/Llama-3.1-8B-Instruct",
-        "probe_subdir": "training_100k_8b_llama/reading_probe_8b_llama.joblib",
-        "layer_index": -16,  # From sweep: AUROC 0.815
+        "probe_subdir": "training_8b_llama/probe_8b_llama.joblib",
+        "layer_index": -16,  # From sweep: AUROC 0.786
     },
     "14b": {
         "model": "Qwen/Qwen2.5-14B-Instruct",
-        "probe_subdir": "training_430k_14b_qwen/reading_probe_14b_qwen.joblib",
-        "layer_index": -16,  # From sweep: AUROC 0.826
+        "probe_subdir": "training_14b_qwen/probe_14b_qwen.joblib",
+        "layer_index": -20,  # From sweep: AUROC 0.803
     },
 }
 
@@ -34,12 +34,12 @@ STAGE3_VARIANTS = {
 def resolve_probe_path(probe_subdir: str) -> str | None:
     """Resolve probe path relative to project root.
 
-    Probes are stored in Diploma/read-training/results/ (3 levels above
+    Probes are stored in Diploma/hallu-training/results/ (3 levels above
     tests/benchmarks/), not inside LettuceDetect/.
     """
     # From tests/benchmarks/core/ -> 4 levels up to Diploma/
     probe_path = os.path.abspath(os.path.join(
         os.path.dirname(__file__), "../../../..",
-        f"read-training/results/{probe_subdir}",
+        f"hallu-training/results/{probe_subdir}",
     ))
     return probe_path if os.path.exists(probe_path) else None

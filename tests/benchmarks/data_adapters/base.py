@@ -7,10 +7,7 @@ from typing import Iterator
 
 @dataclass
 class BenchmarkSample:
-    """Unified sample format for all benchmarks.
-
-    Adapted from read-training/benchmark/dataset_loaders.py.
-    """
+    """Unified sample format for all benchmarks."""
 
     id: str
     benchmark: str  # "ragtruth", "halueval_qa", etc.

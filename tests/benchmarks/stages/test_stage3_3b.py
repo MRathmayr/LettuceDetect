@@ -1,7 +1,7 @@
-"""Benchmark tests for Stage 3: Reading Probe detector (Qwen 3B).
+"""Benchmark tests for Stage 3: Hallu Probe detector (Qwen 3B).
 
 Stage 3 uses a causal LM + trained sklearn probe on hidden states
-to predict P(correct). Requires GPU for quantized inference.
+to predict P(hallucinated). Requires GPU for quantized inference.
 
 Run:
     # Quick (100 samples, HaluEval QA only)
@@ -18,13 +18,13 @@ from tests.benchmarks.core import (
 )
 from tests.benchmarks.stages._stage3_helpers import _run_stage3_accuracy
 
-_3B_CONFIG = {"model": "Qwen/Qwen2.5-3B-Instruct", "layer": -16, "position": "mean"}
+_3B_CONFIG = {"model": "Qwen/Qwen2.5-3B-Instruct", "layer": -15, "position": "mean"}
 
 
 @pytest.mark.benchmark
 @pytest.mark.gpu
 class TestStage3BenchmarkQwen3B:
-    """Benchmarks for Stage 3 with Qwen 2.5 3B reading probe."""
+    """Benchmarks for Stage 3 with Qwen 2.5 3B hallu probe."""
 
     def test_stage3_latency(self, stage3_detector_3b, halueval_qa_samples, benchmark_config):
         """Benchmark Stage 3 (3B) latency on HaluEval QA."""
@@ -68,7 +68,7 @@ class TestStage3BenchmarkQwen3B:
         """Benchmark Stage 3 (3B) accuracy on HaluEval QA."""
         _run_stage3_accuracy(
             stage3_detector_3b, halueval_qa_samples,
-            "stage3_reading_probe_3b", "halueval_qa", _3B_CONFIG, benchmark_config,
+            "stage3_hallu_probe_3b", "halueval_qa", _3B_CONFIG, benchmark_config,
         )
 
     def test_stage3_accuracy_ragtruth(
@@ -77,5 +77,5 @@ class TestStage3BenchmarkQwen3B:
         """Benchmark Stage 3 (3B) accuracy on RAGTruth."""
         _run_stage3_accuracy(
             stage3_detector_3b, ragtruth_samples,
-            "stage3_reading_probe_3b", "ragtruth", _3B_CONFIG, benchmark_config,
+            "stage3_hallu_probe_3b", "ragtruth", _3B_CONFIG, benchmark_config,
         )

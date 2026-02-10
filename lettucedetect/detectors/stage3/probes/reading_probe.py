@@ -1,7 +1,11 @@
-"""Reading Probe: sklearn LogisticRegression wrapper for hidden state probes.
+"""Hallucination Probe: sklearn LogisticRegression wrapper for hidden state probes.
 
-Loads .joblib files produced by the training pipeline (read-training/).
-Probe format: {"model": LogisticRegression, "scaler": StandardScaler | None, "metadata": dict}
+Loads .joblib files produced by the hallu-training pipeline.
+Probe format: {"model": LogisticRegression, "scaler": StandardScaler | None,
+               "metadata": dict, "probe_type": "hallucination"}
+
+Score direction: Returns P(hallucinated) directly.
+  0.0 = supported, 1.0 = hallucinated.
 """
 
 from __future__ import annotations
@@ -16,26 +20,29 @@ logger = logging.getLogger(__name__)
 
 
 class ReadingProbe:
-    """Sklearn LogisticRegression probe for predicting P(correct) from hidden states."""
+    """Sklearn LogisticRegression probe for predicting P(hallucinated) from hidden states."""
 
-    def __init__(self, model, scaler=None, metadata: dict | None = None):
+    def __init__(self, model, scaler=None, pca=None, metadata: dict | None = None):
         self._model = model
         self._scaler = scaler
+        self._pca = pca
         self.metadata = metadata or {}
 
     def predict_proba(self, X: NDArray[np.float32]) -> NDArray[np.float64]:
-        """Return P(correct) for each sample.
+        """Return P(hallucinated) for each sample.
 
         Args:
             X: Hidden states array of shape (n_samples, hidden_dim).
 
         Returns:
-            1D array of P(correct) values, shape (n_samples,).
+            1D array of P(hallucinated) values, shape (n_samples,).
         """
         if self._scaler is not None:
             X = self._scaler.transform(X)
+        if self._pca is not None:
+            X = self._pca.transform(X)
         # LogisticRegression.predict_proba returns (n_samples, 2) with [P(0), P(1)]
-        # Class 1 = correct, so we return the P(correct) column
+        # Class 1 = hallucinated, so we return the P(hallucinated) column
         return self._model.predict_proba(X)[:, 1]
 
     @classmethod
@@ -44,7 +51,8 @@ class ReadingProbe:
 
         Args:
             path: Path to .joblib file containing
-                  {"model": LogisticRegression, "scaler": StandardScaler | None, "metadata": dict}
+                  {"model": LogisticRegression, "scaler": StandardScaler | None,
+                   "metadata": dict, "pca": PCA | None}
 
         Returns:
             ReadingProbe instance.
@@ -67,5 +75,6 @@ class ReadingProbe:
         return cls(
             model=data["model"],
             scaler=data.get("scaler"),
+            pca=data.get("pca"),
             metadata=data.get("metadata", {}),
         )

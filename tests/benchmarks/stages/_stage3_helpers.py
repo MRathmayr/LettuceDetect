@@ -1,4 +1,4 @@
-"""Shared helpers for Stage 3 benchmark tests."""
+"""Shared helpers for Stage 3 (hallu probe) benchmark tests."""
 
 from tests.benchmarks.core import (
     BenchmarkResults,
@@ -15,7 +15,7 @@ def _run_stage3_accuracy(detector, samples, component_name, dataset_name, config
     Args:
         detector: ReadingProbeDetector instance.
         samples: List of BenchmarkSample.
-        component_name: Component identifier (e.g., "stage3_reading_probe_3b").
+        component_name: Component identifier (e.g., "stage3_hallu_probe_3b").
         dataset_name: Dataset name (e.g., "halueval_qa", "ragtruth").
         config: Config dict for BenchmarkResults metadata.
         benchmark_config: Pytest benchmark config fixture.

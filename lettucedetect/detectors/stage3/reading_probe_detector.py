@@ -1,11 +1,11 @@
-"""Reading Probe Detector: Hidden state probe for hallucination detection.
+"""Hallucination Probe Detector: Hidden state probe for hallucination detection.
 
 Uses a trained sklearn LogisticRegression probe on LLM hidden states to predict
-P(correct). Low P(correct) indicates hallucination.
+P(hallucinated) directly. Trained on RAGTruth with human hallucination labels.
 
-Score direction: P(correct) is inverted to hallucination convention:
-  hallucination_score = 1.0 - P(correct)
-  0.0 = supported (high P(correct)), 1.0 = hallucinated (low P(correct))
+Score direction: P(hallucinated) is used directly:
+  hallucination_score = P(hallucinated)
+  0.0 = supported, 1.0 = hallucinated
 """
 
 from __future__ import annotations
@@ -25,21 +25,21 @@ logger = logging.getLogger(__name__)
 
 
 class ReadingProbeDetector(Stage3Detector):
-    """Stage 3 detector using reading probes on LLM hidden states.
+    """Stage 3 detector using hallucination probes on LLM hidden states.
 
     Loads a causal LM (optionally quantized) and a trained sklearn probe.
-    For each input, extracts hidden states and predicts P(correct).
+    For each input, extracts hidden states and predicts P(hallucinated).
 
     Requires:
     - GPU with CUDA for quantized models (4-bit/8-bit via bitsandbytes)
-    - A trained .joblib probe file from the read-training pipeline
+    - A trained .joblib probe file from the hallu-training pipeline
     """
 
     def __init__(
         self,
         model_name_or_path: str,
         probe_path: str | None,
-        layer_index: int = -16,
+        layer_index: int = -15,
         token_position: str = "mean",
         threshold: float = 0.5,
         load_in_4bit: bool = True,
@@ -48,7 +48,7 @@ class ReadingProbeDetector(Stage3Detector):
         if probe_path is None:
             raise ValueError(
                 "probe_path is required for ReadingProbeDetector. "
-                "Train a probe with read-training/py/train_reading_probe.py "
+                "Train a probe with hallu-training/py/train_probe.py "
                 "or download a pre-trained .joblib file."
             )
 
@@ -91,8 +91,16 @@ class ReadingProbeDetector(Stage3Detector):
         self._tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
 
         # Load sklearn probe
-        logger.info(f"Loading reading probe: {probe_path}")
+        logger.info(f"Loading hallu probe: {probe_path}")
         self._probe = ReadingProbe.load(probe_path)
+
+        # Warn if probe layer_index doesn't match configured layer_index
+        probe_layer = self._probe.metadata.get("layer_index")
+        if probe_layer is not None and probe_layer != layer_index:
+            logger.warning(
+                f"Probe was trained at layer_index={probe_layer} but configured "
+                f"with layer_index={layer_index}. This may degrade performance."
+            )
 
         # Hidden state extractor
         self._extractor = HiddenStateExtractor(
@@ -108,12 +116,11 @@ class ReadingProbeDetector(Stage3Detector):
         hidden_state = self._extractor.extract(answer, question, context)
         hidden_np = hidden_state.cpu().float().numpy().reshape(1, -1)
 
-        p_correct = float(self._probe.predict_proba(hidden_np)[0])
-        hallucination_score = 1.0 - p_correct
-        is_hallucination = p_correct < self._threshold
+        hallucination_score = float(self._probe.predict_proba(hidden_np)[0])
+        is_hallucination = hallucination_score >= self._threshold
 
         # Confidence: how far from the decision boundary (0.5)
-        confidence = abs(p_correct - 0.5) * 2.0
+        confidence = abs(hallucination_score - 0.5) * 2.0
 
         routing = (
             RoutingDecision.RETURN_CONFIDENT
@@ -130,8 +137,7 @@ class ReadingProbeDetector(Stage3Detector):
             latency_ms=0.0,  # Set by predict_stage()
             output=[],  # Set by predict_stage()
             component_scores={
-                "reading_probe": hallucination_score,
-                "p_correct": p_correct,
+                "hallu_probe": hallucination_score,
             },
             evidence={
                 "layer_index": self._layer_index,
@@ -139,7 +145,7 @@ class ReadingProbeDetector(Stage3Detector):
                 "probe_metadata": self._probe.metadata,
             },
             routing_reason=(
-                f"P(correct)={p_correct:.3f}, "
+                f"P(hallucinated)={hallucination_score:.3f}, "
                 f"threshold={self._threshold}, "
                 f"confidence={confidence:.3f}"
             ),

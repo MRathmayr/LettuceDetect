@@ -1,7 +1,4 @@
-"""Metrics computation for benchmark evaluation.
-
-Ported from read-training/benchmark/evaluate_benchmark.py.
-"""
+"""Metrics computation for benchmark evaluation."""
 
 import numpy as np
 from sklearn.metrics import (
