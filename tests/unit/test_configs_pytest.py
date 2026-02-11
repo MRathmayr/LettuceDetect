@@ -60,7 +60,6 @@ class TestCascadeConfigDefaults:
         assert config.llm_model == "Qwen/Qwen2.5-3B-Instruct"
         assert config.layer_index == -15
         assert config.token_position == "mean"
-        assert config.load_in_4bit is True
         assert config.threshold == 0.5
 
     def test_routing_config_defaults(self):

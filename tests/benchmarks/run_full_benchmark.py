@@ -396,7 +396,6 @@ def run_stage3_variant(valid_samples: list, model_size: str, variant: dict) -> d
             probe_path=probe_path,
             layer_index=variant["layer_index"],
             token_position="mean",
-            load_in_4bit=True,
         ),
     )
     cascade = CascadeDetector(config)

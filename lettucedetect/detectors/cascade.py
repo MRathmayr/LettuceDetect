@@ -69,8 +69,6 @@ class CascadeDetector(BaseDetector):
                 layer_index=self.config.stage3.layer_index,
                 token_position=self.config.stage3.token_position,
                 threshold=self.config.stage3.threshold,
-                load_in_4bit=self.config.stage3.load_in_4bit,
-                load_in_8bit=self.config.stage3.load_in_8bit,
             )
         elif self.config.stage3.method == Stage3Method.SEMANTIC_ENTROPY:
             raise NotImplementedError(

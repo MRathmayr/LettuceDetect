@@ -120,8 +120,6 @@ class Stage3Config(BaseModel):
     probe_path: str | None = None
     layer_index: int = -15
     token_position: Literal["slt", "tbg", "mean"] = "mean"
-    load_in_4bit: bool = True
-    load_in_8bit: bool = False
     threshold: float = 0.5  # P(hallucinated) above this = hallucination
 
     # Semantic Entropy config (offline baseline, not yet implemented)

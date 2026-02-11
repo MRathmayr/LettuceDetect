@@ -153,7 +153,7 @@ def stage3_detector_3b():
     """Create Stage 3 Hallu Probe detector with Qwen 2.5 3B.
 
     Requires:
-    - CUDA GPU with >= 4 GB VRAM
+    - CUDA GPU with >= 7 GB VRAM
     - Probe file: hallu-training/results/training_3b_qwen/probe_3b_qwen.joblib
     """
     import gc
@@ -176,7 +176,6 @@ def stage3_detector_3b():
         layer_index=variant["layer_index"],
         token_position="mean",
         threshold=0.5,
-        load_in_4bit=True,
     )
     yield detector
 
@@ -201,8 +200,8 @@ def stage3_detector_8b():
         pytest.skip("CUDA GPU required for Stage 3 benchmarks")
 
     gpu_mem = torch.cuda.get_device_properties(0).total_memory / (1024**3)
-    if gpu_mem < 7.5:
-        pytest.skip(f"Insufficient VRAM for 8B model: {gpu_mem:.1f} GB (need >= 7.5 GB)")
+    if gpu_mem < 18:
+        pytest.skip(f"Insufficient VRAM for 8B fp16 model: {gpu_mem:.1f} GB (need >= 18 GB)")
 
     variant = STAGE3_VARIANTS["8b"]
     probe_path = resolve_probe_path(variant["probe_subdir"])
@@ -220,7 +219,6 @@ def stage3_detector_8b():
         layer_index=variant["layer_index"],
         token_position="mean",
         threshold=0.5,
-        load_in_4bit=True,
     )
     yield detector
 

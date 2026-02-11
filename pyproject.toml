@@ -56,7 +56,6 @@ stage2 = [
 stage3 = [
     "sentence-transformers>=2.2.0",
     "bert-score>=0.3.13",
-    "bitsandbytes>=0.41.0",
     "accelerate>=0.24.0",
 ]
 cascade = [

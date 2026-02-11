@@ -1,9 +1,9 @@
 """Benchmark tests for Stage 3: Hallu Probe detector (Llama 8B).
 
 Separate file from test_stage3_3b.py so pytest tears down the 3B model
-(freeing ~3 GB VRAM) before attempting to load the 8B model.
+(freeing ~6 GB VRAM) before attempting to load the 8B model.
 
-Requires ~5-7 GB VRAM (4-bit).
+Requires ~18 GB VRAM (fp16).
 
 Run:
     pytest tests/benchmarks/stages/test_stage3_7b.py --quick -v -s

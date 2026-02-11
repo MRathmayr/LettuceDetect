@@ -27,11 +27,11 @@ logger = logging.getLogger(__name__)
 class ReadingProbeDetector(Stage3Detector):
     """Stage 3 detector using hallucination probes on LLM hidden states.
 
-    Loads a causal LM (optionally quantized) and a trained sklearn probe.
+    Loads a causal LM in fp16 and a trained sklearn probe.
     For each input, extracts hidden states and predicts P(hallucinated).
 
     Requires:
-    - GPU with CUDA for quantized models (4-bit/8-bit via bitsandbytes)
+    - GPU with CUDA and sufficient VRAM for fp16 model
     - A trained .joblib probe file from the hallu-training pipeline
     """
 
@@ -42,8 +42,6 @@ class ReadingProbeDetector(Stage3Detector):
         layer_index: int = -15,
         token_position: str = "mean",
         threshold: float = 0.5,
-        load_in_4bit: bool = True,
-        load_in_8bit: bool = False,
     ):
         if probe_path is None:
             raise ValueError(
@@ -55,38 +53,15 @@ class ReadingProbeDetector(Stage3Detector):
         self._threshold = threshold
         self._layer_index = layer_index
 
-        # Check GPU availability for quantized models
-        if load_in_4bit or load_in_8bit:
-            import torch
-
-            if not torch.cuda.is_available():
-                raise RuntimeError(
-                    "CUDA GPU required for quantized model loading (load_in_4bit/load_in_8bit). "
-                    "Set load_in_4bit=False and load_in_8bit=False for CPU inference "
-                    "(requires sufficient RAM for full-precision model)."
-                )
-
-        # Load LLM
+        # Load LLM in fp16
+        import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
-        load_kwargs = {"device_map": "auto", "torch_dtype": "auto"}
-        if load_in_4bit:
-            from transformers import BitsAndBytesConfig
-
-            load_kwargs["quantization_config"] = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_compute_dtype="float16",
-            )
-        elif load_in_8bit:
-            from transformers import BitsAndBytesConfig
-
-            load_kwargs["quantization_config"] = BitsAndBytesConfig(
-                load_in_8bit=True,
-            )
-
-        logger.info(f"Loading LLM: {model_name_or_path} (4bit={load_in_4bit}, 8bit={load_in_8bit})")
+        logger.info(f"Loading LLM: {model_name_or_path} (fp16)")
         self._model = AutoModelForCausalLM.from_pretrained(
-            model_name_or_path, **load_kwargs
+            model_name_or_path,
+            device_map="auto",
+            torch_dtype=torch.float16,
         )
         self._tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
 

@@ -1,7 +1,7 @@
 """Benchmark tests for Stage 3: Hallu Probe detector (Qwen 3B).
 
 Stage 3 uses a causal LM + trained sklearn probe on hidden states
-to predict P(hallucinated). Requires GPU for quantized inference.
+to predict P(hallucinated). Requires GPU with sufficient VRAM for fp16 inference.
 
 Run:
     # Quick (100 samples, HaluEval QA only)

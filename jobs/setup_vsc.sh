@@ -89,7 +89,6 @@ python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda
 python -c "import transformers; print(f'Transformers: {transformers.__version__}')"
 python -c "import spacy; nlp = spacy.load('en_core_web_sm'); print(f'spaCy: {spacy.__version__}, model OK')"
 python -c "import model2vec; print(f'Model2Vec: OK')"
-python -c "import bitsandbytes; print(f'BitsAndBytes: {bitsandbytes.__version__}')"
 python -c "import pydantic; print(f'Pydantic: {pydantic.__version__}')"
 python -c "import datasets; print(f'Datasets: {datasets.__version__}')"
 
