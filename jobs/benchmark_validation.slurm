@@ -12,10 +12,11 @@
 #SBATCH --error=/gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/%x_%j.err
 
 # ============================================================
-# VALIDATION RUN - Download models + verify pipeline
+# VALIDATION RUN - Verify 3-phase pipeline end-to-end
 # ============================================================
-# Quick mode: 10 samples, RAGTruth test, 3B variant only
-# Purpose: ensure pipeline runs end-to-end with hallu probes
+# 10 samples, both transformers (base + large), 3B probe only
+# Tests: Phase 1 + Phase 2 (3B standalone) + Phase 3 (base+3B, large+3B)
+# Output: benchmark_base_3b_*.json, benchmark_large_3b_*.json
 # ============================================================
 
 set -e
@@ -25,7 +26,7 @@ export PYTHONUNBUFFERED=1
 export TORCH_FORCE_WEIGHTS_ONLY=0
 
 echo "========================================"
-echo "Benchmark Validation Run (--quick)"
+echo "Benchmark Validation Run (10 samples, 3B, both transformers)"
 echo "========================================"
 echo "Job ID: $SLURM_JOB_ID"
 echo "Node: $SLURMD_NODENAME"
@@ -47,7 +48,7 @@ nvidia-smi --query-gpu=name,memory.total --format=csv
 mkdir -p "$LD_ROOT/tests/benchmarks/results"
 
 echo ""
-echo "Running quick validation (10 samples, 3B only)..."
+echo "Running validation (10 samples, 3B probe, both transformers)..."
 python tests/benchmarks/run_full_benchmark.py \
     --limit 10 \
     --stage3 3b
@@ -56,3 +57,4 @@ echo ""
 echo "========================================"
 echo "Validation Complete - $(date)"
 echo "========================================"
+ls -lh "$LD_ROOT/tests/benchmarks/results"/benchmark_*_3b_*.json 2>/dev/null | tail -4

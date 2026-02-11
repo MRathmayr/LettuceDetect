@@ -7,18 +7,21 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:2
-#SBATCH --time=04:00:00
+#SBATCH --time=24:00:00
 #SBATCH --output=/gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/%x_%j.out
 #SBATCH --error=/gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/%x_%j.err
 
 # ============================================================
-# FULL CASCADE BENCHMARK - All Stage 3 Variants
+# FULL CASCADE BENCHMARK - Both Transformers x 4 PCA 512 Probes
 # ============================================================
-# Runs shared benchmarks once, then all stage3 variants in sequence.
-# Default dataset: RAGTruth test (~2.7k samples).
-# If a variant OOMs, the script skips it and continues.
+# Phase 1: Model-independent components (run once)
+# Phase 2: Stage 3 standalone (once per LLM)
+# Phase 3: Per-transformer benchmarks (base, large)
+# Output: 8 JSON files (2 transformers x 4 probes)
+# If a variant OOMs, Python skips it and continues.
 # ============================================================
 
+# Fail fast on setup errors, then allow Python to handle its own errors
 set -e
 export PYTHONUNBUFFERED=1
 # MiniCheck-Flan-T5-Large uses legacy .tar checkpoint format,
@@ -48,8 +51,15 @@ nvidia-smi --query-gpu=name,memory.total --format=csv
 mkdir -p "$LD_ROOT/tests/benchmarks/results"
 
 echo ""
-echo "Running full benchmark (all stage3 variants)..."
+echo "Running full benchmark (2 transformers x 4 PCA 512 probes)..."
+set +e
 python tests/benchmarks/run_full_benchmark.py
+BENCH_EXIT=$?
+set -e
+
+if [ $BENCH_EXIT -ne 0 ]; then
+    echo "WARNING: Benchmark exited with code $BENCH_EXIT (partial results may be available)"
+fi
 
 echo ""
 echo "========================================"

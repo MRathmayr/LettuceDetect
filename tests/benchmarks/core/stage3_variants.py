@@ -10,23 +10,23 @@ import os
 STAGE3_VARIANTS = {
     "3b": {
         "model": "Qwen/Qwen2.5-3B-Instruct",
-        "probe_subdir": "training_3b_qwen/probe_3b_qwen.joblib",
-        "layer_index": -15,  # From sweep: AUROC 0.733
+        "probe_subdir": "training_3b_qwen/probe_3b_qwen_pca512.joblib",
+        "layer_index": -15,  # PCA 512: AUROC 0.889
     },
     "7b": {
         "model": "Qwen/Qwen2.5-7B-Instruct",
-        "probe_subdir": "training_7b_qwen/probe_7b_qwen.joblib",
-        "layer_index": -12,  # From sweep: AUROC 0.778
+        "probe_subdir": "training_7b_qwen/probe_7b_qwen_pca512.joblib",
+        "layer_index": -12,  # PCA 512: AUROC 0.897
     },
     "8b": {
         "model": "meta-llama/Llama-3.1-8B-Instruct",
-        "probe_subdir": "training_8b_llama/probe_8b_llama.joblib",
-        "layer_index": -16,  # From sweep: AUROC 0.786
+        "probe_subdir": "training_8b_llama/probe_8b_llama_pca512.joblib",
+        "layer_index": -16,  # PCA 512: AUROC 0.897
     },
     "14b": {
         "model": "Qwen/Qwen2.5-14B-Instruct",
-        "probe_subdir": "training_14b_qwen/probe_14b_qwen.joblib",
-        "layer_index": -20,  # From sweep: AUROC 0.803
+        "probe_subdir": "training_14b_qwen/probe_14b_qwen_pca512.joblib",
+        "layer_index": -20,  # PCA 512: AUROC 0.905
     },
 }
 
