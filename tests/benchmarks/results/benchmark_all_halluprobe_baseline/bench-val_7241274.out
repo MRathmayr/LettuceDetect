@@ -1,0 +1,137 @@
+========================================
+Benchmark Validation Run (--quick)
+========================================
+Job ID: 7241274
+Node: n3071-017
+Start time: Wed Feb 11 00:28:00 CET 2026
+========================================
+Python 3.12.10
+PyTorch: 2.10.0+cu128, CUDA: True, GPUs: 2
+name, memory.total [MiB]
+NVIDIA A100-PCIE-40GB, 40960 MiB
+NVIDIA A100-PCIE-40GB, 40960 MiB
+
+Running quick validation (10 samples, 3B only)...
+Loading RAGTruth (limit=10)...
+Loaded 10 samples (10 valid)
+Task types: {'summary': 10}
+
+============================================================
+COMPONENT BENCHMARKS
+============================================================
+
+[1/6] Lexical Overlap...
+     lexical [summary]: AUROC=0.667, F1=0.500, OptF1=0.571, n=10
+   AUROC: 0.667, Latency: 5.39ms
+
+[2/6] Numeric Validator...
+     numeric [summary]: AUROC=0.500, F1=0.000, OptF1=0.462, n=10
+   AUROC: 0.500, Latency: 1.02ms
+
+[3/6] NER Verifier...
+     ner [summary]: AUROC=0.905, F1=0.000, OptF1=0.857, n=10
+   AUROC: 0.905, Latency: 103.39ms
+
+[4/6] Transformer Detector...
+     transformer [summary]: AUROC=0.500, F1=0.000, OptF1=0.462, n=10
+   AUROC: 0.500, Latency: 71.19ms, GPU: 642MB
+
+[5/6] Model2Vec (NCS)...
+     model2vec [summary]: AUROC=0.524, F1=0.000, OptF1=0.545, n=10
+   AUROC: 0.524, Latency: 1.23ms
+
+[6/6] NLI Detector...
+     nli [summary]: AUROC=0.786, F1=0.600, OptF1=0.667, n=10
+   AUROC: 0.786, Latency: 98.13ms, GPU: 3494MB
+
+============================================================
+STAGE BENCHMARKS
+============================================================
+
+[Stage 1] Full pipeline with augmentations...
+     stage1 [summary]: AUROC=0.500, F1=0.000, OptF1=0.462, n=10
+   AUROC: 0.500, Latency: 53.10ms, GPU: 631MB
+
+[Stage 2] Full pipeline (NCS + NLI)...
+     stage2 [summary]: AUROC=0.714, F1=0.600, OptF1=0.600, n=10
+   AUROC: 0.714, Latency: 64.10ms, GPU: 3496MB
+
+============================================================
+CASCADE BENCHMARK (Stages 1+2)
+============================================================
+     cascade_12 [summary]: AUROC=0.619, F1=0.000, OptF1=0.571, n=10
+   AUROC: 0.619, Latency: 57.54ms, GPU: 4016MB
+   Routing: 10/10 (100.0%) resolved at Stage 1
+
+============================================================
+STAGE 3 VARIANT: 3B (Qwen/Qwen2.5-3B-Instruct)
+============================================================
+
+   Loading cascade [1,3] with Qwen/Qwen2.5-3B-Instruct...
+
+   [Stage 3] Hallu Probe (3B) standalone...
+     stage3_3b [summary]: AUROC=0.524, F1=0.333, OptF1=0.462, n=10
+   AUROC: 0.524, Latency: 139.10ms, GPU: 1990MB
+
+   [Cascade 1+3] (3B)...
+     cascade_13_3b [summary]: AUROC=0.619, F1=0.000, OptF1=0.571, n=10
+   AUROC: 0.619, Latency: 60.47ms, GPU: 1530MB
+   Routing: 10/10 (100.0%) resolved at Stage 1
+
+================================================================================
+BENCHMARK SUMMARY
+================================================================================
+
+Component                 AUROC         F1      Latency          P95     GPU MB
+--------------------------------------------------------------------------------
+lexical                   0.667      0.500       5.39ms       7.11ms          -
+numeric                   0.500      0.000       1.02ms       1.39ms          -
+ner                       0.905      0.000     103.39ms     144.73ms          -
+transformer               0.500      0.000      71.19ms     230.61ms        642
+model2vec                 0.524      0.000       1.23ms       2.03ms          -
+nli                       0.786      0.600      98.13ms     252.53ms       3494
+--------------------------------------------------------------------------------
+stage1                    0.500      0.000      53.10ms      74.81ms        631
+stage2                    0.714      0.600      64.10ms      81.65ms       3496
+stage3_3b                 0.524      0.333     139.10ms     278.49ms       1990
+--------------------------------------------------------------------------------
+stages_12                 0.619      0.000      57.54ms      76.20ms       4016
+stages_13_3b              0.619      0.000      60.47ms      77.02ms       1530
+================================================================================
+
+================================================================================
+PER-TASK BREAKDOWN
+================================================================================
+
+Component            Task Type         AUROC     F1@0.5      OptF1        N
+--------------------------------------------------------------------------------
+lexical              summary           0.667      0.500      0.571       10
+
+numeric              summary           0.500      0.000      0.462       10
+
+ner                  summary           0.905      0.000      0.857       10
+
+transformer          summary           0.500      0.000      0.462       10
+
+model2vec            summary           0.524      0.000      0.545       10
+
+nli                  summary           0.786      0.600      0.667       10
+
+stage1               summary           0.500      0.000      0.462       10
+
+stage2               summary           0.714      0.600      0.600       10
+
+stage3_3b            summary           0.524      0.333      0.462       10
+
+stages_12            summary           0.619      0.000      0.571       10
+
+stages_13_3b         summary           0.619      0.000      0.571       10
+
+================================================================================
+Results saved to: tests/benchmarks/results/benchmark_3b_20260211_002819.json
+
+Total time: 60.6s (1.0m)
+
+========================================
+Validation Complete - Wed Feb 11 00:29:23 CET 2026
+========================================
