@@ -1,0 +1,241 @@
+{
+  "components": {
+    "lexical": {
+      "auroc": 0.6666666666666666,
+      "f1": 0.5,
+      "optimal_f1": 0.5714285665306124,
+      "optimal_threshold": 0.3458874334880291,
+      "latency_mean_ms": 5.389137659221888,
+      "latency_p95_ms": 7.05986563116312,
+      "n_samples": 10,
+      "per_task": {
+        "summary": {
+          "auroc": 0.6666666666666666,
+          "f1": 0.5,
+          "optimal_f1": 0.5714285665306124,
+          "optimal_threshold": 0.3458874334880291,
+          "n_samples": 10
+        }
+      }
+    },
+    "numeric": {
+      "auroc": 0.5,
+      "f1": 0.0,
+      "optimal_f1": 0.4615384579881657,
+      "optimal_threshold": 0.0,
+      "latency_mean_ms": 1.0071373544633389,
+      "latency_p95_ms": 1.3773296028375626,
+      "n_samples": 10,
+      "per_task": {
+        "summary": {
+          "auroc": 0.5,
+          "f1": 0.0,
+          "optimal_f1": 0.4615384579881657,
+          "optimal_threshold": 0.0,
+          "n_samples": 10
+        }
+      }
+    },
+    "ner": {
+      "auroc": 0.9047619047619048,
+      "f1": 0.0,
+      "optimal_f1": 0.8571428522448981,
+      "optimal_threshold": 0.08571428571428572,
+      "latency_mean_ms": 101.2496029958129,
+      "latency_p95_ms": 143.80626184865832,
+      "n_samples": 10,
+      "per_task": {
+        "summary": {
+          "auroc": 0.9047619047619048,
+          "f1": 0.0,
+          "optimal_f1": 0.8571428522448981,
+          "optimal_threshold": 0.08571428571428572,
+          "n_samples": 10
+        }
+      }
+    },
+    "model2vec": {
+      "auroc": 0.5238095238095237,
+      "f1": 0.0,
+      "optimal_f1": 0.5454545414876033,
+      "optimal_threshold": 0.05824825167655945,
+      "latency_mean_ms": 2.904655132442713,
+      "latency_p95_ms": 11.224863352254014,
+      "n_samples": 10,
+      "per_task": {
+        "summary": {
+          "auroc": 0.5238095238095237,
+          "f1": 0.0,
+          "optimal_f1": 0.5454545414876033,
+          "optimal_threshold": 0.05824825167655945,
+          "n_samples": 10
+        }
+      }
+    },
+    "nli": {
+      "auroc": 0.7857142857142857,
+      "f1": 0.6,
+      "optimal_f1": 0.6666666622222223,
+      "optimal_threshold": 0.7367631196975708,
+      "latency_mean_ms": 127.45474204421043,
+      "latency_p95_ms": 407.8421996440732,
+      "n_samples": 10,
+      "gpu_peak_mb": 3494.8564453125,
+      "per_task": {
+        "summary": {
+          "auroc": 0.7857142857142857,
+          "f1": 0.6,
+          "optimal_f1": 0.6666666622222223,
+          "optimal_threshold": 0.7367631196975708,
+          "n_samples": 10
+        }
+      }
+    },
+    "transformer_large": {
+      "auroc": 0.6666666666666666,
+      "f1": 0.5,
+      "optimal_f1": 0.4999999962500001,
+      "optimal_threshold": 0.9022867679595947,
+      "latency_mean_ms": 65.88288862258196,
+      "latency_p95_ms": 81.62027192302047,
+      "n_samples": 10,
+      "gpu_peak_mb": 1593.30517578125,
+      "model_path": "KRLabsOrg/lettucedect-large-modernbert-en-v1",
+      "per_task": {
+        "summary": {
+          "auroc": 0.6666666666666666,
+          "f1": 0.5,
+          "optimal_f1": 0.4999999962500001,
+          "optimal_threshold": 0.9022867679595947,
+          "n_samples": 10
+        }
+      }
+    }
+  },
+  "stages": {
+    "stage2": {
+      "auroc": 0.7142857142857143,
+      "f1": 0.6,
+      "optimal_f1": 0.5999999958,
+      "optimal_threshold": 1.0,
+      "latency_mean_ms": 59.49501367285848,
+      "latency_p95_ms": 61.25069637782872,
+      "n_samples": 10,
+      "gpu_peak_mb": 3494.8564453125,
+      "per_task": {
+        "summary": {
+          "auroc": 0.7142857142857143,
+          "f1": 0.6,
+          "optimal_f1": 0.5999999958,
+          "optimal_threshold": 1.0,
+          "n_samples": 10
+        }
+      }
+    },
+    "stage3_3b": {
+      "auroc": 0.6666666666666666,
+      "f1": 0.5,
+      "optimal_f1": 0.4999999962500001,
+      "optimal_threshold": 0.5641624468173053,
+      "latency_mean_ms": 101.51164047420025,
+      "latency_p95_ms": 222.34103023074545,
+      "n_samples": 10,
+      "gpu_peak_mb": 3470.287109375,
+      "per_task": {
+        "summary": {
+          "auroc": 0.6666666666666666,
+          "f1": 0.5,
+          "optimal_f1": 0.4999999962500001,
+          "optimal_threshold": 0.5641624468173053,
+          "n_samples": 10
+        }
+      }
+    },
+    "stage1_large": {
+      "auroc": 0.6666666666666666,
+      "f1": 0.5,
+      "optimal_f1": 0.4999999962500001,
+      "optimal_threshold": 0.9022867679595947,
+      "latency_mean_ms": 87.50074142590165,
+      "latency_p95_ms": 115.24986368604003,
+      "n_samples": 10,
+      "gpu_peak_mb": 1593.30517578125,
+      "model_path": "KRLabsOrg/lettucedect-large-modernbert-en-v1",
+      "per_task": {
+        "summary": {
+          "auroc": 0.6666666666666666,
+          "f1": 0.5,
+          "optimal_f1": 0.4999999962500001,
+          "optimal_threshold": 0.9022867679595947,
+          "n_samples": 10
+        }
+      }
+    }
+  },
+  "cascade": {
+    "cascade_12_large": {
+      "auroc": 0.9047619047619048,
+      "f1": 0.5,
+      "optimal_f1": 0.7999999952000001,
+      "optimal_threshold": 0.13991280324081373,
+      "latency_mean_ms": 86.46927000954747,
+      "latency_p95_ms": 148.78941350616506,
+      "n_samples": 10,
+      "gpu_peak_mb": 5005.84326171875,
+      "model_path": "KRLabsOrg/lettucedect-large-modernbert-en-v1",
+      "stage1_resolved_pct": 90.0,
+      "stage2_resolved_pct": 10.0,
+      "per_task": {
+        "summary": {
+          "auroc": 0.9047619047619048,
+          "f1": 0.5,
+          "optimal_f1": 0.7999999952000001,
+          "optimal_threshold": 0.13991280324081373,
+          "n_samples": 10
+        }
+      }
+    },
+    "cascade_13_large_3b": {
+      "auroc": 0.9047619047619048,
+      "f1": 0.0,
+      "optimal_f1": 0.7999999952000001,
+      "optimal_threshold": 0.13991280324081373,
+      "latency_mean_ms": 99.38921565189958,
+      "latency_p95_ms": 169.7339326608925,
+      "n_samples": 10,
+      "gpu_peak_mb": 4979.77392578125,
+      "transformer_model": "KRLabsOrg/lettucedect-large-modernbert-en-v1",
+      "llm_model": "Qwen/Qwen2.5-3B-Instruct",
+      "stage1_resolved_pct": 90.0,
+      "stage3_resolved_pct": 10.0,
+      "per_task": {
+        "summary": {
+          "auroc": 0.9047619047619048,
+          "f1": 0.0,
+          "optimal_f1": 0.7999999952000001,
+          "optimal_threshold": 0.13991280324081373,
+          "n_samples": 10
+        }
+      }
+    }
+  },
+  "metadata": {
+    "timestamp": "2026-02-12T06:45:43.554479",
+    "config": {
+      "limit": 10,
+      "all_datasets": false,
+      "n_samples": 10,
+      "n_valid": 10,
+      "task_type_distribution": {
+        "summary": 10
+      }
+    },
+    "transformer_model": "large",
+    "transformer_path": "KRLabsOrg/lettucedect-large-modernbert-en-v1",
+    "probe_variant": "pca512",
+    "stage3_model": "3b",
+    "stage3_llm": "Qwen/Qwen2.5-3B-Instruct",
+    "phase1_time_sec": 29.65803861618042,
+    "total_time_sec": 106.6643898487091
+  }
+}
