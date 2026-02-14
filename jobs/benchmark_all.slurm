@@ -53,7 +53,8 @@ mkdir -p "$LD_ROOT/tests/benchmarks/results"
 echo ""
 echo "Running full benchmark (2 transformers x 4 PCA 512 probes)..."
 set +e
-python tests/benchmarks/run_full_benchmark.py
+python tests/benchmarks/run_full_benchmark.py \
+    --output tests/benchmarks/results/benchmark_all_halluprobe_predictions
 BENCH_EXIT=$?
 set -e
 
@@ -65,4 +66,4 @@ echo ""
 echo "========================================"
 echo "Benchmark Complete - $(date)"
 echo "========================================"
-ls -lh "$LD_ROOT/tests/benchmarks/results"/benchmark_*_*.json 2>/dev/null | tail -8
+ls -lh "$LD_ROOT/tests/benchmarks/results/benchmark_all_halluprobe_predictions"/benchmark_*_*.json 2>/dev/null | tail -8
