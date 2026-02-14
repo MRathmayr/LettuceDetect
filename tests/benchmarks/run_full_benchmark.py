@@ -101,6 +101,22 @@ def _compute_per_task_metrics(predictions, valid_samples, component_name):
     return results
 
 
+def _predictions_to_list(predictions, task_map=None):
+    """Convert PredictionResult objects to serializable dicts."""
+    out = []
+    for p in predictions:
+        d = {
+            "sample_id": p.sample_id,
+            "ground_truth": p.ground_truth,
+            "predicted_score": round(p.predicted_score, 6),
+            "predicted_label": p.predicted_label,
+        }
+        if task_map and p.sample_id in task_map:
+            d["task_type"] = task_map[p.sample_id]
+        out.append(d)
+    return out
+
+
 def _make_result_dict(metrics, stats, mem_stats=None):
     """Build standard result dict from metrics/stats."""
     d = {
@@ -288,7 +304,8 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
 # ================================================================
 
 
-def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict) -> dict:
+def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
+                          save_predictions: bool = False, task_map: dict | None = None) -> dict:
     """Run Stage 3 standalone (LLM + probe only, no transformer).
 
     Returns result dict, or empty dict on failure.
@@ -337,6 +354,8 @@ def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict) -
         **_make_result_dict(metrics, stats, mem_stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, f"stage3_{model_size}"),
     }
+    if save_predictions:
+        result["predictions"] = _predictions_to_list(predictions, task_map)
     _print_component_result(metrics, stats, mem_stats)
 
     del detector
@@ -351,7 +370,8 @@ def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict) -
 # ================================================================
 
 
-def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: str) -> dict:
+def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: str,
+                               save_predictions: bool = False, task_map: dict | None = None) -> dict:
     """Run transformer standalone + stage1 + cascade[1,2] for a specific transformer.
 
     Returns dict with keys: transformer_{tag}, stage1_{tag}, cascade_12_{tag}.
@@ -413,6 +433,8 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
         "model_path": model_path,
         "per_task": _compute_per_task_metrics(predictions, valid_samples, f"stage1_{model_tag}"),
     }
+    if save_predictions:
+        results[f"stage1_{model_tag}"]["predictions"] = _predictions_to_list(predictions, task_map)
     _print_component_result(metrics, stats, mem_stats)
     del stage1
     _cuda_cleanup()
@@ -475,7 +497,8 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
     return results
 
 
-def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_path: str, model_tag: str) -> dict:
+def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_path: str, model_tag: str,
+                   save_predictions: bool = False, task_map: dict | None = None) -> dict:
     """Run Cascade[1,3] for a specific transformer + stage3 variant.
 
     Returns result dict, or empty dict on failure.
@@ -550,6 +573,8 @@ def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_pa
         "stage3_resolved_pct": 100 * stage3_resolved / total if total > 0 else 0,
         "per_task": _compute_per_task_metrics(predictions, valid_samples, key),
     }
+    if save_predictions:
+        result["predictions"] = _predictions_to_list(predictions, task_map)
     _print_component_result(metrics, stats, mem_stats)
     if total > 0:
         print(f"   Routing: {stage1_resolved}/{total} ({100*stage1_resolved/total:.1f}%) resolved at Stage 1")
@@ -651,6 +676,10 @@ def main():
                         choices=list(TRANSFORMER_MODELS.keys()),
                         help="Run only this transformer model (default: both)")
     parser.add_argument("--output", type=str, default="tests/benchmarks/results", help="Output directory")
+    parser.add_argument("--save-predictions", action="store_true", default=True,
+                        help="Save per-sample predictions in output JSON (default: True)")
+    parser.add_argument("--no-save-predictions", dest="save_predictions", action="store_false",
+                        help="Disable per-sample prediction export")
     args = parser.parse_args()
 
     limit = 100 if args.quick else args.limit
@@ -677,6 +706,9 @@ def main():
         task_counts[key] = task_counts.get(key, 0) + 1
     print(f"Task types: {task_counts}")
 
+    save_preds = args.save_predictions
+    task_map = {s.id: s.task_type for s in valid_samples if s.task_type}
+
     output_dir = Path(args.output)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     overall_start = time.time()
@@ -701,7 +733,8 @@ def main():
     for model_size, variant in variants.items():
         print(f"\n[Stage 3] {model_size.upper()} ({variant['model']}) — PCA 512...")
         try:
-            result = run_stage3_standalone(valid_samples, model_size, variant)
+            result = run_stage3_standalone(valid_samples, model_size, variant,
+                                                  save_predictions=save_preds, task_map=task_map)
             if result:
                 stage3_cache[model_size] = result
         except Exception as e:
@@ -726,7 +759,8 @@ def main():
 
         # Run transformer standalone + stage1 + cascade[1,2]
         try:
-            transformer_results = run_transformer_benchmarks(valid_samples, model_path, model_tag)
+            transformer_results = run_transformer_benchmarks(valid_samples, model_path, model_tag,
+                                                              save_predictions=save_preds, task_map=task_map)
         except Exception as e:
             print(f"   FAILED: {model_tag} transformer benchmarks crashed: {e}")
             _cuda_cleanup()
@@ -737,7 +771,8 @@ def main():
             print(f"\n  [Cascade 1+3] {model_tag} + {model_size.upper()}...")
 
             try:
-                cascade_result = run_cascade_13(valid_samples, model_size, variant, model_path, model_tag)
+                cascade_result = run_cascade_13(valid_samples, model_size, variant, model_path, model_tag,
+                                                        save_predictions=save_preds, task_map=task_map)
             except Exception as e:
                 print(f"   FAILED: cascade[1,3] {model_tag}+{model_size} crashed: {e}")
                 _cuda_cleanup()
