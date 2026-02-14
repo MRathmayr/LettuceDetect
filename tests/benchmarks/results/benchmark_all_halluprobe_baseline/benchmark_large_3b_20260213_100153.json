@@ -1,0 +1,397 @@
+{
+  "components": {
+    "lexical": {
+      "auroc": 0.7716662512199346,
+      "f1": 0.6063829787234043,
+      "optimal_f1": 0.6364413980953466,
+      "optimal_threshold": 0.6079750498573993,
+      "latency_mean_ms": 4.347742271126696,
+      "latency_p95_ms": 7.877430180087684,
+      "n_samples": 2700,
+      "per_task": {
+        "data2txt": {
+          "auroc": 0.6658246304994647,
+          "f1": 0.7829614604462475,
+          "optimal_f1": 0.7861035374572998,
+          "optimal_threshold": 0.5947267336749158,
+          "n_samples": 900
+        },
+        "qa": {
+          "auroc": 0.7026689189189189,
+          "f1": 0.3915022761760243,
+          "optimal_f1": 0.4142614561447708,
+          "optimal_threshold": 0.5369317134821383,
+          "n_samples": 900
+        },
+        "summary": {
+          "auroc": 0.6571198163173315,
+          "f1": 0.4310850439882698,
+          "optimal_f1": 0.4318840538061752,
+          "optimal_threshold": 0.4977744487078657,
+          "n_samples": 900
+        }
+      }
+    },
+    "numeric": {
+      "auroc": 0.6371903689589468,
+      "f1": 0.43867069486404836,
+      "optimal_f1": 0.5304792877691639,
+      "optimal_threshold": 0.0714285714285714,
+      "latency_mean_ms": 0.9960615603874127,
+      "latency_p95_ms": 1.7900641774758692,
+      "n_samples": 2700,
+      "per_task": {
+        "data2txt": {
+          "auroc": 0.5438907989389806,
+          "f1": 0.5581874356333677,
+          "optimal_f1": 0.7829614556817761,
+          "optimal_threshold": 0.0,
+          "n_samples": 900
+        },
+        "qa": {
+          "auroc": 0.6653378378378378,
+          "f1": 0.31044776119402984,
+          "optimal_f1": 0.4255319104028973,
+          "optimal_threshold": 0.0714285714285714,
+          "n_samples": 900
+        },
+        "summary": {
+          "auroc": 0.5409271467207574,
+          "f1": 0.22922636103151864,
+          "optimal_f1": 0.36956521437854445,
+          "optimal_threshold": 0.0,
+          "n_samples": 900
+        }
+      }
+    },
+    "ner": {
+      "auroc": 0.6875150511421968,
+      "f1": 0.40313111545988256,
+      "optimal_f1": 0.5921272984035372,
+      "optimal_threshold": 0.11666666666666665,
+      "latency_mean_ms": 96.53644869104028,
+      "latency_p95_ms": 177.54410628695035,
+      "n_samples": 2700,
+      "per_task": {
+        "data2txt": {
+          "auroc": 0.5407997460440441,
+          "f1": 0.5168776371308017,
+          "optimal_f1": 0.7829614556817761,
+          "optimal_threshold": 0.0,
+          "n_samples": 900
+        },
+        "qa": {
+          "auroc": 0.6208868243243244,
+          "f1": 0.29673590504451036,
+          "optimal_f1": 0.36915887382304136,
+          "optimal_threshold": 0.1904761904761905,
+          "n_samples": 900
+        },
+        "summary": {
+          "auroc": 0.5508296709488394,
+          "f1": 0.11290322580645161,
+          "optimal_f1": 0.36956521437854445,
+          "optimal_threshold": 0.0,
+          "n_samples": 900
+        }
+      }
+    },
+    "model2vec": {
+      "auroc": 0.732732152740349,
+      "f1": 0.0,
+      "optimal_f1": 0.6122637110832745,
+      "optimal_threshold": 0.12314349412918091,
+      "latency_mean_ms": 0.9998233480103038,
+      "latency_p95_ms": 1.5038346638903022,
+      "n_samples": 2700,
+      "per_task": {
+        "data2txt": {
+          "auroc": 0.5653210229259816,
+          "f1": 0.0,
+          "optimal_f1": 0.7840216607714864,
+          "optimal_threshold": 0.11008414626121521,
+          "n_samples": 900
+        },
+        "qa": {
+          "auroc": 0.5584121621621622,
+          "f1": 0.0,
+          "optimal_f1": 0.3288043444234405,
+          "optimal_threshold": 0.05117607116699219,
+          "n_samples": 900
+        },
+        "summary": {
+          "auroc": 0.6017931597926527,
+          "f1": 0.0,
+          "optimal_f1": 0.3924914630381251,
+          "optimal_threshold": 0.10084947943687439,
+          "n_samples": 900
+        }
+      }
+    },
+    "nli": {
+      "auroc": 0.662618726729199,
+      "f1": 0.5774392455567646,
+      "optimal_f1": 0.5824136658851649,
+      "optimal_threshold": 0.4722665548324585,
+      "latency_mean_ms": 57.64803803646592,
+      "latency_p95_ms": 59.85866093542427,
+      "n_samples": 2700,
+      "gpu_peak_mb": 3495.2109375,
+      "per_task": {
+        "data2txt": {
+          "auroc": 0.48958888189433936,
+          "f1": 0.7681465821000705,
+          "optimal_f1": 0.7829614556817761,
+          "optimal_threshold": 0.21766051650047302,
+          "n_samples": 900
+        },
+        "qa": {
+          "auroc": 0.6035557432432432,
+          "f1": 0.3300589390962672,
+          "optimal_f1": 0.351201474577441,
+          "optimal_threshold": 0.4525756239891052,
+          "n_samples": 900
+        },
+        "summary": {
+          "auroc": 0.591172244759973,
+          "f1": 0.4028950542822678,
+          "optimal_f1": 0.4061393115733982,
+          "optimal_threshold": 0.47798624634742737,
+          "n_samples": 900
+        }
+      }
+    },
+    "transformer_large": {
+      "auroc": 0.8641570666282002,
+      "f1": 0.792311799252536,
+      "optimal_f1": 0.79431071710569,
+      "optimal_threshold": 0.569441020488739,
+      "latency_mean_ms": 63.00125758577552,
+      "latency_p95_ms": 113.24942004866897,
+      "n_samples": 2700,
+      "gpu_peak_mb": 1676.03662109375,
+      "model_path": "KRLabsOrg/lettucedect-large-modernbert-en-v1",
+      "per_task": {
+        "data2txt": {
+          "auroc": 0.8969837349818949,
+          "f1": 0.8869412795793163,
+          "optimal_f1": 0.8869412745804265,
+          "optimal_threshold": 0.5022813677787781,
+          "n_samples": 900
+        },
+        "qa": {
+          "auroc": 0.8553505067567568,
+          "f1": 0.6871508379888268,
+          "optimal_f1": 0.7020648917708687,
+          "optimal_threshold": 0.6338376402854919,
+          "n_samples": 900
+        },
+        "summary": {
+          "auroc": 0.7459255972503944,
+          "f1": 0.6042780748663101,
+          "optimal_f1": 0.6060606011374451,
+          "optimal_threshold": 0.5646460652351379,
+          "n_samples": 900
+        }
+      }
+    }
+  },
+  "stages": {
+    "stage2": {
+      "auroc": 0.6354865343956698,
+      "f1": 0.5824136703453187,
+      "optimal_f1": 0.5824136658851649,
+      "optimal_threshold": 1.0,
+      "latency_mean_ms": 57.644553262119494,
+      "latency_p95_ms": 60.16202082391828,
+      "n_samples": 2700,
+      "gpu_peak_mb": 3494.8564453125,
+      "per_task": {
+        "data2txt": {
+          "auroc": 0.5097331848336643,
+          "f1": 0.7738343771746694,
+          "optimal_f1": 0.7829614556817761,
+          "optimal_threshold": 0.0,
+          "n_samples": 900
+        },
+        "qa": {
+          "auroc": 0.5954391891891891,
+          "f1": 0.34285714285714286,
+          "optimal_f1": 0.3428571386195012,
+          "optimal_threshold": 1.0,
+          "n_samples": 900
+        },
+        "summary": {
+          "auroc": 0.5832065584854631,
+          "f1": 0.40613931523022434,
+          "optimal_f1": 0.4061393115733982,
+          "optimal_threshold": 1.0,
+          "n_samples": 900
+        }
+      }
+    },
+    "stage3_3b": {
+      "auroc": 0.8399216344740716,
+      "f1": 0.7379032258064516,
+      "optimal_f1": 0.7440414457798009,
+      "optimal_threshold": 0.5344577089621512,
+      "latency_mean_ms": 60.71791802722685,
+      "latency_p95_ms": 92.85558497067538,
+      "n_samples": 2700,
+      "gpu_peak_mb": 4027.9814453125,
+      "per_task": {
+        "data2txt": {
+          "auroc": 0.8572735245535595,
+          "f1": 0.8534201954397395,
+          "optimal_f1": 0.8556789019177812,
+          "optimal_threshold": 0.6254524922474117,
+          "n_samples": 900
+        },
+        "qa": {
+          "auroc": 0.7849155405405405,
+          "f1": 0.5722070844686649,
+          "optimal_f1": 0.6045016027212291,
+          "optimal_threshold": 0.6498156153961742,
+          "n_samples": 900
+        },
+        "summary": {
+          "auroc": 0.7038750845165652,
+          "f1": 0.5295629820051414,
+          "optimal_f1": 0.5295629770170697,
+          "optimal_threshold": 0.5012669960006942,
+          "n_samples": 900
+        }
+      }
+    },
+    "stage1_large": {
+      "auroc": 0.8641570666282002,
+      "f1": 0.792311799252536,
+      "optimal_f1": 0.79431071710569,
+      "optimal_threshold": 0.569441020488739,
+      "latency_mean_ms": 82.85851428457708,
+      "latency_p95_ms": 147.6093461504205,
+      "n_samples": 2700,
+      "gpu_peak_mb": 1676.03662109375,
+      "model_path": "KRLabsOrg/lettucedect-large-modernbert-en-v1",
+      "per_task": {
+        "data2txt": {
+          "auroc": 0.8969837349818949,
+          "f1": 0.8869412795793163,
+          "optimal_f1": 0.8869412745804265,
+          "optimal_threshold": 0.5022813677787781,
+          "n_samples": 900
+        },
+        "qa": {
+          "auroc": 0.8553505067567568,
+          "f1": 0.6871508379888268,
+          "optimal_f1": 0.7020648917708687,
+          "optimal_threshold": 0.6338376402854919,
+          "n_samples": 900
+        },
+        "summary": {
+          "auroc": 0.7459255972503944,
+          "f1": 0.6042780748663101,
+          "optimal_f1": 0.6060606011374451,
+          "optimal_threshold": 0.5646460652351379,
+          "n_samples": 900
+        }
+      }
+    }
+  },
+  "cascade": {
+    "cascade_12_large": {
+      "auroc": 0.7193039687938143,
+      "f1": 0.6681090437040242,
+      "optimal_f1": 0.668109038873126,
+      "optimal_threshold": 0.7101994264989991,
+      "latency_mean_ms": 119.39709345275467,
+      "latency_p95_ms": 199.9170483322814,
+      "n_samples": 2700,
+      "gpu_peak_mb": 5060.51708984375,
+      "model_path": "KRLabsOrg/lettucedect-large-modernbert-en-v1",
+      "stage1_resolved_pct": 36.77777777777778,
+      "stage2_resolved_pct": 63.22222222222222,
+      "per_task": {
+        "data2txt": {
+          "auroc": 0.5145809457707187,
+          "f1": 0.7781665500349895,
+          "optimal_f1": 0.7829614556817761,
+          "optimal_threshold": 0.0,
+          "n_samples": 900
+        },
+        "qa": {
+          "auroc": 0.5724957770270269,
+          "f1": 0.43799472295514513,
+          "optimal_f1": 0.43799471807631524,
+          "optimal_threshold": 1.0,
+          "n_samples": 900
+        },
+        "summary": {
+          "auroc": 0.7027517185034935,
+          "f1": 0.5288270377733598,
+          "optimal_f1": 0.5333333285333334,
+          "optimal_threshold": 0.15541829284459824,
+          "n_samples": 900
+        }
+      }
+    },
+    "cascade_13_large_3b": {
+      "auroc": 0.8831554557410414,
+      "f1": 0.7501315097317202,
+      "optimal_f1": 0.7521459177474777,
+      "optimal_threshold": 0.5344577089621512,
+      "latency_mean_ms": 134.8666268899278,
+      "latency_p95_ms": 255.9126288862899,
+      "n_samples": 2700,
+      "gpu_peak_mb": 5519.51708984375,
+      "transformer_model": "KRLabsOrg/lettucedect-large-modernbert-en-v1",
+      "llm_model": "Qwen/Qwen2.5-3B-Instruct",
+      "stage1_resolved_pct": 36.77777777777778,
+      "stage3_resolved_pct": 63.22222222222222,
+      "per_task": {
+        "data2txt": {
+          "auroc": 0.8600713444062433,
+          "f1": 0.8534201954397395,
+          "optimal_f1": 0.8556789019177812,
+          "optimal_threshold": 0.6254524922474117,
+          "n_samples": 900
+        },
+        "qa": {
+          "auroc": 0.8778040540540543,
+          "f1": 0.6066066066066066,
+          "optimal_f1": 0.6256410208021039,
+          "optimal_threshold": 0.364014623217777,
+          "n_samples": 900
+        },
+        "summary": {
+          "auroc": 0.778256704980843,
+          "f1": 0.5176470588235295,
+          "optimal_f1": 0.5803571378970026,
+          "optimal_threshold": 0.2699459894208598,
+          "n_samples": 900
+        }
+      }
+    }
+  },
+  "metadata": {
+    "timestamp": "2026-02-13T11:29:19.605442",
+    "config": {
+      "limit": null,
+      "all_datasets": false,
+      "n_samples": 2700,
+      "n_valid": 2700,
+      "task_type_distribution": {
+        "summary": 900,
+        "data2txt": 900,
+        "qa": 900
+      }
+    },
+    "transformer_model": "large",
+    "transformer_path": "KRLabsOrg/lettucedect-large-modernbert-en-v1",
+    "probe_variant": "pca512",
+    "stage3_model": "3b",
+    "stage3_llm": "Qwen/Qwen2.5-3B-Instruct",
+    "phase1_time_sec": 616.6397867202759,
+    "total_time_sec": 5246.4411454200745
+  }
+}
