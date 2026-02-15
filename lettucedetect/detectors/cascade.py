@@ -141,6 +141,20 @@ class CascadeDetector(BaseDetector):
         if final_result is None and stage_results:
             final_result = stage_results[-1]
 
+        # When Stage 3 resolves, it has no token-level info — only a
+        # response-level score wrapped in a fake whole-response span.
+        # Preserve Stage 1's real token-level spans for localization.
+        if (
+            final_result is not None
+            and final_result.stage_name == "stage3"
+            and final_result.is_hallucination
+        ):
+            stage1_result = next(
+                (r for r in stage_results if r.stage_name == "stage1"), None
+            )
+            if stage1_result is not None and stage1_result.output:
+                final_result.output = stage1_result.output
+
         total_latency = (time.perf_counter() - start_time) * 1000
 
         if output_format == "detailed":

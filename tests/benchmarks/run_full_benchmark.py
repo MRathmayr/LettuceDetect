@@ -343,9 +343,9 @@ def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
     with memory.track():
         for s in valid_samples:
             with timer.measure():
-                spans = detector.predict(s.context, s.response, s.question, output_format="spans")
-            score = max((sp.get("confidence", 0.5) for sp in spans), default=0.0)
-            predictions.append(PredictionResult(s.id, s.ground_truth, score, int(bool(spans)), timer.last_ms, f"stage3_{model_size}"))
+                result = detector.predict_uncertainty(s.context, s.response, s.question)
+            score = result.hallucination_score
+            predictions.append(PredictionResult(s.id, s.ground_truth, score, int(score >= 0.5), timer.last_ms, f"stage3_{model_size}"))
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
     metrics = compute_accuracy_metrics(predictions, compute_ci=False)
