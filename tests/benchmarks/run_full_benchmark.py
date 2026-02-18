@@ -110,6 +110,7 @@ def _predictions_to_list(predictions, task_map=None):
             "ground_truth": p.ground_truth,
             "predicted_score": round(p.predicted_score, 6),
             "predicted_label": p.predicted_label,
+            "latency_ms": round(p.latency_ms, 3),
         }
         if task_map and p.sample_id in task_map:
             d["task_type"] = task_map[p.sample_id]
@@ -587,6 +588,126 @@ def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_pa
 
 
 # ================================================================
+# PHASE 4: Score Blending (offline, no inference)
+# ================================================================
+
+
+def compute_blend_results(s1_predictions: list[dict], s3_predictions: list[dict],
+                          valid_samples: list, model_tag: str, model_size: str) -> dict:
+    """Compute blended scores from Stage 1 + Stage 3 per-sample predictions.
+
+    Sweeps alpha in [0.0, 1.0] step 0.05 where:
+      blend_score = alpha * s1_score + (1 - alpha) * s3_score
+
+    Returns result dict with best-alpha metrics and full sweep table.
+    Requires per-sample predictions (save_predictions=True in earlier phases).
+    """
+    import numpy as np
+    from sklearn.metrics import f1_score as sk_f1, roc_auc_score
+
+    from tests.benchmarks.core import PredictionResult, compute_accuracy_metrics
+
+    # Match predictions by sample_id
+    s1_map = {p["sample_id"]: p for p in s1_predictions}
+    s3_map = {p["sample_id"]: p for p in s3_predictions}
+    common_ids = sorted(set(s1_map) & set(s3_map))
+
+    if len(common_ids) < 10:
+        print(f"   SKIPPED: Only {len(common_ids)} matched samples")
+        return {}
+
+    gt = np.array([s1_map[sid]["ground_truth"] for sid in common_ids])
+    if len(np.unique(gt)) < 2:
+        print("   SKIPPED: Only one class present in matched samples")
+        return {}
+    s1_scores = np.array([s1_map[sid]["predicted_score"] for sid in common_ids])
+    s3_scores = np.array([s3_map[sid]["predicted_score"] for sid in common_ids])
+
+    # Blend latency = max(s1, s3) per sample (parallel execution assumption)
+    # Note: latency_ms may be absent in older predictions; defaults to 0.0
+    s1_lat = np.array([s1_map[sid].get("latency_ms", 0.0) for sid in common_ids])
+    s3_lat = np.array([s3_map[sid].get("latency_ms", 0.0) for sid in common_ids])
+    blend_latency = np.maximum(s1_lat, s3_lat)
+    has_latency = blend_latency.sum() > 0
+
+    # Sweep alpha
+    alphas = np.arange(0.0, 1.01, 0.05)
+    sweep_results = []
+    best_auroc_alpha = 0.5
+    best_auroc_val = 0.0
+    best_optf1_alpha = 0.5
+    best_optf1_val = 0.0
+
+    for alpha in alphas:
+        alpha = round(alpha, 2)
+        blend = alpha * s1_scores + (1 - alpha) * s3_scores
+        auroc = float(roc_auc_score(gt, blend))
+
+        # Optimal F1 via PR curve
+        predictions = [
+            PredictionResult(sid, int(gt[i]), float(blend[i]), int(blend[i] >= 0.5), 0.0, "blend")
+            for i, sid in enumerate(common_ids)
+        ]
+        metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+
+        sweep_results.append({
+            "alpha": alpha,
+            "auroc": auroc,
+            "f1_at_05": metrics.f1,
+            "optimal_f1": metrics.optimal_f1,
+            "optimal_threshold": metrics.optimal_threshold,
+        })
+
+        if auroc > best_auroc_val:
+            best_auroc_val = auroc
+            best_auroc_alpha = alpha
+        if metrics.optimal_f1 is not None and metrics.optimal_f1 > best_optf1_val:
+            best_optf1_val = metrics.optimal_f1
+            best_optf1_alpha = alpha
+
+    # Compute full metrics at best-AUROC alpha
+    best_alpha = best_auroc_alpha
+    blend_scores = best_alpha * s1_scores + (1 - best_alpha) * s3_scores
+    best_predictions = [
+        PredictionResult(sid, int(gt[i]), float(blend_scores[i]),
+                        int(blend_scores[i] >= 0.5), 0.0, f"blend_{model_tag}_{model_size}")
+        for i, sid in enumerate(common_ids)
+    ]
+    best_metrics = compute_accuracy_metrics(best_predictions, compute_ci=False)
+
+    key = f"blend_{model_tag}_{model_size}"
+    result = {
+        "auroc": best_metrics.auroc,
+        "f1": best_metrics.f1,
+        "optimal_f1": best_metrics.optimal_f1,
+        "optimal_threshold": best_metrics.optimal_threshold,
+        "best_alpha_auroc": best_auroc_alpha,
+        "best_alpha_optf1": best_optf1_alpha,
+        "n_samples": best_metrics.n_samples,
+        "transformer_model": model_tag,
+        "llm_model": model_size,
+        "per_task": _compute_per_task_metrics(best_predictions, valid_samples, key),
+        "alpha_sweep": sweep_results,
+    }
+
+    # Latency stats (parallel execution: max of s1, s3 per sample)
+    if has_latency:
+        result["latency_mean_ms"] = round(float(blend_latency.mean()), 2)
+        result["latency_p95_ms"] = round(float(np.percentile(blend_latency, 95)), 2)
+        result["latency_note"] = "parallel: max(stage1, stage3) per sample"
+
+    # Print
+    print(f"   Best alpha (AUROC): {best_auroc_alpha:.2f} -> AUROC={best_auroc_val:.4f}")
+    print(f"   Best alpha (OptF1): {best_optf1_alpha:.2f} -> OptF1={best_optf1_val:.4f}")
+    auroc_str = f"{best_metrics.auroc:.3f}" if best_metrics.auroc is not None else "N/A"
+    opt_f1_str = f"{best_metrics.optimal_f1:.3f}" if best_metrics.optimal_f1 is not None else "N/A"
+    lat_str = f"{blend_latency.mean():.1f}ms" if has_latency else "n/a"
+    print(f"   At alpha={best_alpha:.2f}: AUROC={auroc_str}, OptF1={opt_f1_str}, Latency={lat_str}")
+
+    return result
+
+
+# ================================================================
 # Summary + Save
 # ================================================================
 
@@ -606,8 +727,8 @@ def print_summary(results: dict, title: str = "BENCHMARK SUMMARY"):
         auroc = f"{data['auroc']:.3f}" if data.get("auroc") is not None else "N/A"
         f1 = f"{data['f1']:.3f}" if data.get("f1") is not None else "N/A"
         opt_f1 = f"{data['optimal_f1']:.3f}" if data.get("optimal_f1") is not None else "N/A"
-        latency = f"{data['latency_mean_ms']:.1f}ms"
-        p95 = f"{data['latency_p95_ms']:.1f}ms"
+        latency = f"{data['latency_mean_ms']:.1f}ms" if data.get("latency_mean_ms") is not None else "-"
+        p95 = f"{data['latency_p95_ms']:.1f}ms" if data.get("latency_p95_ms") is not None else "-"
         gpu = f"{data['gpu_peak_mb']:.0f}" if data.get("gpu_peak_mb") else "-"
         print(f"{name:<24} {auroc:>8} {f1:>8} {opt_f1:>8} {latency:>10} {p95:>10} {gpu:>8}")
 
@@ -623,12 +744,18 @@ def print_summary(results: dict, title: str = "BENCHMARK SUMMARY"):
 
     for name, data in results.get("cascade", {}).items():
         _print_row(name, data)
+    if results.get("cascade"):
+        print("-" * 90)
+
+    for name, data in results.get("blend", {}).items():
+        alpha = data.get("best_alpha_auroc", "?")
+        _print_row(f"{name} (a={alpha})", data)
     print("=" * 90)
 
     # Per-task breakdown
     has_per_task = any(
         data.get("per_task")
-        for section in ("components", "stages", "cascade")
+        for section in ("components", "stages", "cascade", "blend")
         for data in results.get(section, {}).values()
     )
     if has_per_task:
@@ -639,7 +766,7 @@ def print_summary(results: dict, title: str = "BENCHMARK SUMMARY"):
             "Component", "Task Type", "AUROC", "F1@0.5", "OptF1", "N"
         ))
         print("-" * 90)
-        for section in ("components", "stages", "cascade"):
+        for section in ("components", "stages", "cascade", "blend"):
             for name, data in results.get(section, {}).items():
                 per_task = data.get("per_task", {})
                 if not per_task:
@@ -797,6 +924,21 @@ def main():
             # Phase 3: cascade[1,3]
             if cascade_result:
                 merged["cascade"][f"cascade_13_{model_tag}_{model_size}"] = cascade_result
+
+            # Phase 4: Score blending (offline — no inference)
+            s1_key = f"stage1_{model_tag}"
+            s3_key = f"stage3_{model_size}"
+            s1_preds = merged.get("stages", {}).get(s1_key, {}).get("predictions")
+            s3_preds = merged.get("stages", {}).get(s3_key, {}).get("predictions")
+            if s1_preds and s3_preds:
+                print(f"\n  [Blend] {model_tag} + {model_size.upper()} (alpha sweep)...")
+                blend_result = compute_blend_results(
+                    s1_preds, s3_preds, valid_samples, model_tag, model_size,
+                )
+                if blend_result:
+                    merged.setdefault("blend", {})[f"blend_{model_tag}_{model_size}"] = blend_result
+            else:
+                print(f"\n  [Blend] SKIPPED (no per-sample predictions for {s1_key} or {s3_key})")
 
             merged["metadata"] = {
                 "timestamp": datetime.now().isoformat(),
