@@ -14,6 +14,7 @@ Usage:
     python tests/benchmarks/run_full_benchmark.py --limit 500               # 500 samples
     python tests/benchmarks/run_full_benchmark.py --transformer base        # base only
     python tests/benchmarks/run_full_benchmark.py --stage3 3b               # 3B probe only
+    python tests/benchmarks/run_full_benchmark.py --datasets ragtruth halueval_qa  # multi-dataset
     python tests/benchmarks/run_full_benchmark.py                           # Full run (all)
 """
 
@@ -95,7 +96,34 @@ def _compute_per_task_metrics(predictions, valid_samples, component_name):
     return results
 
 
-def _predictions_to_list(predictions, task_map=None):
+def _compute_per_benchmark_metrics(predictions, valid_samples, component_name):
+    """Compute metrics split by benchmark for samples from multiple datasets."""
+    from tests.benchmarks.core import compute_accuracy_metrics
+
+    bench_map = {s.id: s.benchmark for s in valid_samples}
+    benchmarks = set(bench_map.values())
+    if len(benchmarks) <= 1:
+        return {}
+
+    by_bench = {}
+    for p in predictions:
+        bench = bench_map.get(p.sample_id)
+        if bench:
+            by_bench.setdefault(bench, []).append(p)
+
+    results = {}
+    for bench_name, bench_preds in sorted(by_bench.items()):
+        metrics = compute_accuracy_metrics(bench_preds)
+        results[bench_name] = metrics.to_dict()
+        auroc_str = f"{metrics.auroc:.3f}" if metrics.auroc is not None else "N/A"
+        f1_str = f"{metrics.f1:.3f}" if metrics.f1 is not None else "N/A"
+        opt_f1_str = f"{metrics.optimal_f1:.3f}" if metrics.optimal_f1 is not None else "N/A"
+        print(f"     {component_name} [{bench_name}]: AUROC={auroc_str}, F1={f1_str}, OptF1={opt_f1_str}, n={metrics.n_samples}")
+
+    return results
+
+
+def _predictions_to_list(predictions, task_map=None, benchmark_map=None):
     """Convert PredictionResult objects to serializable dicts."""
     out = []
     for p in predictions:
@@ -108,6 +136,8 @@ def _predictions_to_list(predictions, task_map=None):
         }
         if task_map and p.sample_id in task_map:
             d["task_type"] = task_map[p.sample_id]
+        if benchmark_map and p.sample_id in benchmark_map:
+            d["benchmark"] = benchmark_map[p.sample_id]
         out.append(d)
     return out
 
@@ -137,7 +167,7 @@ def _print_component_result(metrics, stats, mem_stats=None):
 # ================================================================
 
 
-def run_model_independent_benchmarks(valid_samples: list) -> dict:
+def run_model_independent_benchmarks(valid_samples: list, benchmark_map: dict | None = None) -> dict:
     """Run model-independent component + stage2 benchmarks.
 
     Includes: lexical, numeric, ner, model2vec, nli, stage2.
@@ -169,6 +199,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
     results["components"]["lexical"] = {
         **_make_result_dict(metrics, stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "lexical"),
+        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, "lexical"),
     }
     _print_component_result(metrics, stats)
 
@@ -189,6 +220,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
     results["components"]["numeric"] = {
         **_make_result_dict(metrics, stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "numeric"),
+        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, "numeric"),
     }
     _print_component_result(metrics, stats)
 
@@ -209,6 +241,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
     results["components"]["ner"] = {
         **_make_result_dict(metrics, stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "ner"),
+        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, "ner"),
     }
     _print_component_result(metrics, stats)
 
@@ -230,6 +263,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
     results["components"]["model2vec"] = {
         **_make_result_dict(metrics, stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "model2vec"),
+        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, "model2vec"),
     }
     _print_component_result(metrics, stats)
 
@@ -254,6 +288,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
     results["components"]["nli"] = {
         **_make_result_dict(metrics, stats, mem_stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "nli"),
+        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, "nli"),
     }
     _print_component_result(metrics, stats, mem_stats)
     del nli
@@ -280,6 +315,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
     results["stages"]["stage2"] = {
         **_make_result_dict(metrics, stats, mem_stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "stage2"),
+        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, "stage2"),
     }
     _print_component_result(metrics, stats, mem_stats)
     del stage2
@@ -294,7 +330,8 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
 
 
 def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
-                          save_predictions: bool = False, task_map: dict | None = None) -> dict:
+                          save_predictions: bool = False, task_map: dict | None = None,
+                          benchmark_map: dict | None = None) -> dict:
     """Run Stage 3 standalone (LLM + probe only, no transformer).
 
     Returns result dict, or empty dict on failure.
@@ -342,9 +379,10 @@ def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
     result = {
         **_make_result_dict(metrics, stats, mem_stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, f"stage3_{model_size}"),
+        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, f"stage3_{model_size}"),
     }
     if save_predictions:
-        result["predictions"] = _predictions_to_list(predictions, task_map)
+        result["predictions"] = _predictions_to_list(predictions, task_map, benchmark_map)
     _print_component_result(metrics, stats, mem_stats)
 
     del detector
@@ -360,7 +398,8 @@ def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
 
 
 def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: str,
-                               save_predictions: bool = False, task_map: dict | None = None) -> dict:
+                               save_predictions: bool = False, task_map: dict | None = None,
+                               benchmark_map: dict | None = None) -> dict:
     """Run transformer standalone + stage1 + cascade[1,2] for a specific transformer.
 
     Returns dict with keys: transformer_{tag}, stage1_{tag}, cascade_12_{tag}.
@@ -393,6 +432,7 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
         **_make_result_dict(metrics, stats, mem_stats),
         "model_path": model_path,
         "per_task": _compute_per_task_metrics(predictions, valid_samples, f"transformer_{model_tag}"),
+        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, f"transformer_{model_tag}"),
     }
     _print_component_result(metrics, stats, mem_stats)
     del transformer
@@ -421,9 +461,10 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
         **_make_result_dict(metrics, stats, mem_stats),
         "model_path": model_path,
         "per_task": _compute_per_task_metrics(predictions, valid_samples, f"stage1_{model_tag}"),
+        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, f"stage1_{model_tag}"),
     }
     if save_predictions:
-        results[f"stage1_{model_tag}"]["predictions"] = _predictions_to_list(predictions, task_map)
+        results[f"stage1_{model_tag}"]["predictions"] = _predictions_to_list(predictions, task_map, benchmark_map)
     _print_component_result(metrics, stats, mem_stats)
     del stage1
     _cuda_cleanup()
@@ -475,6 +516,7 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
         "stage1_resolved_pct": 100 * stage1_resolved / total if total > 0 else 0,
         "stage2_resolved_pct": 100 * stage2_resolved / total if total > 0 else 0,
         "per_task": _compute_per_task_metrics(predictions, valid_samples, f"cascade_12_{model_tag}"),
+        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, f"cascade_12_{model_tag}"),
     }
     _print_component_result(metrics, stats, mem_stats)
     if total > 0:
@@ -487,7 +529,8 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
 
 
 def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_path: str, model_tag: str,
-                   save_predictions: bool = False, task_map: dict | None = None) -> dict:
+                   save_predictions: bool = False, task_map: dict | None = None,
+                   benchmark_map: dict | None = None) -> dict:
     """Run Cascade[1,3] for a specific transformer + stage3 variant.
 
     Returns result dict, or empty dict on failure.
@@ -561,9 +604,10 @@ def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_pa
         "stage1_resolved_pct": 100 * stage1_resolved / total if total > 0 else 0,
         "stage3_resolved_pct": 100 * stage3_resolved / total if total > 0 else 0,
         "per_task": _compute_per_task_metrics(predictions, valid_samples, key),
+        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, key),
     }
     if save_predictions:
-        result["predictions"] = _predictions_to_list(predictions, task_map)
+        result["predictions"] = _predictions_to_list(predictions, task_map, benchmark_map)
     _print_component_result(metrics, stats, mem_stats)
     if total > 0:
         print(f"   Routing: {stage1_resolved}/{total} ({100*stage1_resolved/total:.1f}%) resolved at Stage 1")
@@ -581,7 +625,8 @@ def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_pa
 
 
 def compute_blend_results(s1_predictions: list[dict], s3_predictions: list[dict],
-                          valid_samples: list, model_tag: str, model_size: str) -> dict:
+                          valid_samples: list, model_tag: str, model_size: str,
+                          benchmark_map: dict | None = None) -> dict:
     """Compute blended scores from Stage 1 + Stage 3 per-sample predictions.
 
     Sweeps alpha in [0.0, 1.0] step 0.05 where:
@@ -671,8 +716,53 @@ def compute_blend_results(s1_predictions: list[dict], s3_predictions: list[dict]
         "transformer_model": model_tag,
         "llm_model": model_size,
         "per_task": _compute_per_task_metrics(best_predictions, valid_samples, key),
+        "per_benchmark": _compute_per_benchmark_metrics(best_predictions, valid_samples, key),
         "alpha_sweep": sweep_results,
     })
+
+    # Per-benchmark blend metrics (best alpha per benchmark)
+    if benchmark_map:
+        benchmarks = set(benchmark_map.get(sid) for sid in common_ids)
+        benchmarks.discard(None)
+        if len(benchmarks) > 1:
+            per_bench_blend = {}
+            for bench_name in sorted(benchmarks):
+                bench_ids = [sid for sid in common_ids if benchmark_map.get(sid) == bench_name]
+                if len(bench_ids) < 10:
+                    continue
+                b_gt = np.array([s1_map[sid]["ground_truth"] for sid in bench_ids])
+                if len(np.unique(b_gt)) < 2:
+                    continue
+                b_s1 = np.array([s1_map[sid]["predicted_score"] for sid in bench_ids])
+                b_s3 = np.array([s3_map[sid]["predicted_score"] for sid in bench_ids])
+
+                # Find best alpha for this benchmark
+                b_best_auroc = 0.0
+                b_best_alpha = 0.5
+                for alpha in alphas:
+                    alpha = round(alpha, 2)
+                    b_blend = alpha * b_s1 + (1 - alpha) * b_s3
+                    b_auroc = float(roc_auc_score(b_gt, b_blend))
+                    if b_auroc > b_best_auroc:
+                        b_best_auroc = b_auroc
+                        b_best_alpha = alpha
+
+                # Compute metrics at this benchmark's best alpha
+                b_blend_scores = b_best_alpha * b_s1 + (1 - b_best_alpha) * b_s3
+                b_preds = [
+                    PredictionResult(sid, int(b_gt[i]), float(b_blend_scores[i]),
+                                    int(b_blend_scores[i] >= 0.5), 0.0, f"blend_{bench_name}")
+                    for i, sid in enumerate(bench_ids)
+                ]
+                b_metrics = compute_accuracy_metrics(b_preds, compute_ci=False)
+                per_bench_blend[bench_name] = {
+                    **b_metrics.to_dict(),
+                    "best_alpha": b_best_alpha,
+                    "n_samples": len(bench_ids),
+                }
+                print(f"   Blend [{bench_name}]: alpha={b_best_alpha:.2f}, AUROC={b_best_auroc:.4f}, n={len(bench_ids)}")
+            if per_bench_blend:
+                result["per_benchmark_blend"] = per_bench_blend
 
     # Latency stats (parallel execution: max of s1, s3 per sample)
     if has_latency:
@@ -764,6 +854,34 @@ def print_summary(results: dict, title: str = "BENCHMARK SUMMARY"):
                 print()
         print("=" * 90)
 
+    # Per-benchmark breakdown
+    has_per_benchmark = any(
+        data.get("per_benchmark")
+        for section in ("components", "stages", "cascade", "blend")
+        for data in results.get(section, {}).values()
+    )
+    if has_per_benchmark:
+        print("\n" + "=" * 90)
+        print("PER-BENCHMARK BREAKDOWN")
+        print("=" * 90)
+        print("\n{:<24} {:<16} {:>8} {:>8} {:>8} {:>6}".format(
+            "Component", "Benchmark", "AUROC", "F1@0.5", "OptF1", "N"
+        ))
+        print("-" * 90)
+        for section in ("components", "stages", "cascade", "blend"):
+            for name, data in results.get(section, {}).items():
+                per_bench = data.get("per_benchmark", {})
+                if not per_bench:
+                    continue
+                for bench_name, bm in sorted(per_bench.items()):
+                    auroc = f"{bm['auroc']:.3f}" if bm.get("auroc") is not None else "N/A"
+                    f1 = f"{bm['f1']:.3f}" if bm.get("f1") is not None else "N/A"
+                    opt_f1 = f"{bm['optimal_f1']:.3f}" if bm.get("optimal_f1") is not None else "N/A"
+                    n = bm.get("n_samples", 0)
+                    print(f"{name:<24} {bench_name:<16} {auroc:>8} {f1:>8} {opt_f1:>8} {n:>6}")
+                print()
+        print("=" * 90)
+
 
 def _save_results(results: dict, output_dir: Path, filename: str):
     """Save results dict to JSON."""
@@ -778,8 +896,11 @@ def main():
     parser = argparse.ArgumentParser(description="Run full benchmark suite")
     parser.add_argument("--quick", action="store_true", help="Quick mode (100 samples)")
     parser.add_argument("--limit", type=int, default=None, help="Sample limit")
+    parser.add_argument("--datasets", nargs="+", default=["ragtruth"],
+                        choices=["ragtruth", "halueval_qa", "halueval_dialogue", "halueval_summarization"],
+                        help="Datasets to benchmark (default: ragtruth only)")
     parser.add_argument("--all-datasets", action="store_true",
-                        help="Load all datasets (RAGTruth + HaluEval QA/Dialogue/Summarization)")
+                        help="(Deprecated) Load all datasets — use --datasets instead")
     parser.add_argument("--stage3", type=str, default=None,
                         choices=list(STAGE3_VARIANTS.keys()),
                         help="Run only this Stage 3 variant (default: all)")
@@ -796,20 +917,21 @@ def main():
     limit = 100 if args.quick else args.limit
 
     # Load datasets
-    if args.all_datasets:
-        from tests.benchmarks.data_adapters.base import load_all_datasets
+    datasets = ["ragtruth", "halueval_qa", "halueval_dialogue", "halueval_summarization"] if args.all_datasets else args.datasets
 
-        print(f"Loading all datasets (limit={limit} per dataset)...")
-        samples = load_all_datasets(limit=limit)
-    else:
-        from tests.benchmarks.data_adapters import RAGTruthAdapter
+    from tests.benchmarks.data_adapters.base import load_dataset_adapter
 
-        print(f"Loading RAGTruth (limit={limit})...")
-        adapter = RAGTruthAdapter()
-        samples = adapter.load(limit=limit)
+    samples = []
+    dataset_counts = {}
+    for ds_name in datasets:
+        adapter = load_dataset_adapter(ds_name)
+        ds_samples = adapter.load(limit=limit)
+        dataset_counts[ds_name] = len(ds_samples)
+        samples.extend(ds_samples)
+        print(f"  {ds_name}: {len(ds_samples)} samples")
 
     valid_samples = [s for s in samples if s.context and s.response]
-    print(f"Loaded {len(samples)} samples ({len(valid_samples)} valid)")
+    print(f"Loaded {len(samples)} samples ({len(valid_samples)} valid) from {len(datasets)} dataset(s)")
 
     task_counts = {}
     for s in valid_samples:
@@ -819,6 +941,7 @@ def main():
 
     save_preds = args.save_predictions
     task_map = {s.id: s.task_type for s in valid_samples if s.task_type}
+    benchmark_map = {s.id: s.benchmark for s in valid_samples} if len(datasets) > 1 else None
 
     output_dir = Path(args.output)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -828,7 +951,7 @@ def main():
     # PHASE 1: Model-Independent Components
     # ================================================================
     phase1_start = time.time()
-    phase1_results = run_model_independent_benchmarks(valid_samples)
+    phase1_results = run_model_independent_benchmarks(valid_samples, benchmark_map=benchmark_map)
     phase1_elapsed = time.time() - phase1_start
 
     # ================================================================
@@ -845,7 +968,8 @@ def main():
         print(f"\n[Stage 3] {model_size.upper()} ({variant['model']}) — PCA 512...")
         try:
             result = run_stage3_standalone(valid_samples, model_size, variant,
-                                                  save_predictions=save_preds, task_map=task_map)
+                                                  save_predictions=save_preds, task_map=task_map,
+                                                  benchmark_map=benchmark_map)
             if result:
                 stage3_cache[model_size] = result
         except Exception as e:
@@ -871,7 +995,8 @@ def main():
         # Run transformer standalone + stage1 + cascade[1,2]
         try:
             transformer_results = run_transformer_benchmarks(valid_samples, model_path, model_tag,
-                                                              save_predictions=save_preds, task_map=task_map)
+                                                              save_predictions=save_preds, task_map=task_map,
+                                                              benchmark_map=benchmark_map)
         except Exception as e:
             print(f"   FAILED: {model_tag} transformer benchmarks crashed: {e}")
             _cuda_cleanup()
@@ -883,7 +1008,8 @@ def main():
 
             try:
                 cascade_result = run_cascade_13(valid_samples, model_size, variant, model_path, model_tag,
-                                                        save_predictions=save_preds, task_map=task_map)
+                                                        save_predictions=save_preds, task_map=task_map,
+                                                        benchmark_map=benchmark_map)
             except Exception as e:
                 print(f"   FAILED: cascade[1,3] {model_tag}+{model_size} crashed: {e}")
                 _cuda_cleanup()
@@ -918,6 +1044,7 @@ def main():
                 print(f"\n  [Blend] {model_tag} + {model_size.upper()} (alpha sweep)...")
                 blend_result = compute_blend_results(
                     s1_preds, s3_preds, valid_samples, model_tag, model_size,
+                    benchmark_map=benchmark_map,
                 )
                 if blend_result:
                     merged.setdefault("blend", {})[f"blend_{model_tag}_{model_size}"] = blend_result
@@ -928,7 +1055,8 @@ def main():
                 "timestamp": datetime.now().isoformat(),
                 "config": {
                     "limit": limit,
-                    "all_datasets": args.all_datasets,
+                    "datasets": datasets,
+                    "dataset_counts": dataset_counts,
                     "n_samples": len(samples),
                     "n_valid": len(valid_samples),
                     "task_type_distribution": task_counts,

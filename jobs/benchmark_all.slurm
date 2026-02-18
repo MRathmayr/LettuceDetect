@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:2
-#SBATCH --time=24:00:00
+#SBATCH --time=08:00:00
 #SBATCH --output=/gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/%x_%j.out
 #SBATCH --error=/gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/%x_%j.err
 
@@ -54,7 +54,8 @@ echo ""
 echo "Running full benchmark (2 transformers x 4 PCA 512 probes)..."
 set +e
 python tests/benchmarks/run_full_benchmark.py \
-    --output tests/benchmarks/results/benchmark_all_halluprobe_predictions
+    --datasets ragtruth halueval_qa \
+    --output tests/benchmarks/results/benchmark_multi_dataset
 BENCH_EXIT=$?
 set -e
 
@@ -66,4 +67,4 @@ echo ""
 echo "========================================"
 echo "Benchmark Complete - $(date)"
 echo "========================================"
-ls -lh "$LD_ROOT/tests/benchmarks/results/benchmark_all_halluprobe_predictions"/benchmark_*_*.json 2>/dev/null | tail -8
+ls -lh "$LD_ROOT/tests/benchmarks/results/benchmark_multi_dataset"/benchmark_*_*.json 2>/dev/null | tail -8
