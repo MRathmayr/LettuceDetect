@@ -85,14 +85,8 @@ def _compute_per_task_metrics(predictions, valid_samples, component_name):
 
     results = {}
     for task_type, task_preds in sorted(by_task.items()):
-        metrics = compute_accuracy_metrics(task_preds, compute_ci=False)
-        results[task_type] = {
-            "auroc": metrics.auroc,
-            "f1": metrics.f1,
-            "optimal_f1": metrics.optimal_f1,
-            "optimal_threshold": metrics.optimal_threshold,
-            "n_samples": metrics.n_samples,
-        }
+        metrics = compute_accuracy_metrics(task_preds)
+        results[task_type] = metrics.to_dict()
         auroc_str = f"{metrics.auroc:.3f}" if metrics.auroc is not None else "N/A"
         f1_str = f"{metrics.f1:.3f}" if metrics.f1 is not None else "N/A"
         opt_f1_str = f"{metrics.optimal_f1:.3f}" if metrics.optimal_f1 is not None else "N/A"
@@ -120,15 +114,9 @@ def _predictions_to_list(predictions, task_map=None):
 
 def _make_result_dict(metrics, stats, mem_stats=None):
     """Build standard result dict from metrics/stats."""
-    d = {
-        "auroc": metrics.auroc,
-        "f1": metrics.f1,
-        "optimal_f1": metrics.optimal_f1,
-        "optimal_threshold": metrics.optimal_threshold,
-        "latency_mean_ms": stats.mean_ms,
-        "latency_p95_ms": stats.p95_ms,
-        "n_samples": metrics.n_samples,
-    }
+    d = metrics.to_dict()
+    d["latency_mean_ms"] = stats.mean_ms
+    d["latency_p95_ms"] = stats.p95_ms
     if mem_stats is not None:
         d["gpu_peak_mb"] = mem_stats.gpu_peak_mb
     return d
@@ -177,7 +165,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
             r = lexical.score(s.context, s.response, s.question, None)
         predictions.append(PredictionResult(s.id, s.ground_truth, r.score, int(r.score >= 0.5), timer.last_ms, "lexical"))
     stats = timer.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+    metrics = compute_accuracy_metrics(predictions)
     results["components"]["lexical"] = {
         **_make_result_dict(metrics, stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "lexical"),
@@ -197,7 +185,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
             r = numeric.score(s.context, s.response, s.question, None)
         predictions.append(PredictionResult(s.id, s.ground_truth, r.score, int(r.score >= 0.5), timer.last_ms, "numeric"))
     stats = timer.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+    metrics = compute_accuracy_metrics(predictions)
     results["components"]["numeric"] = {
         **_make_result_dict(metrics, stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "numeric"),
@@ -217,7 +205,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
             r = ner.score(s.context, s.response, s.question, None)
         predictions.append(PredictionResult(s.id, s.ground_truth, r.score, int(r.score >= 0.5), timer.last_ms, "ner"))
     stats = timer.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+    metrics = compute_accuracy_metrics(predictions)
     results["components"]["ner"] = {
         **_make_result_dict(metrics, stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "ner"),
@@ -238,7 +226,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
         score = (1.0 - ncs["max"]) / 2.0
         predictions.append(PredictionResult(s.id, s.ground_truth, score, int(score >= 0.5), timer.last_ms, "model2vec"))
     stats = timer.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+    metrics = compute_accuracy_metrics(predictions)
     results["components"]["model2vec"] = {
         **_make_result_dict(metrics, stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "model2vec"),
@@ -262,7 +250,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
             predictions.append(PredictionResult(s.id, s.ground_truth, score, int(score >= 0.5), timer.last_ms, "nli"))
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+    metrics = compute_accuracy_metrics(predictions)
     results["components"]["nli"] = {
         **_make_result_dict(metrics, stats, mem_stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "nli"),
@@ -288,7 +276,7 @@ def run_model_independent_benchmarks(valid_samples: list) -> dict:
             predictions.append(PredictionResult(s.id, s.ground_truth, score, int(bool(spans)), timer.last_ms, "stage2"))
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+    metrics = compute_accuracy_metrics(predictions)
     results["stages"]["stage2"] = {
         **_make_result_dict(metrics, stats, mem_stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, "stage2"),
@@ -349,7 +337,7 @@ def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
             predictions.append(PredictionResult(s.id, s.ground_truth, score, int(score >= 0.5), timer.last_ms, f"stage3_{model_size}"))
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+    metrics = compute_accuracy_metrics(predictions)
 
     result = {
         **_make_result_dict(metrics, stats, mem_stats),
@@ -400,7 +388,7 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
             predictions.append(PredictionResult(s.id, s.ground_truth, score, int(bool(spans)), timer.last_ms, f"transformer_{model_tag}"))
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+    metrics = compute_accuracy_metrics(predictions)
     results[f"transformer_{model_tag}"] = {
         **_make_result_dict(metrics, stats, mem_stats),
         "model_path": model_path,
@@ -428,7 +416,7 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
             predictions.append(PredictionResult(s.id, s.ground_truth, score, int(bool(spans)), timer.last_ms, f"stage1_{model_tag}"))
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+    metrics = compute_accuracy_metrics(predictions)
     results[f"stage1_{model_tag}"] = {
         **_make_result_dict(metrics, stats, mem_stats),
         "model_path": model_path,
@@ -478,7 +466,7 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
 
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+    metrics = compute_accuracy_metrics(predictions)
 
     total = stage1_resolved + stage2_resolved
     results[f"cascade_12_{model_tag}"] = {
@@ -562,7 +550,7 @@ def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_pa
 
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
-    metrics = compute_accuracy_metrics(predictions, compute_ci=False)
+    metrics = compute_accuracy_metrics(predictions)
 
     total = stage1_resolved + stage3_resolved
     key = f"cascade_13_{model_tag}_{model_size}"
@@ -643,7 +631,7 @@ def compute_blend_results(s1_predictions: list[dict], s3_predictions: list[dict]
         blend = alpha * s1_scores + (1 - alpha) * s3_scores
         auroc = float(roc_auc_score(gt, blend))
 
-        # Optimal F1 via PR curve
+        # Optimal F1 via PR curve (no CI needed for sweep iterations)
         predictions = [
             PredictionResult(sid, int(gt[i]), float(blend[i]), int(blend[i] >= 0.5), 0.0, "blend")
             for i, sid in enumerate(common_ids)
@@ -673,22 +661,18 @@ def compute_blend_results(s1_predictions: list[dict], s3_predictions: list[dict]
                         int(blend_scores[i] >= 0.5), 0.0, f"blend_{model_tag}_{model_size}")
         for i, sid in enumerate(common_ids)
     ]
-    best_metrics = compute_accuracy_metrics(best_predictions, compute_ci=False)
+    best_metrics = compute_accuracy_metrics(best_predictions)
 
     key = f"blend_{model_tag}_{model_size}"
-    result = {
-        "auroc": best_metrics.auroc,
-        "f1": best_metrics.f1,
-        "optimal_f1": best_metrics.optimal_f1,
-        "optimal_threshold": best_metrics.optimal_threshold,
+    result = best_metrics.to_dict()
+    result.update({
         "best_alpha_auroc": best_auroc_alpha,
         "best_alpha_optf1": best_optf1_alpha,
-        "n_samples": best_metrics.n_samples,
         "transformer_model": model_tag,
         "llm_model": model_size,
         "per_task": _compute_per_task_metrics(best_predictions, valid_samples, key),
         "alpha_sweep": sweep_results,
-    }
+    })
 
     # Latency stats (parallel execution: max of s1, s3 per sample)
     if has_latency:
