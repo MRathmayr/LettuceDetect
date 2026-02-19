@@ -1,0 +1,1378 @@
+========================================
+Full Cascade Benchmark - All Variants
+========================================
+Job ID: 7310251
+Node: n3071-011
+Start time: Thu Feb 19 00:23:06 CET 2026
+========================================
+Python 3.12.10
+PyTorch: 2.10.0+cu128, CUDA: True, GPUs: 2
+name, memory.total [MiB]
+NVIDIA A100-PCIE-40GB, 40960 MiB
+NVIDIA A100-PCIE-40GB, 40960 MiB
+
+Running full benchmark (2 transformers x 4 PCA 512 probes)...
+  ragtruth: 2700 samples
+  halueval_qa: 10000 samples
+Loaded 12700 samples (12700 valid) from 2 dataset(s)
+Task types: {'summary': 900, 'data2txt': 900, 'qa': 10900}
+
+============================================================
+PHASE 1: Model-Independent Components
+============================================================
+
+[1/5] Lexical Overlap...
+     lexical [data2txt]: AUROC=0.666, F1=0.783, OptF1=0.786, n=900
+     lexical [qa]: AUROC=0.911, F1=0.719, OptF1=0.911, n=10900
+     lexical [summary]: AUROC=0.657, F1=0.431, OptF1=0.432, n=900
+     lexical [halueval_qa]: AUROC=0.959, F1=0.745, OptF1=0.975, n=10000
+     lexical [ragtruth]: AUROC=0.772, F1=0.606, OptF1=0.636, n=2700
+   AUROC: 0.858, OptF1: 0.854, Latency: 1.99ms
+
+[2/5] Numeric Validator...
+     numeric [data2txt]: AUROC=0.544, F1=0.558, OptF1=0.783, n=900
+     numeric [qa]: AUROC=0.548, F1=0.211, OptF1=0.643, n=10900
+     numeric [summary]: AUROC=0.541, F1=0.229, OptF1=0.370, n=900
+     numeric [halueval_qa]: AUROC=0.558, F1=0.205, OptF1=0.668, n=10000
+     numeric [ragtruth]: AUROC=0.637, F1=0.439, OptF1=0.530, n=2700
+   AUROC: 0.553, OptF1: 0.638, Latency: 0.41ms
+
+[3/5] NER Verifier...
+     ner [data2txt]: AUROC=0.541, F1=0.517, OptF1=0.783, n=900
+     ner [qa]: AUROC=0.709, F1=0.604, OptF1=0.660, n=10900
+     ner [summary]: AUROC=0.551, F1=0.113, OptF1=0.370, n=900
+     ner [halueval_qa]: AUROC=0.718, F1=0.617, OptF1=0.677, n=10000
+     ner [ragtruth]: AUROC=0.688, F1=0.403, OptF1=0.592, n=2700
+   AUROC: 0.706, OptF1: 0.658, Latency: 31.34ms
+
+[4/5] Model2Vec (NCS)...
+     model2vec [data2txt]: AUROC=0.565, F1=0.000, OptF1=0.784, n=900
+     model2vec [qa]: AUROC=0.351, F1=0.002, OptF1=0.651, n=10900
+     model2vec [summary]: AUROC=0.602, F1=0.000, OptF1=0.392, n=900
+     model2vec [halueval_qa]: AUROC=0.277, F1=0.002, OptF1=0.668, n=10000
+     model2vec [ragtruth]: AUROC=0.733, F1=0.000, OptF1=0.612, n=2700
+   AUROC: 0.409, OptF1: 0.647, Latency: 0.49ms
+
+[5/5] NLI Detector...
+     nli [data2txt]: AUROC=0.490, F1=0.768, OptF1=0.783, n=900
+     nli [qa]: AUROC=0.741, F1=0.669, OptF1=0.694, n=10900
+     nli [summary]: AUROC=0.591, F1=0.403, OptF1=0.406, n=900
+     nli [halueval_qa]: AUROC=0.745, F1=0.684, OptF1=0.710, n=10000
+     nli [ragtruth]: AUROC=0.663, F1=0.577, OptF1=0.582, n=2700
+   AUROC: 0.730, OptF1: 0.677, Latency: 46.48ms, GPU: 3495MB
+
+[Stage 2] Full pipeline (NLI-only)...
+     stage2 [data2txt]: AUROC=0.510, F1=0.774, OptF1=0.783, n=900
+     stage2 [qa]: AUROC=0.639, F1=0.664, OptF1=0.664, n=10900
+     stage2 [summary]: AUROC=0.583, F1=0.406, OptF1=0.406, n=900
+     stage2 [halueval_qa]: AUROC=0.633, F1=0.678, OptF1=0.678, n=10000
+     stage2 [ragtruth]: AUROC=0.635, F1=0.582, OptF1=0.582, n=2700
+   AUROC: 0.629, OptF1: 0.659, Latency: 46.30ms, GPU: 3495MB
+
+============================================================
+PHASE 2: Stage 3 Standalone (LLM-only, run once per model)
+============================================================
+
+[Stage 3] 3B (Qwen/Qwen2.5-3B-Instruct) — PCA 512...
+   [GPU] before loading 3b: 8MB allocated, 20MB reserved
+   [GPU] after loading 3b: 2954MB allocated, 2986MB reserved
+     stage3_3b [data2txt]: AUROC=0.861, F1=0.853, OptF1=0.856, n=900
+     stage3_3b [qa]: AUROC=0.824, F1=0.612, OptF1=0.751, n=10900
+     stage3_3b [summary]: AUROC=0.770, F1=0.530, OptF1=0.543, n=900
+     stage3_3b [halueval_qa]: AUROC=0.837, F1=0.613, OptF1=0.784, n=10000
+     stage3_3b [ragtruth]: AUROC=0.879, F1=0.738, OptF1=0.744, n=2700
+   AUROC: 0.810, OptF1: 0.728, Latency: 48.54ms, GPU: 4028MB
+   [GPU] after cleanup 3b: 9MB allocated, 22MB reserved
+
+[Stage 3] 7B (Qwen/Qwen2.5-7B-Instruct) — PCA 512...
+   [GPU] before loading 7b: 9MB allocated, 22MB reserved
+   [GPU] after loading 7b: 6383MB allocated, 6410MB reserved
+     stage3_7b [data2txt]: AUROC=0.869, F1=0.856, OptF1=0.860, n=900
+     stage3_7b [qa]: AUROC=0.907, F1=0.794, OptF1=0.826, n=10900
+     stage3_7b [summary]: AUROC=0.796, F1=0.579, OptF1=0.588, n=900
+     stage3_7b [halueval_qa]: AUROC=0.911, F1=0.803, OptF1=0.846, n=10000
+     stage3_7b [ragtruth]: AUROC=0.884, F1=0.752, OptF1=0.754, n=2700
+   AUROC: 0.899, OptF1: 0.808, Latency: 58.94ms, GPU: 7602MB
+   [GPU] after cleanup 7b: 9MB allocated, 22MB reserved
+
+[Stage 3] 8B (meta-llama/Llama-3.1-8B-Instruct) — PCA 512...
+   [GPU] before loading 8b: 9MB allocated, 22MB reserved
+   [GPU] after loading 8b: 6835MB allocated, 6868MB reserved
+     stage3_8b [data2txt]: AUROC=0.880, F1=0.858, OptF1=0.864, n=900
+     stage3_8b [qa]: AUROC=0.890, F1=0.686, OptF1=0.808, n=10900
+     stage3_8b [summary]: AUROC=0.802, F1=0.581, OptF1=0.587, n=900
+     stage3_8b [halueval_qa]: AUROC=0.906, F1=0.689, OptF1=0.837, n=10000
+     stage3_8b [ragtruth]: AUROC=0.888, F1=0.755, OptF1=0.759, n=2700
+   AUROC: 0.873, OptF1: 0.779, Latency: 60.36ms, GPU: 8147MB
+   [GPU] after cleanup 8b: 9MB allocated, 22MB reserved
+
+[Stage 3] 14B (Qwen/Qwen2.5-14B-Instruct) — PCA 512...
+   [GPU] before loading 14b: 9MB allocated, 22MB reserved
+   [GPU] after loading 14b: 13045MB allocated, 13096MB reserved
+     stage3_14b [data2txt]: AUROC=0.880, F1=0.862, OptF1=0.864, n=900
+     stage3_14b [qa]: AUROC=0.922, F1=0.726, OptF1=0.834, n=10900
+     stage3_14b [summary]: AUROC=0.838, F1=0.618, OptF1=0.641, n=900
+     stage3_14b [halueval_qa]: AUROC=0.943, F1=0.732, OptF1=0.879, n=10000
+     stage3_14b [ragtruth]: AUROC=0.894, F1=0.763, OptF1=0.765, n=2700
+   AUROC: 0.898, OptF1: 0.793, Latency: 94.48ms, GPU: 15080MB
+   [GPU] after cleanup 14b: 9MB allocated, 22MB reserved
+
+============================================================
+PHASE 3: Transformer-Dependent Benchmarks
+============================================================
+
+--- TRANSFORMER: base (KRLabsOrg/lettucedect-base-modernbert-en-v1) ---
+
+[Transformer] base standalone...
+   [GPU] transformer base loaded: 598MB allocated, 610MB reserved
+     transformer_base [data2txt]: AUROC=0.887, F1=0.880, OptF1=0.884, n=900
+     transformer_base [qa]: AUROC=0.759, F1=0.686, OptF1=0.686, n=10900
+     transformer_base [summary]: AUROC=0.679, F1=0.486, OptF1=0.508, n=900
+     transformer_base [halueval_qa]: AUROC=0.761, F1=0.689, OptF1=0.689, n=10000
+     transformer_base [ragtruth]: AUROC=0.840, F1=0.751, OptF1=0.758, n=2700
+   AUROC: 0.768, OptF1: 0.701, Latency: 19.09ms, GPU: 712MB
+
+[Stage 1] base + lexical + model2vec...
+     stage1_base [data2txt]: AUROC=0.887, F1=0.880, OptF1=0.884, n=900
+     stage1_base [qa]: AUROC=0.759, F1=0.686, OptF1=0.686, n=10900
+     stage1_base [summary]: AUROC=0.679, F1=0.486, OptF1=0.508, n=900
+     stage1_base [halueval_qa]: AUROC=0.761, F1=0.689, OptF1=0.689, n=10000
+     stage1_base [ragtruth]: AUROC=0.840, F1=0.751, OptF1=0.758, n=2700
+   AUROC: 0.768, OptF1: 0.701, Latency: 27.51ms, GPU: 712MB
+
+[Cascade 1+2] base...
+     cascade_12_base [data2txt]: AUROC=0.524, F1=0.779, OptF1=0.783, n=900
+     cascade_12_base [qa]: AUROC=0.825, F1=0.710, OptF1=0.851, n=10900
+     cascade_12_base [summary]: AUROC=0.687, F1=0.491, OptF1=0.495, n=900
+     cascade_12_base [halueval_qa]: AUROC=0.848, F1=0.722, OptF1=0.899, n=10000
+     cascade_12_base [ragtruth]: AUROC=0.720, F1=0.661, OptF1=0.662, n=2700
+   AUROC: 0.796, OptF1: 0.805, Latency: 48.10ms, GPU: 4097MB
+   Routing: 7241/12700 (57.0%) resolved at Stage 1
+
+  [Cascade 1+3] base + 3B...
+   [GPU] before cascade [1,3] base+3b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] base+3b loaded: 3544MB allocated, 3580MB reserved
+     cascade_13_base_3b [data2txt]: AUROC=0.863, F1=0.854, OptF1=0.856, n=900
+     cascade_13_base_3b [qa]: AUROC=0.907, F1=0.593, OptF1=0.880, n=10900
+     cascade_13_base_3b [summary]: AUROC=0.757, F1=0.509, OptF1=0.541, n=900
+     cascade_13_base_3b [halueval_qa]: AUROC=0.935, F1=0.593, OptF1=0.934, n=10000
+     cascade_13_base_3b [ragtruth]: AUROC=0.878, F1=0.745, OptF1=0.749, n=2700
+   AUROC: 0.876, OptF1: 0.829, Latency: 53.52ms, GPU: 4590MB
+   Routing: 7241/12700 (57.0%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] base+3b: 9MB allocated, 22MB reserved
+
+  [Blend] base + 3B (alpha sweep)...
+     blend_base_3b [data2txt]: AUROC=0.911, F1=0.884, OptF1=0.902, n=900
+     blend_base_3b [qa]: AUROC=0.868, F1=0.682, OptF1=0.765, n=10900
+     blend_base_3b [summary]: AUROC=0.786, F1=0.488, OptF1=0.563, n=900
+     blend_base_3b [halueval_qa]: AUROC=0.880, F1=0.685, OptF1=0.788, n=10000
+     blend_base_3b [ragtruth]: AUROC=0.898, F1=0.756, OptF1=0.769, n=2700
+   Blend [halueval_qa]: alpha=0.55, AUROC=0.8806, n=10000
+   Blend [ragtruth]: alpha=0.35, AUROC=0.8999, n=2700
+   Best alpha (AUROC): 0.80 -> AUROC=0.8590
+   Best alpha (OptF1): 0.30 -> OptF1=0.7543
+   At alpha=0.80: AUROC=0.859, OptF1=0.754, Latency=48.8ms
+
+==========================================================================================
+SUMMARY: base + 3B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.858    0.710    0.854      2.0ms      4.9ms        -
+numeric                     0.553    0.258    0.638      0.4ms      1.3ms        -
+ner                         0.706    0.583    0.658     31.3ms    123.9ms        -
+model2vec                   0.409    0.002    0.647      0.5ms      1.1ms        -
+nli                         0.730    0.663    0.677     46.5ms     59.7ms     3495
+transformer_base            0.768    0.701    0.701     19.1ms     36.6ms      712
+------------------------------------------------------------------------------------------
+stage2                      0.629    0.659    0.659     46.3ms     59.6ms     3495
+stage3_3b                   0.810    0.638    0.728     48.5ms     66.4ms     4028
+stage1_base                 0.768    0.701    0.701     27.5ms     62.1ms      712
+------------------------------------------------------------------------------------------
+cascade_12_base             0.796    0.709    0.805     48.1ms    119.3ms     4097
+cascade_13_base_3b          0.876    0.625    0.829     53.5ms    129.4ms     4590
+------------------------------------------------------------------------------------------
+blend_base_3b (a=0.8)       0.859    0.699    0.754     48.9ms     67.0ms        -
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.911    0.719    0.911  10900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.548    0.211    0.643  10900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.709    0.604    0.660  10900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.351    0.002    0.651  10900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.741    0.669    0.694  10900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_base         data2txt        0.887    0.880    0.884    900
+transformer_base         qa              0.759    0.686    0.686  10900
+transformer_base         summary         0.679    0.486    0.508    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.639    0.664    0.664  10900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_3b                data2txt        0.861    0.853    0.856    900
+stage3_3b                qa              0.824    0.612    0.751  10900
+stage3_3b                summary         0.770    0.530    0.543    900
+
+stage1_base              data2txt        0.887    0.880    0.884    900
+stage1_base              qa              0.759    0.686    0.686  10900
+stage1_base              summary         0.679    0.486    0.508    900
+
+cascade_12_base          data2txt        0.524    0.779    0.783    900
+cascade_12_base          qa              0.825    0.710    0.851  10900
+cascade_12_base          summary         0.687    0.491    0.495    900
+
+cascade_13_base_3b       data2txt        0.863    0.854    0.856    900
+cascade_13_base_3b       qa              0.907    0.593    0.880  10900
+cascade_13_base_3b       summary         0.757    0.509    0.541    900
+
+blend_base_3b            data2txt        0.911    0.884    0.902    900
+blend_base_3b            qa              0.868    0.682    0.765  10900
+blend_base_3b            summary         0.786    0.488    0.563    900
+
+==========================================================================================
+
+==========================================================================================
+PER-BENCHMARK BREAKDOWN
+==========================================================================================
+
+Component                Benchmark           AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  halueval_qa         0.959    0.745    0.975  10000
+lexical                  ragtruth            0.772    0.606    0.636   2700
+
+numeric                  halueval_qa         0.558    0.205    0.668  10000
+numeric                  ragtruth            0.637    0.439    0.530   2700
+
+ner                      halueval_qa         0.718    0.617    0.677  10000
+ner                      ragtruth            0.688    0.403    0.592   2700
+
+model2vec                halueval_qa         0.277    0.002    0.668  10000
+model2vec                ragtruth            0.733    0.000    0.612   2700
+
+nli                      halueval_qa         0.745    0.684    0.710  10000
+nli                      ragtruth            0.663    0.577    0.582   2700
+
+transformer_base         halueval_qa         0.761    0.689    0.689  10000
+transformer_base         ragtruth            0.840    0.751    0.758   2700
+
+stage2                   halueval_qa         0.633    0.678    0.678  10000
+stage2                   ragtruth            0.635    0.582    0.582   2700
+
+stage3_3b                halueval_qa         0.837    0.613    0.784  10000
+stage3_3b                ragtruth            0.879    0.738    0.744   2700
+
+stage1_base              halueval_qa         0.761    0.689    0.689  10000
+stage1_base              ragtruth            0.840    0.751    0.758   2700
+
+cascade_12_base          halueval_qa         0.848    0.722    0.899  10000
+cascade_12_base          ragtruth            0.720    0.661    0.662   2700
+
+cascade_13_base_3b       halueval_qa         0.935    0.593    0.934  10000
+cascade_13_base_3b       ragtruth            0.878    0.745    0.749   2700
+
+blend_base_3b            halueval_qa         0.880    0.685    0.788  10000
+blend_base_3b            ragtruth            0.898    0.756    0.769   2700
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_multi_dataset/benchmark_base_3b_20260219_002323.json
+
+  [Cascade 1+3] base + 7B...
+   [GPU] before cascade [1,3] base+7b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] base+7b loaded: 6974MB allocated, 6996MB reserved
+     cascade_13_base_7b [data2txt]: AUROC=0.870, F1=0.857, OptF1=0.861, n=900
+     cascade_13_base_7b [qa]: AUROC=0.948, F1=0.737, OptF1=0.903, n=10900
+     cascade_13_base_7b [summary]: AUROC=0.764, F1=0.533, OptF1=0.544, n=900
+     cascade_13_base_7b [halueval_qa]: AUROC=0.967, F1=0.741, OptF1=0.956, n=10000
+     cascade_13_base_7b [ragtruth]: AUROC=0.882, F1=0.760, OptF1=0.762, n=2700
+   AUROC: 0.921, OptF1: 0.848, Latency: 60.38ms, GPU: 8159MB
+   Routing: 7241/12700 (57.0%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] base+7b: 9MB allocated, 22MB reserved
+
+  [Blend] base + 7B (alpha sweep)...
+     blend_base_7b [data2txt]: AUROC=0.911, F1=0.900, OptF1=0.900, n=900
+     blend_base_7b [qa]: AUROC=0.923, F1=0.788, OptF1=0.828, n=10900
+     blend_base_7b [summary]: AUROC=0.809, F1=0.545, OptF1=0.587, n=900
+     blend_base_7b [halueval_qa]: AUROC=0.929, F1=0.793, OptF1=0.845, n=10000
+     blend_base_7b [ragtruth]: AUROC=0.904, F1=0.789, OptF1=0.790, n=2700
+   Blend [halueval_qa]: alpha=0.45, AUROC=0.9297, n=10000
+   Blend [ragtruth]: alpha=0.35, AUROC=0.9044, n=2700
+   Best alpha (AUROC): 0.40 -> AUROC=0.9156
+   Best alpha (OptF1): 0.30 -> OptF1=0.8228
+   At alpha=0.40: AUROC=0.916, OptF1=0.819, Latency=59.1ms
+
+==========================================================================================
+SUMMARY: base + 7B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.858    0.710    0.854      2.0ms      4.9ms        -
+numeric                     0.553    0.258    0.638      0.4ms      1.3ms        -
+ner                         0.706    0.583    0.658     31.3ms    123.9ms        -
+model2vec                   0.409    0.002    0.647      0.5ms      1.1ms        -
+nli                         0.730    0.663    0.677     46.5ms     59.7ms     3495
+transformer_base            0.768    0.701    0.701     19.1ms     36.6ms      712
+------------------------------------------------------------------------------------------
+stage2                      0.629    0.659    0.659     46.3ms     59.6ms     3495
+stage3_7b                   0.899    0.794    0.808     58.9ms    148.7ms     7602
+stage1_base                 0.768    0.701    0.701     27.5ms     62.1ms      712
+------------------------------------------------------------------------------------------
+cascade_12_base             0.796    0.709    0.805     48.1ms    119.3ms     4097
+cascade_13_base_7b          0.921    0.745    0.848     60.4ms    204.8ms     8159
+------------------------------------------------------------------------------------------
+blend_base_7b (a=0.4)       0.916    0.792    0.819     59.1ms    148.9ms        -
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.911    0.719    0.911  10900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.548    0.211    0.643  10900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.709    0.604    0.660  10900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.351    0.002    0.651  10900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.741    0.669    0.694  10900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_base         data2txt        0.887    0.880    0.884    900
+transformer_base         qa              0.759    0.686    0.686  10900
+transformer_base         summary         0.679    0.486    0.508    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.639    0.664    0.664  10900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_7b                data2txt        0.869    0.856    0.860    900
+stage3_7b                qa              0.907    0.794    0.826  10900
+stage3_7b                summary         0.796    0.579    0.588    900
+
+stage1_base              data2txt        0.887    0.880    0.884    900
+stage1_base              qa              0.759    0.686    0.686  10900
+stage1_base              summary         0.679    0.486    0.508    900
+
+cascade_12_base          data2txt        0.524    0.779    0.783    900
+cascade_12_base          qa              0.825    0.710    0.851  10900
+cascade_12_base          summary         0.687    0.491    0.495    900
+
+cascade_13_base_7b       data2txt        0.870    0.857    0.861    900
+cascade_13_base_7b       qa              0.948    0.737    0.903  10900
+cascade_13_base_7b       summary         0.764    0.533    0.544    900
+
+blend_base_7b            data2txt        0.911    0.900    0.900    900
+blend_base_7b            qa              0.923    0.788    0.828  10900
+blend_base_7b            summary         0.809    0.545    0.587    900
+
+==========================================================================================
+
+==========================================================================================
+PER-BENCHMARK BREAKDOWN
+==========================================================================================
+
+Component                Benchmark           AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  halueval_qa         0.959    0.745    0.975  10000
+lexical                  ragtruth            0.772    0.606    0.636   2700
+
+numeric                  halueval_qa         0.558    0.205    0.668  10000
+numeric                  ragtruth            0.637    0.439    0.530   2700
+
+ner                      halueval_qa         0.718    0.617    0.677  10000
+ner                      ragtruth            0.688    0.403    0.592   2700
+
+model2vec                halueval_qa         0.277    0.002    0.668  10000
+model2vec                ragtruth            0.733    0.000    0.612   2700
+
+nli                      halueval_qa         0.745    0.684    0.710  10000
+nli                      ragtruth            0.663    0.577    0.582   2700
+
+transformer_base         halueval_qa         0.761    0.689    0.689  10000
+transformer_base         ragtruth            0.840    0.751    0.758   2700
+
+stage2                   halueval_qa         0.633    0.678    0.678  10000
+stage2                   ragtruth            0.635    0.582    0.582   2700
+
+stage3_7b                halueval_qa         0.911    0.803    0.846  10000
+stage3_7b                ragtruth            0.884    0.752    0.754   2700
+
+stage1_base              halueval_qa         0.761    0.689    0.689  10000
+stage1_base              ragtruth            0.840    0.751    0.758   2700
+
+cascade_12_base          halueval_qa         0.848    0.722    0.899  10000
+cascade_12_base          ragtruth            0.720    0.661    0.662   2700
+
+cascade_13_base_7b       halueval_qa         0.967    0.741    0.956  10000
+cascade_13_base_7b       ragtruth            0.882    0.760    0.762   2700
+
+blend_base_7b            halueval_qa         0.929    0.793    0.845  10000
+blend_base_7b            ragtruth            0.904    0.789    0.790   2700
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_multi_dataset/benchmark_base_7b_20260219_002323.json
+
+  [Cascade 1+3] base + 8B...
+   [GPU] before cascade [1,3] base+8b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] base+8b loaded: 7425MB allocated, 7460MB reserved
+     cascade_13_base_8b [data2txt]: AUROC=0.882, F1=0.859, OptF1=0.865, n=900
+     cascade_13_base_8b [qa]: AUROC=0.925, F1=0.610, OptF1=0.895, n=10900
+     cascade_13_base_8b [summary]: AUROC=0.761, F1=0.513, OptF1=0.543, n=900
+     cascade_13_base_8b [halueval_qa]: AUROC=0.953, F1=0.610, OptF1=0.949, n=10000
+     cascade_13_base_8b [ragtruth]: AUROC=0.881, F1=0.754, OptF1=0.758, n=2700
+   AUROC: 0.894, OptF1: 0.841, Latency: 61.50ms, GPU: 8697MB
+   Routing: 7241/12700 (57.0%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] base+8b: 9MB allocated, 22MB reserved
+
+  [Blend] base + 8B (alpha sweep)...
+     blend_base_8b [data2txt]: AUROC=0.918, F1=0.898, OptF1=0.904, n=900
+     blend_base_8b [qa]: AUROC=0.914, F1=0.706, OptF1=0.822, n=10900
+     blend_base_8b [summary]: AUROC=0.824, F1=0.494, OptF1=0.607, n=900
+     blend_base_8b [halueval_qa]: AUROC=0.927, F1=0.708, OptF1=0.846, n=10000
+     blend_base_8b [ragtruth]: AUROC=0.909, F1=0.778, OptF1=0.784, n=2700
+   Blend [halueval_qa]: alpha=0.45, AUROC=0.9275, n=10000
+   Blend [ragtruth]: alpha=0.35, AUROC=0.9103, n=2700
+   Best alpha (AUROC): 0.45 -> AUROC=0.9014
+   Best alpha (OptF1): 0.30 -> OptF1=0.8065
+   At alpha=0.45: AUROC=0.901, OptF1=0.805, Latency=60.5ms
+
+==========================================================================================
+SUMMARY: base + 8B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.858    0.710    0.854      2.0ms      4.9ms        -
+numeric                     0.553    0.258    0.638      0.4ms      1.3ms        -
+ner                         0.706    0.583    0.658     31.3ms    123.9ms        -
+model2vec                   0.409    0.002    0.647      0.5ms      1.1ms        -
+nli                         0.730    0.663    0.677     46.5ms     59.7ms     3495
+transformer_base            0.768    0.701    0.701     19.1ms     36.6ms      712
+------------------------------------------------------------------------------------------
+stage2                      0.629    0.659    0.659     46.3ms     59.6ms     3495
+stage3_8b                   0.873    0.702    0.779     60.4ms    145.9ms     8147
+stage1_base                 0.768    0.701    0.701     27.5ms     62.1ms      712
+------------------------------------------------------------------------------------------
+cascade_12_base             0.796    0.709    0.805     48.1ms    119.3ms     4097
+cascade_13_base_8b          0.894    0.640    0.841     61.5ms    199.6ms     8697
+------------------------------------------------------------------------------------------
+blend_base_8b (a=0.45)      0.901    0.721    0.805     60.5ms    146.0ms        -
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.911    0.719    0.911  10900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.548    0.211    0.643  10900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.709    0.604    0.660  10900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.351    0.002    0.651  10900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.741    0.669    0.694  10900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_base         data2txt        0.887    0.880    0.884    900
+transformer_base         qa              0.759    0.686    0.686  10900
+transformer_base         summary         0.679    0.486    0.508    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.639    0.664    0.664  10900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_8b                data2txt        0.880    0.858    0.864    900
+stage3_8b                qa              0.890    0.686    0.808  10900
+stage3_8b                summary         0.802    0.581    0.587    900
+
+stage1_base              data2txt        0.887    0.880    0.884    900
+stage1_base              qa              0.759    0.686    0.686  10900
+stage1_base              summary         0.679    0.486    0.508    900
+
+cascade_12_base          data2txt        0.524    0.779    0.783    900
+cascade_12_base          qa              0.825    0.710    0.851  10900
+cascade_12_base          summary         0.687    0.491    0.495    900
+
+cascade_13_base_8b       data2txt        0.882    0.859    0.865    900
+cascade_13_base_8b       qa              0.925    0.610    0.895  10900
+cascade_13_base_8b       summary         0.761    0.513    0.543    900
+
+blend_base_8b            data2txt        0.918    0.898    0.904    900
+blend_base_8b            qa              0.914    0.706    0.822  10900
+blend_base_8b            summary         0.824    0.494    0.607    900
+
+==========================================================================================
+
+==========================================================================================
+PER-BENCHMARK BREAKDOWN
+==========================================================================================
+
+Component                Benchmark           AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  halueval_qa         0.959    0.745    0.975  10000
+lexical                  ragtruth            0.772    0.606    0.636   2700
+
+numeric                  halueval_qa         0.558    0.205    0.668  10000
+numeric                  ragtruth            0.637    0.439    0.530   2700
+
+ner                      halueval_qa         0.718    0.617    0.677  10000
+ner                      ragtruth            0.688    0.403    0.592   2700
+
+model2vec                halueval_qa         0.277    0.002    0.668  10000
+model2vec                ragtruth            0.733    0.000    0.612   2700
+
+nli                      halueval_qa         0.745    0.684    0.710  10000
+nli                      ragtruth            0.663    0.577    0.582   2700
+
+transformer_base         halueval_qa         0.761    0.689    0.689  10000
+transformer_base         ragtruth            0.840    0.751    0.758   2700
+
+stage2                   halueval_qa         0.633    0.678    0.678  10000
+stage2                   ragtruth            0.635    0.582    0.582   2700
+
+stage3_8b                halueval_qa         0.906    0.689    0.837  10000
+stage3_8b                ragtruth            0.888    0.755    0.759   2700
+
+stage1_base              halueval_qa         0.761    0.689    0.689  10000
+stage1_base              ragtruth            0.840    0.751    0.758   2700
+
+cascade_12_base          halueval_qa         0.848    0.722    0.899  10000
+cascade_12_base          ragtruth            0.720    0.661    0.662   2700
+
+cascade_13_base_8b       halueval_qa         0.953    0.610    0.949  10000
+cascade_13_base_8b       ragtruth            0.881    0.754    0.758   2700
+
+blend_base_8b            halueval_qa         0.927    0.708    0.846  10000
+blend_base_8b            ragtruth            0.909    0.778    0.784   2700
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_multi_dataset/benchmark_base_8b_20260219_002323.json
+
+  [Cascade 1+3] base + 14B...
+   [GPU] before cascade [1,3] base+14b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] base+14b loaded: 13635MB allocated, 13648MB reserved
+     cascade_13_base_14b [data2txt]: AUROC=0.880, F1=0.863, OptF1=0.865, n=900
+     cascade_13_base_14b [qa]: AUROC=0.909, F1=0.639, OptF1=0.884, n=10900
+     cascade_13_base_14b [summary]: AUROC=0.795, F1=0.559, OptF1=0.596, n=900
+     cascade_13_base_14b [halueval_qa]: AUROC=0.933, F1=0.641, OptF1=0.936, n=10000
+     cascade_13_base_14b [ragtruth]: AUROC=0.888, F1=0.762, OptF1=0.765, n=2700
+   AUROC: 0.882, OptF1: 0.831, Latency: 78.81ms, GPU: 15615MB
+   Routing: 7241/12700 (57.0%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] base+14b: 9MB allocated, 22MB reserved
+
+  [Blend] base + 14B (alpha sweep)...
+     blend_base_14b [data2txt]: AUROC=0.917, F1=0.905, OptF1=0.906, n=900
+     blend_base_14b [qa]: AUROC=0.936, F1=0.732, OptF1=0.847, n=10900
+     blend_base_14b [summary]: AUROC=0.837, F1=0.539, OptF1=0.629, n=900
+     blend_base_14b [halueval_qa]: AUROC=0.953, F1=0.735, OptF1=0.881, n=10000
+     blend_base_14b [ragtruth]: AUROC=0.910, F1=0.791, OptF1=0.793, n=2700
+   Blend [halueval_qa]: alpha=0.45, AUROC=0.9532, n=10000
+   Blend [ragtruth]: alpha=0.35, AUROC=0.9116, n=2700
+   Best alpha (AUROC): 0.45 -> AUROC=0.9201
+   Best alpha (OptF1): 0.30 -> OptF1=0.8277
+   At alpha=0.45: AUROC=0.920, OptF1=0.826, Latency=94.6ms
+
+==========================================================================================
+SUMMARY: base + 14B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.858    0.710    0.854      2.0ms      4.9ms        -
+numeric                     0.553    0.258    0.638      0.4ms      1.3ms        -
+ner                         0.706    0.583    0.658     31.3ms    123.9ms        -
+model2vec                   0.409    0.002    0.647      0.5ms      1.1ms        -
+nli                         0.730    0.663    0.677     46.5ms     59.7ms     3495
+transformer_base            0.768    0.701    0.701     19.1ms     36.6ms      712
+------------------------------------------------------------------------------------------
+stage2                      0.629    0.659    0.659     46.3ms     59.6ms     3495
+stage3_14b                  0.898    0.738    0.793     94.5ms    251.1ms    15080
+stage1_base                 0.768    0.701    0.701     27.5ms     62.1ms      712
+------------------------------------------------------------------------------------------
+cascade_12_base             0.796    0.709    0.805     48.1ms    119.3ms     4097
+cascade_13_base_14b         0.882    0.666    0.831     78.8ms    295.7ms    15615
+------------------------------------------------------------------------------------------
+blend_base_14b (a=0.45)     0.920    0.745    0.826     94.6ms    251.4ms        -
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.911    0.719    0.911  10900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.548    0.211    0.643  10900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.709    0.604    0.660  10900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.351    0.002    0.651  10900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.741    0.669    0.694  10900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_base         data2txt        0.887    0.880    0.884    900
+transformer_base         qa              0.759    0.686    0.686  10900
+transformer_base         summary         0.679    0.486    0.508    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.639    0.664    0.664  10900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_14b               data2txt        0.880    0.862    0.864    900
+stage3_14b               qa              0.922    0.726    0.834  10900
+stage3_14b               summary         0.838    0.618    0.641    900
+
+stage1_base              data2txt        0.887    0.880    0.884    900
+stage1_base              qa              0.759    0.686    0.686  10900
+stage1_base              summary         0.679    0.486    0.508    900
+
+cascade_12_base          data2txt        0.524    0.779    0.783    900
+cascade_12_base          qa              0.825    0.710    0.851  10900
+cascade_12_base          summary         0.687    0.491    0.495    900
+
+cascade_13_base_14b      data2txt        0.880    0.863    0.865    900
+cascade_13_base_14b      qa              0.909    0.639    0.884  10900
+cascade_13_base_14b      summary         0.795    0.559    0.596    900
+
+blend_base_14b           data2txt        0.917    0.905    0.906    900
+blend_base_14b           qa              0.936    0.732    0.847  10900
+blend_base_14b           summary         0.837    0.539    0.629    900
+
+==========================================================================================
+
+==========================================================================================
+PER-BENCHMARK BREAKDOWN
+==========================================================================================
+
+Component                Benchmark           AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  halueval_qa         0.959    0.745    0.975  10000
+lexical                  ragtruth            0.772    0.606    0.636   2700
+
+numeric                  halueval_qa         0.558    0.205    0.668  10000
+numeric                  ragtruth            0.637    0.439    0.530   2700
+
+ner                      halueval_qa         0.718    0.617    0.677  10000
+ner                      ragtruth            0.688    0.403    0.592   2700
+
+model2vec                halueval_qa         0.277    0.002    0.668  10000
+model2vec                ragtruth            0.733    0.000    0.612   2700
+
+nli                      halueval_qa         0.745    0.684    0.710  10000
+nli                      ragtruth            0.663    0.577    0.582   2700
+
+transformer_base         halueval_qa         0.761    0.689    0.689  10000
+transformer_base         ragtruth            0.840    0.751    0.758   2700
+
+stage2                   halueval_qa         0.633    0.678    0.678  10000
+stage2                   ragtruth            0.635    0.582    0.582   2700
+
+stage3_14b               halueval_qa         0.943    0.732    0.879  10000
+stage3_14b               ragtruth            0.894    0.763    0.765   2700
+
+stage1_base              halueval_qa         0.761    0.689    0.689  10000
+stage1_base              ragtruth            0.840    0.751    0.758   2700
+
+cascade_12_base          halueval_qa         0.848    0.722    0.899  10000
+cascade_12_base          ragtruth            0.720    0.661    0.662   2700
+
+cascade_13_base_14b      halueval_qa         0.933    0.641    0.936  10000
+cascade_13_base_14b      ragtruth            0.888    0.762    0.765   2700
+
+blend_base_14b           halueval_qa         0.953    0.735    0.881  10000
+blend_base_14b           ragtruth            0.910    0.791    0.793   2700
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_multi_dataset/benchmark_base_14b_20260219_002323.json
+   [GPU] after base complete cleanup: 9MB allocated, 22MB reserved
+
+--- TRANSFORMER: large (KRLabsOrg/lettucedect-large-modernbert-en-v1) ---
+
+[Transformer] large standalone...
+   [GPU] transformer large loaded: 1519MB allocated, 1632MB reserved
+     transformer_large [data2txt]: AUROC=0.897, F1=0.887, OptF1=0.887, n=900
+     transformer_large [qa]: AUROC=0.761, F1=0.682, OptF1=0.684, n=10900
+     transformer_large [summary]: AUROC=0.746, F1=0.604, OptF1=0.606, n=900
+     transformer_large [halueval_qa]: AUROC=0.758, F1=0.681, OptF1=0.684, n=10000
+     transformer_large [ragtruth]: AUROC=0.864, F1=0.792, OptF1=0.794, n=2700
+   AUROC: 0.775, OptF1: 0.703, Latency: 29.11ms, GPU: 1676MB
+
+[Stage 1] large + lexical + model2vec...
+     stage1_large [data2txt]: AUROC=0.897, F1=0.887, OptF1=0.887, n=900
+     stage1_large [qa]: AUROC=0.761, F1=0.682, OptF1=0.684, n=10900
+     stage1_large [summary]: AUROC=0.746, F1=0.604, OptF1=0.606, n=900
+     stage1_large [halueval_qa]: AUROC=0.758, F1=0.681, OptF1=0.684, n=10000
+     stage1_large [ragtruth]: AUROC=0.864, F1=0.792, OptF1=0.794, n=2700
+   AUROC: 0.775, OptF1: 0.703, Latency: 36.67ms, GPU: 1676MB
+
+[Cascade 1+2] large...
+     cascade_12_large [data2txt]: AUROC=0.515, F1=0.778, OptF1=0.783, n=900
+     cascade_12_large [qa]: AUROC=0.797, F1=0.706, OptF1=0.829, n=10900
+     cascade_12_large [summary]: AUROC=0.703, F1=0.529, OptF1=0.533, n=900
+     cascade_12_large [halueval_qa]: AUROC=0.816, F1=0.717, OptF1=0.875, n=10000
+     cascade_12_large [ragtruth]: AUROC=0.719, F1=0.668, OptF1=0.668, n=2700
+   AUROC: 0.773, OptF1: 0.787, Latency: 58.96ms, GPU: 5061MB
+   Routing: 6806/12700 (53.6%) resolved at Stage 1
+
+  [Cascade 1+3] large + 3B...
+   [GPU] before cascade [1,3] large+3b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] large+3b loaded: 4467MB allocated, 4588MB reserved
+     cascade_13_large_3b [data2txt]: AUROC=0.860, F1=0.853, OptF1=0.856, n=900
+     cascade_13_large_3b [qa]: AUROC=0.900, F1=0.601, OptF1=0.867, n=10900
+     cascade_13_large_3b [summary]: AUROC=0.778, F1=0.518, OptF1=0.580, n=900
+     cascade_13_large_3b [halueval_qa]: AUROC=0.925, F1=0.601, OptF1=0.920, n=10000
+     cascade_13_large_3b [ragtruth]: AUROC=0.883, F1=0.750, OptF1=0.752, n=2700
+   AUROC: 0.872, OptF1: 0.819, Latency: 66.56ms, GPU: 5520MB
+   Routing: 6806/12700 (53.6%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] large+3b: 9MB allocated, 22MB reserved
+
+  [Blend] large + 3B (alpha sweep)...
+     blend_large_3b [data2txt]: AUROC=0.923, F1=0.887, OptF1=0.905, n=900
+     blend_large_3b [qa]: AUROC=0.852, F1=0.658, OptF1=0.745, n=10900
+     blend_large_3b [summary]: AUROC=0.825, F1=0.591, OptF1=0.639, n=900
+     blend_large_3b [halueval_qa]: AUROC=0.858, F1=0.655, OptF1=0.769, n=10000
+     blend_large_3b [ragtruth]: AUROC=0.915, F1=0.799, OptF1=0.809, n=2700
+   Blend [halueval_qa]: alpha=0.50, AUROC=0.8580, n=10000
+   Blend [ragtruth]: alpha=0.45, AUROC=0.9149, n=2700
+   Best alpha (AUROC): 0.50 -> AUROC=0.8503
+   Best alpha (OptF1): 0.25 -> OptF1=0.7560
+   At alpha=0.50: AUROC=0.850, OptF1=0.746, Latency=53.4ms
+
+==========================================================================================
+SUMMARY: large + 3B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.858    0.710    0.854      2.0ms      4.9ms        -
+numeric                     0.553    0.258    0.638      0.4ms      1.3ms        -
+ner                         0.706    0.583    0.658     31.3ms    123.9ms        -
+model2vec                   0.409    0.002    0.647      0.5ms      1.1ms        -
+nli                         0.730    0.663    0.677     46.5ms     59.7ms     3495
+transformer_large           0.775    0.701    0.703     29.1ms     75.1ms     1676
+------------------------------------------------------------------------------------------
+stage2                      0.629    0.659    0.659     46.3ms     59.6ms     3495
+stage3_3b                   0.810    0.638    0.728     48.5ms     66.4ms     4028
+stage1_large                0.775    0.701    0.703     36.7ms     99.1ms     1676
+------------------------------------------------------------------------------------------
+cascade_12_large            0.773    0.707    0.787     59.0ms    155.2ms     5061
+cascade_13_large_3b         0.872    0.631    0.819     66.6ms    181.4ms     5520
+------------------------------------------------------------------------------------------
+blend_large_3b (a=0.5)      0.850    0.682    0.746     53.4ms     99.1ms        -
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.911    0.719    0.911  10900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.548    0.211    0.643  10900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.709    0.604    0.660  10900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.351    0.002    0.651  10900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.741    0.669    0.694  10900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_large        data2txt        0.897    0.887    0.887    900
+transformer_large        qa              0.761    0.682    0.684  10900
+transformer_large        summary         0.746    0.604    0.606    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.639    0.664    0.664  10900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_3b                data2txt        0.861    0.853    0.856    900
+stage3_3b                qa              0.824    0.612    0.751  10900
+stage3_3b                summary         0.770    0.530    0.543    900
+
+stage1_large             data2txt        0.897    0.887    0.887    900
+stage1_large             qa              0.761    0.682    0.684  10900
+stage1_large             summary         0.746    0.604    0.606    900
+
+cascade_12_large         data2txt        0.515    0.778    0.783    900
+cascade_12_large         qa              0.797    0.706    0.829  10900
+cascade_12_large         summary         0.703    0.529    0.533    900
+
+cascade_13_large_3b      data2txt        0.860    0.853    0.856    900
+cascade_13_large_3b      qa              0.900    0.601    0.867  10900
+cascade_13_large_3b      summary         0.778    0.518    0.580    900
+
+blend_large_3b           data2txt        0.923    0.887    0.905    900
+blend_large_3b           qa              0.852    0.658    0.745  10900
+blend_large_3b           summary         0.825    0.591    0.639    900
+
+==========================================================================================
+
+==========================================================================================
+PER-BENCHMARK BREAKDOWN
+==========================================================================================
+
+Component                Benchmark           AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  halueval_qa         0.959    0.745    0.975  10000
+lexical                  ragtruth            0.772    0.606    0.636   2700
+
+numeric                  halueval_qa         0.558    0.205    0.668  10000
+numeric                  ragtruth            0.637    0.439    0.530   2700
+
+ner                      halueval_qa         0.718    0.617    0.677  10000
+ner                      ragtruth            0.688    0.403    0.592   2700
+
+model2vec                halueval_qa         0.277    0.002    0.668  10000
+model2vec                ragtruth            0.733    0.000    0.612   2700
+
+nli                      halueval_qa         0.745    0.684    0.710  10000
+nli                      ragtruth            0.663    0.577    0.582   2700
+
+transformer_large        halueval_qa         0.758    0.681    0.684  10000
+transformer_large        ragtruth            0.864    0.792    0.794   2700
+
+stage2                   halueval_qa         0.633    0.678    0.678  10000
+stage2                   ragtruth            0.635    0.582    0.582   2700
+
+stage3_3b                halueval_qa         0.837    0.613    0.784  10000
+stage3_3b                ragtruth            0.879    0.738    0.744   2700
+
+stage1_large             halueval_qa         0.758    0.681    0.684  10000
+stage1_large             ragtruth            0.864    0.792    0.794   2700
+
+cascade_12_large         halueval_qa         0.816    0.717    0.875  10000
+cascade_12_large         ragtruth            0.719    0.668    0.668   2700
+
+cascade_13_large_3b      halueval_qa         0.925    0.601    0.920  10000
+cascade_13_large_3b      ragtruth            0.883    0.750    0.752   2700
+
+blend_large_3b           halueval_qa         0.858    0.655    0.769  10000
+blend_large_3b           ragtruth            0.915    0.799    0.809   2700
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_multi_dataset/benchmark_large_3b_20260219_002323.json
+
+  [Cascade 1+3] large + 7B...
+   [GPU] before cascade [1,3] large+7b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] large+7b loaded: 8338MB allocated, 8470MB reserved
+     cascade_13_large_7b [data2txt]: AUROC=0.868, F1=0.856, OptF1=0.860, n=900
+     cascade_13_large_7b [qa]: AUROC=0.933, F1=0.738, OptF1=0.888, n=10900
+     cascade_13_large_7b [summary]: AUROC=0.786, F1=0.545, OptF1=0.581, n=900
+     cascade_13_large_7b [halueval_qa]: AUROC=0.950, F1=0.742, OptF1=0.939, n=10000
+     cascade_13_large_7b [ragtruth]: AUROC=0.886, F1=0.762, OptF1=0.764, n=2700
+   AUROC: 0.911, OptF1: 0.836, Latency: 71.54ms, GPU: 9526MB
+   Routing: 6806/12700 (53.6%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] large+7b: 9MB allocated, 22MB reserved
+
+  [Blend] large + 7B (alpha sweep)...
+     blend_large_7b [data2txt]: AUROC=0.916, F1=0.893, OptF1=0.896, n=900
+     blend_large_7b [qa]: AUROC=0.913, F1=0.795, OptF1=0.830, n=10900
+     blend_large_7b [summary]: AUROC=0.842, F1=0.603, OptF1=0.667, n=900
+     blend_large_7b [halueval_qa]: AUROC=0.916, F1=0.799, OptF1=0.842, n=10000
+     blend_large_7b [ragtruth]: AUROC=0.915, F1=0.803, OptF1=0.803, n=2700
+   Blend [halueval_qa]: alpha=0.20, AUROC=0.9167, n=10000
+   Blend [ragtruth]: alpha=0.45, AUROC=0.9185, n=2700
+   Best alpha (AUROC): 0.30 -> AUROC=0.9097
+   Best alpha (OptF1): 0.35 -> OptF1=0.8243
+   At alpha=0.30: AUROC=0.910, OptF1=0.824, Latency=59.0ms
+
+==========================================================================================
+SUMMARY: large + 7B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.858    0.710    0.854      2.0ms      4.9ms        -
+numeric                     0.553    0.258    0.638      0.4ms      1.3ms        -
+ner                         0.706    0.583    0.658     31.3ms    123.9ms        -
+model2vec                   0.409    0.002    0.647      0.5ms      1.1ms        -
+nli                         0.730    0.663    0.677     46.5ms     59.7ms     3495
+transformer_large           0.775    0.701    0.703     29.1ms     75.1ms     1676
+------------------------------------------------------------------------------------------
+stage2                      0.629    0.659    0.659     46.3ms     59.6ms     3495
+stage3_7b                   0.899    0.794    0.808     58.9ms    148.7ms     7602
+stage1_large                0.775    0.701    0.703     36.7ms     99.1ms     1676
+------------------------------------------------------------------------------------------
+cascade_12_large            0.773    0.707    0.787     59.0ms    155.2ms     5061
+cascade_13_large_7b         0.911    0.746    0.836     71.5ms    235.0ms     9526
+------------------------------------------------------------------------------------------
+blend_large_7b (a=0.3)      0.910    0.799    0.824     59.0ms    148.9ms        -
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.911    0.719    0.911  10900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.548    0.211    0.643  10900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.709    0.604    0.660  10900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.351    0.002    0.651  10900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.741    0.669    0.694  10900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_large        data2txt        0.897    0.887    0.887    900
+transformer_large        qa              0.761    0.682    0.684  10900
+transformer_large        summary         0.746    0.604    0.606    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.639    0.664    0.664  10900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_7b                data2txt        0.869    0.856    0.860    900
+stage3_7b                qa              0.907    0.794    0.826  10900
+stage3_7b                summary         0.796    0.579    0.588    900
+
+stage1_large             data2txt        0.897    0.887    0.887    900
+stage1_large             qa              0.761    0.682    0.684  10900
+stage1_large             summary         0.746    0.604    0.606    900
+
+cascade_12_large         data2txt        0.515    0.778    0.783    900
+cascade_12_large         qa              0.797    0.706    0.829  10900
+cascade_12_large         summary         0.703    0.529    0.533    900
+
+cascade_13_large_7b      data2txt        0.868    0.856    0.860    900
+cascade_13_large_7b      qa              0.933    0.738    0.888  10900
+cascade_13_large_7b      summary         0.786    0.545    0.581    900
+
+blend_large_7b           data2txt        0.916    0.893    0.896    900
+blend_large_7b           qa              0.913    0.795    0.830  10900
+blend_large_7b           summary         0.842    0.603    0.667    900
+
+==========================================================================================
+
+==========================================================================================
+PER-BENCHMARK BREAKDOWN
+==========================================================================================
+
+Component                Benchmark           AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  halueval_qa         0.959    0.745    0.975  10000
+lexical                  ragtruth            0.772    0.606    0.636   2700
+
+numeric                  halueval_qa         0.558    0.205    0.668  10000
+numeric                  ragtruth            0.637    0.439    0.530   2700
+
+ner                      halueval_qa         0.718    0.617    0.677  10000
+ner                      ragtruth            0.688    0.403    0.592   2700
+
+model2vec                halueval_qa         0.277    0.002    0.668  10000
+model2vec                ragtruth            0.733    0.000    0.612   2700
+
+nli                      halueval_qa         0.745    0.684    0.710  10000
+nli                      ragtruth            0.663    0.577    0.582   2700
+
+transformer_large        halueval_qa         0.758    0.681    0.684  10000
+transformer_large        ragtruth            0.864    0.792    0.794   2700
+
+stage2                   halueval_qa         0.633    0.678    0.678  10000
+stage2                   ragtruth            0.635    0.582    0.582   2700
+
+stage3_7b                halueval_qa         0.911    0.803    0.846  10000
+stage3_7b                ragtruth            0.884    0.752    0.754   2700
+
+stage1_large             halueval_qa         0.758    0.681    0.684  10000
+stage1_large             ragtruth            0.864    0.792    0.794   2700
+
+cascade_12_large         halueval_qa         0.816    0.717    0.875  10000
+cascade_12_large         ragtruth            0.719    0.668    0.668   2700
+
+cascade_13_large_7b      halueval_qa         0.950    0.742    0.939  10000
+cascade_13_large_7b      ragtruth            0.886    0.762    0.764   2700
+
+blend_large_7b           halueval_qa         0.916    0.799    0.842  10000
+blend_large_7b           ragtruth            0.915    0.803    0.803   2700
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_multi_dataset/benchmark_large_7b_20260219_002323.json
+
+  [Cascade 1+3] large + 8B...
+   [GPU] before cascade [1,3] large+8b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] large+8b loaded: 8761MB allocated, 8876MB reserved
+     cascade_13_large_8b [data2txt]: AUROC=0.880, F1=0.858, OptF1=0.865, n=900
+     cascade_13_large_8b [qa]: AUROC=0.919, F1=0.627, OptF1=0.884, n=10900
+     cascade_13_large_8b [summary]: AUROC=0.780, F1=0.550, OptF1=0.572, n=900
+     cascade_13_large_8b [halueval_qa]: AUROC=0.944, F1=0.627, OptF1=0.938, n=10000
+     cascade_13_large_8b [ragtruth]: AUROC=0.886, F1=0.760, OptF1=0.762, n=2700
+   AUROC: 0.891, OptF1: 0.833, Latency: 73.03ms, GPU: 10048MB
+   Routing: 6806/12700 (53.6%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] large+8b: 9MB allocated, 22MB reserved
+
+  [Blend] large + 8B (alpha sweep)...
+     blend_large_8b [data2txt]: AUROC=0.927, F1=0.906, OptF1=0.910, n=900
+     blend_large_8b [qa]: AUROC=0.897, F1=0.713, OptF1=0.801, n=10900
+     blend_large_8b [summary]: AUROC=0.864, F1=0.573, OptF1=0.673, n=900
+     blend_large_8b [halueval_qa]: AUROC=0.906, F1=0.714, OptF1=0.812, n=10000
+     blend_large_8b [ragtruth]: AUROC=0.923, F1=0.805, OptF1=0.808, n=2700
+   Blend [halueval_qa]: alpha=0.20, AUROC=0.9076, n=10000
+   Blend [ragtruth]: alpha=0.50, AUROC=0.9232, n=2700
+   Best alpha (AUROC): 0.40 -> AUROC=0.8909
+   Best alpha (OptF1): 0.30 -> OptF1=0.8061
+   At alpha=0.40: AUROC=0.891, OptF1=0.802, Latency=60.4ms
+
+==========================================================================================
+SUMMARY: large + 8B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.858    0.710    0.854      2.0ms      4.9ms        -
+numeric                     0.553    0.258    0.638      0.4ms      1.3ms        -
+ner                         0.706    0.583    0.658     31.3ms    123.9ms        -
+model2vec                   0.409    0.002    0.647      0.5ms      1.1ms        -
+nli                         0.730    0.663    0.677     46.5ms     59.7ms     3495
+transformer_large           0.775    0.701    0.703     29.1ms     75.1ms     1676
+------------------------------------------------------------------------------------------
+stage2                      0.629    0.659    0.659     46.3ms     59.6ms     3495
+stage3_8b                   0.873    0.702    0.779     60.4ms    145.9ms     8147
+stage1_large                0.775    0.701    0.703     36.7ms     99.1ms     1676
+------------------------------------------------------------------------------------------
+cascade_12_large            0.773    0.707    0.787     59.0ms    155.2ms     5061
+cascade_13_large_8b         0.891    0.654    0.833     73.0ms    233.8ms    10048
+------------------------------------------------------------------------------------------
+blend_large_8b (a=0.4)      0.891    0.731    0.802     60.4ms    146.0ms        -
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.911    0.719    0.911  10900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.548    0.211    0.643  10900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.709    0.604    0.660  10900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.351    0.002    0.651  10900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.741    0.669    0.694  10900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_large        data2txt        0.897    0.887    0.887    900
+transformer_large        qa              0.761    0.682    0.684  10900
+transformer_large        summary         0.746    0.604    0.606    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.639    0.664    0.664  10900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_8b                data2txt        0.880    0.858    0.864    900
+stage3_8b                qa              0.890    0.686    0.808  10900
+stage3_8b                summary         0.802    0.581    0.587    900
+
+stage1_large             data2txt        0.897    0.887    0.887    900
+stage1_large             qa              0.761    0.682    0.684  10900
+stage1_large             summary         0.746    0.604    0.606    900
+
+cascade_12_large         data2txt        0.515    0.778    0.783    900
+cascade_12_large         qa              0.797    0.706    0.829  10900
+cascade_12_large         summary         0.703    0.529    0.533    900
+
+cascade_13_large_8b      data2txt        0.880    0.858    0.865    900
+cascade_13_large_8b      qa              0.919    0.627    0.884  10900
+cascade_13_large_8b      summary         0.780    0.550    0.572    900
+
+blend_large_8b           data2txt        0.927    0.906    0.910    900
+blend_large_8b           qa              0.897    0.713    0.801  10900
+blend_large_8b           summary         0.864    0.573    0.673    900
+
+==========================================================================================
+
+==========================================================================================
+PER-BENCHMARK BREAKDOWN
+==========================================================================================
+
+Component                Benchmark           AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  halueval_qa         0.959    0.745    0.975  10000
+lexical                  ragtruth            0.772    0.606    0.636   2700
+
+numeric                  halueval_qa         0.558    0.205    0.668  10000
+numeric                  ragtruth            0.637    0.439    0.530   2700
+
+ner                      halueval_qa         0.718    0.617    0.677  10000
+ner                      ragtruth            0.688    0.403    0.592   2700
+
+model2vec                halueval_qa         0.277    0.002    0.668  10000
+model2vec                ragtruth            0.733    0.000    0.612   2700
+
+nli                      halueval_qa         0.745    0.684    0.710  10000
+nli                      ragtruth            0.663    0.577    0.582   2700
+
+transformer_large        halueval_qa         0.758    0.681    0.684  10000
+transformer_large        ragtruth            0.864    0.792    0.794   2700
+
+stage2                   halueval_qa         0.633    0.678    0.678  10000
+stage2                   ragtruth            0.635    0.582    0.582   2700
+
+stage3_8b                halueval_qa         0.906    0.689    0.837  10000
+stage3_8b                ragtruth            0.888    0.755    0.759   2700
+
+stage1_large             halueval_qa         0.758    0.681    0.684  10000
+stage1_large             ragtruth            0.864    0.792    0.794   2700
+
+cascade_12_large         halueval_qa         0.816    0.717    0.875  10000
+cascade_12_large         ragtruth            0.719    0.668    0.668   2700
+
+cascade_13_large_8b      halueval_qa         0.944    0.627    0.938  10000
+cascade_13_large_8b      ragtruth            0.886    0.760    0.762   2700
+
+blend_large_8b           halueval_qa         0.906    0.714    0.812  10000
+blend_large_8b           ragtruth            0.923    0.805    0.808   2700
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_multi_dataset/benchmark_large_8b_20260219_002323.json
+
+  [Cascade 1+3] large + 14B...
+   [GPU] before cascade [1,3] large+14b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] large+14b loaded: 14555MB allocated, 14670MB reserved
+     cascade_13_large_14b [data2txt]: AUROC=0.879, F1=0.863, OptF1=0.865, n=900
+     cascade_13_large_14b [qa]: AUROC=0.911, F1=0.657, OptF1=0.882, n=10900
+     cascade_13_large_14b [summary]: AUROC=0.812, F1=0.571, OptF1=0.618, n=900
+     cascade_13_large_14b [halueval_qa]: AUROC=0.934, F1=0.659, OptF1=0.935, n=10000
+     cascade_13_large_14b [ragtruth]: AUROC=0.893, F1=0.765, OptF1=0.768, n=2700
+   AUROC: 0.885, OptF1: 0.830, Latency: 91.38ms, GPU: 16530MB
+   Routing: 6806/12700 (53.6%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] large+14b: 9MB allocated, 22MB reserved
+
+  [Blend] large + 14B (alpha sweep)...
+     blend_large_14b [data2txt]: AUROC=0.928, F1=0.907, OptF1=0.912, n=900
+     blend_large_14b [qa]: AUROC=0.920, F1=0.737, OptF1=0.830, n=10900
+     blend_large_14b [summary]: AUROC=0.871, F1=0.636, OptF1=0.699, n=900
+     blend_large_14b [halueval_qa]: AUROC=0.931, F1=0.739, OptF1=0.845, n=10000
+     blend_large_14b [ragtruth]: AUROC=0.924, F1=0.817, OptF1=0.821, n=2700
+   Blend [halueval_qa]: alpha=0.00, AUROC=0.9430, n=10000
+   Blend [ragtruth]: alpha=0.45, AUROC=0.9240, n=2700
+   Best alpha (AUROC): 0.40 -> AUROC=0.9088
+   Best alpha (OptF1): 0.35 -> OptF1=0.8306
+   At alpha=0.40: AUROC=0.909, OptF1=0.829, Latency=94.5ms
+
+==========================================================================================
+SUMMARY: large + 14B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.858    0.710    0.854      2.0ms      4.9ms        -
+numeric                     0.553    0.258    0.638      0.4ms      1.3ms        -
+ner                         0.706    0.583    0.658     31.3ms    123.9ms        -
+model2vec                   0.409    0.002    0.647      0.5ms      1.1ms        -
+nli                         0.730    0.663    0.677     46.5ms     59.7ms     3495
+transformer_large           0.775    0.701    0.703     29.1ms     75.1ms     1676
+------------------------------------------------------------------------------------------
+stage2                      0.629    0.659    0.659     46.3ms     59.6ms     3495
+stage3_14b                  0.898    0.738    0.793     94.5ms    251.1ms    15080
+stage1_large                0.775    0.701    0.703     36.7ms     99.1ms     1676
+------------------------------------------------------------------------------------------
+cascade_12_large            0.773    0.707    0.787     59.0ms    155.2ms     5061
+cascade_13_large_14b        0.885    0.680    0.830     91.4ms    334.1ms    16530
+------------------------------------------------------------------------------------------
+blend_large_14b (a=0.4)     0.909    0.753    0.829     94.5ms    251.1ms        -
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.911    0.719    0.911  10900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.548    0.211    0.643  10900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.709    0.604    0.660  10900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.351    0.002    0.651  10900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.741    0.669    0.694  10900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_large        data2txt        0.897    0.887    0.887    900
+transformer_large        qa              0.761    0.682    0.684  10900
+transformer_large        summary         0.746    0.604    0.606    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.639    0.664    0.664  10900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_14b               data2txt        0.880    0.862    0.864    900
+stage3_14b               qa              0.922    0.726    0.834  10900
+stage3_14b               summary         0.838    0.618    0.641    900
+
+stage1_large             data2txt        0.897    0.887    0.887    900
+stage1_large             qa              0.761    0.682    0.684  10900
+stage1_large             summary         0.746    0.604    0.606    900
+
+cascade_12_large         data2txt        0.515    0.778    0.783    900
+cascade_12_large         qa              0.797    0.706    0.829  10900
+cascade_12_large         summary         0.703    0.529    0.533    900
+
+cascade_13_large_14b     data2txt        0.879    0.863    0.865    900
+cascade_13_large_14b     qa              0.911    0.657    0.882  10900
+cascade_13_large_14b     summary         0.812    0.571    0.618    900
+
+blend_large_14b          data2txt        0.928    0.907    0.912    900
+blend_large_14b          qa              0.920    0.737    0.830  10900
+blend_large_14b          summary         0.871    0.636    0.699    900
+
+==========================================================================================
+
+==========================================================================================
+PER-BENCHMARK BREAKDOWN
+==========================================================================================
+
+Component                Benchmark           AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  halueval_qa         0.959    0.745    0.975  10000
+lexical                  ragtruth            0.772    0.606    0.636   2700
+
+numeric                  halueval_qa         0.558    0.205    0.668  10000
+numeric                  ragtruth            0.637    0.439    0.530   2700
+
+ner                      halueval_qa         0.718    0.617    0.677  10000
+ner                      ragtruth            0.688    0.403    0.592   2700
+
+model2vec                halueval_qa         0.277    0.002    0.668  10000
+model2vec                ragtruth            0.733    0.000    0.612   2700
+
+nli                      halueval_qa         0.745    0.684    0.710  10000
+nli                      ragtruth            0.663    0.577    0.582   2700
+
+transformer_large        halueval_qa         0.758    0.681    0.684  10000
+transformer_large        ragtruth            0.864    0.792    0.794   2700
+
+stage2                   halueval_qa         0.633    0.678    0.678  10000
+stage2                   ragtruth            0.635    0.582    0.582   2700
+
+stage3_14b               halueval_qa         0.943    0.732    0.879  10000
+stage3_14b               ragtruth            0.894    0.763    0.765   2700
+
+stage1_large             halueval_qa         0.758    0.681    0.684  10000
+stage1_large             ragtruth            0.864    0.792    0.794   2700
+
+cascade_12_large         halueval_qa         0.816    0.717    0.875  10000
+cascade_12_large         ragtruth            0.719    0.668    0.668   2700
+
+cascade_13_large_14b     halueval_qa         0.934    0.659    0.935  10000
+cascade_13_large_14b     ragtruth            0.893    0.765    0.768   2700
+
+blend_large_14b          halueval_qa         0.931    0.739    0.845  10000
+blend_large_14b          ragtruth            0.924    0.817    0.821   2700
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_multi_dataset/benchmark_large_14b_20260219_002323.json
+   [GPU] after large complete cleanup: 9MB allocated, 22MB reserved
+
+Total time: 15371.6s (256.2m)
+
+========================================
+Benchmark Complete - Thu Feb 19 04:39:39 CET 2026
+========================================
+-rw-r--r-- 1 mrathmayr p73025 9.8M Feb 19 03:06 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_multi_dataset/benchmark_base_14b_20260219_002323.json
+-rw-r--r-- 1 mrathmayr p73025 9.8M Feb 19 02:22 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_multi_dataset/benchmark_base_3b_20260219_002323.json
+-rw-r--r-- 1 mrathmayr p73025 9.8M Feb 19 02:35 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_multi_dataset/benchmark_base_7b_20260219_002323.json
+-rw-r--r-- 1 mrathmayr p73025 9.8M Feb 19 02:48 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_multi_dataset/benchmark_base_8b_20260219_002323.json
+-rw-r--r-- 1 mrathmayr p73025 9.8M Feb 19 04:39 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_multi_dataset/benchmark_large_14b_20260219_002323.json
+-rw-r--r-- 1 mrathmayr p73025 9.8M Feb 19 03:47 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_multi_dataset/benchmark_large_3b_20260219_002323.json
+-rw-r--r-- 1 mrathmayr p73025 9.8M Feb 19 04:03 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_multi_dataset/benchmark_large_7b_20260219_002323.json
+-rw-r--r-- 1 mrathmayr p73025 9.8M Feb 19 04:19 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_multi_dataset/benchmark_large_8b_20260219_002323.json
