@@ -91,7 +91,7 @@ class HiddenStateExtractor:
         """
         if question is None:
             raise ValueError(
-                "ReadingProbeDetector requires a question. The probe was trained "
+                "GroundingProbeDetector requires a question. The probe was trained "
                 "on question-response pairs and cannot produce meaningful hidden "
                 "states without one."
             )

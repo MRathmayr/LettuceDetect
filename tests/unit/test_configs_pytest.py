@@ -12,10 +12,12 @@ from lettucedetect.configs.models import (
     Stage3Method,
 )
 from lettucedetect.configs.presets import (
-    FULL_CASCADE,
+    ACCURATE,
+    BALANCED,
+    FAST,
     FAST_CASCADE,
+    FULL_CASCADE,
     STAGE1_MINIMAL,
-    TASK_ROUTED,
     WITH_NLI,
     PRESETS,
 )
@@ -28,6 +30,9 @@ class TestCascadeConfigDefaults:
         """CascadeConfig should have sensible defaults."""
         config = CascadeConfig()
         assert config.stages == [1, 3]
+        assert config.strategy == "cascade"
+        assert config.blend_alpha == 0.55
+        assert config.blend_threshold == 0.40
         assert isinstance(config.stage1, Stage1Config)
         assert isinstance(config.stage2, Stage2Config)
         assert isinstance(config.stage3, Stage3Config)
@@ -56,11 +61,13 @@ class TestCascadeConfigDefaults:
     def test_stage3_config_defaults(self):
         """Stage3Config should have correct defaults."""
         config = Stage3Config()
-        assert config.method == Stage3Method.READING_PROBE
+        assert config.method == Stage3Method.GROUNDING_PROBE
         assert config.llm_model == "Qwen/Qwen2.5-3B-Instruct"
         assert config.layer_index == -15
         assert config.token_position == "mean"
         assert config.threshold == 0.5
+        assert config.probe_repo_id is None
+        assert config.probe_filename is None
 
     def test_routing_config_defaults(self):
         """RoutingConfig should have correct defaults."""
@@ -107,38 +114,52 @@ class TestCascadeConfigValidation:
         with pytest.raises(ValueError):
             Stage1Config(augmentations=["invalid"])
 
-    def test_task_routing_none_by_default(self):
-        """task_routing should be None by default (backward compat)."""
+    def test_blend_strategy_default(self):
+        """Strategy defaults to 'cascade'."""
         config = CascadeConfig()
-        assert config.task_routing is None
+        assert config.strategy == "cascade"
 
-    def test_task_routing_valid(self):
-        """Valid task_routing should pass validation."""
-        config = CascadeConfig(
-            stages=[1, 3],
-            task_routing={"qa": [1, 3], "summarization": [1]},
+    def test_blend_requires_stage1_and_stage3(self):
+        """Blend strategy with missing stages should fail."""
+        with pytest.raises(ValueError, match="strategy='blend' requires"):
+            CascadeConfig(stages=[1], strategy="blend")
+
+        with pytest.raises(ValueError, match="strategy='blend' requires"):
+            CascadeConfig(stages=[3], strategy="blend")
+
+        # Valid: stages=[1, 3] with blend
+        config = CascadeConfig(stages=[1, 3], strategy="blend")
+        assert config.strategy == "blend"
+
+    def test_blend_alpha_range(self):
+        """Blend alpha outside [0,1] should fail."""
+        with pytest.raises(ValueError):
+            CascadeConfig(stages=[1, 3], strategy="blend", blend_alpha=1.5)
+        with pytest.raises(ValueError):
+            CascadeConfig(stages=[1, 3], strategy="blend", blend_alpha=-0.1)
+
+    def test_blend_threshold_range(self):
+        """Blend threshold outside [0,1] should fail."""
+        with pytest.raises(ValueError):
+            CascadeConfig(stages=[1, 3], strategy="blend", blend_threshold=1.5)
+
+    def test_extra_fields_ignored(self):
+        """Old serialized configs with task_routing should not crash."""
+        config = CascadeConfig.model_validate({
+            "stages": [1, 3],
+            "task_routing": {"qa": [1, 3]},
+        })
+        assert config.stages == [1, 3]
+        assert not hasattr(config, "task_routing")
+
+    def test_stage3_probe_repo_fields(self):
+        """Stage3Config should accept probe_repo_id and probe_filename."""
+        config = Stage3Config(
+            probe_repo_id="MRathmayr/lettucedetect-grounding-probes",
+            probe_filename="probe_3b_qwen_pca512.joblib",
         )
-        assert config.task_routing == {"qa": [1, 3], "summarization": [1]}
-
-    def test_task_routing_invalid_stage_number(self):
-        """task_routing with invalid stage number should fail."""
-        with pytest.raises(ValueError, match="Invalid stage 5"):
-            CascadeConfig(stages=[1, 3], task_routing={"qa": [1, 5]})
-
-    def test_task_routing_references_uninitialized_stage(self):
-        """task_routing referencing a stage not in stages should fail."""
-        with pytest.raises(ValueError, match="not in stages"):
-            CascadeConfig(stages=[1], task_routing={"qa": [1, 3]})
-
-    def test_task_routing_serialization_roundtrip(self):
-        """task_routing should survive JSON serialization roundtrip."""
-        config = CascadeConfig(
-            stages=[1, 3],
-            task_routing={"qa": [1, 3], "data2txt": [1]},
-        )
-        json_str = config.model_dump_json()
-        restored = CascadeConfig.model_validate_json(json_str)
-        assert restored.task_routing == config.task_routing
+        assert config.probe_repo_id == "MRathmayr/lettucedetect-grounding-probes"
+        assert config.probe_filename == "probe_3b_qwen_pca512.joblib"
 
 
 class TestPresets:
@@ -146,24 +167,52 @@ class TestPresets:
 
     def test_presets_exist(self):
         """All expected presets should exist."""
+        assert "fast" in PRESETS
+        assert "balanced" in PRESETS
+        assert "accurate" in PRESETS
         assert "full_cascade" in PRESETS
         assert "fast_cascade" in PRESETS
         assert "with_nli" in PRESETS
         assert "stage1_minimal" in PRESETS
         assert "stage2_only" in PRESETS
-        assert "stage3_reading_probe" in PRESETS
-        assert "task_routed" in PRESETS
+        assert "stage3_grounding_probe" in PRESETS
+
+    def test_fast_preset(self):
+        """FAST should have only stage 1 with cascade strategy."""
+        assert FAST.stages == [1]
+        assert FAST.strategy == "cascade"
+        assert FAST.stage1.augmentations == ["lexical", "model2vec"]
+
+    def test_balanced_preset(self):
+        """BALANCED should use blend strategy with 3B Qwen probe."""
+        assert BALANCED.stages == [1, 3]
+        assert BALANCED.strategy == "blend"
+        assert BALANCED.blend_alpha == 0.50
+        assert BALANCED.blend_threshold == 0.43
+        assert BALANCED.stage3.llm_model == "Qwen/Qwen2.5-3B-Instruct"
+        assert BALANCED.stage3.probe_filename == "probe_3b_qwen_pca512.joblib"
+        assert BALANCED.stage3.layer_index == -15
+
+    def test_accurate_preset(self):
+        """ACCURATE should use blend strategy with 14B Qwen probe."""
+        assert ACCURATE.stages == [1, 3]
+        assert ACCURATE.strategy == "blend"
+        assert ACCURATE.blend_alpha == 0.55
+        assert ACCURATE.blend_threshold == 0.40
+        assert ACCURATE.stage3.llm_model == "Qwen/Qwen2.5-14B-Instruct"
+        assert ACCURATE.stage3.probe_filename == "probe_14b_qwen_pca512.joblib"
+        assert ACCURATE.stage3.layer_index == -20
 
     def test_full_cascade_preset(self):
-        """FULL_CASCADE should have stages [1, 3] with augmentations."""
+        """FULL_CASCADE should have stages [1, 3] with cascade strategy."""
         assert FULL_CASCADE.stages == [1, 3]
+        assert FULL_CASCADE.strategy == "cascade"
         assert FULL_CASCADE.stage1.augmentations == ["lexical", "model2vec"]
-        assert FULL_CASCADE.stage3.method == Stage3Method.READING_PROBE
+        assert FULL_CASCADE.stage3.method == Stage3Method.GROUNDING_PROBE
 
-    def test_fast_cascade_preset(self):
-        """FAST_CASCADE should have only stage 1."""
-        assert FAST_CASCADE.stages == [1]
-        assert FAST_CASCADE.stage1.augmentations == ["lexical", "model2vec"]
+    def test_fast_cascade_is_fast_alias(self):
+        """FAST_CASCADE should be an alias for FAST."""
+        assert FAST_CASCADE is FAST
 
     def test_with_nli_preset(self):
         """WITH_NLI should have all 3 stages."""
@@ -175,31 +224,16 @@ class TestPresets:
         assert STAGE1_MINIMAL.stages == [1]
         assert STAGE1_MINIMAL.stage1.augmentations == []
 
-    def test_task_routed_preset(self):
-        """TASK_ROUTED should have stages [1, 3] with routing config."""
-        assert TASK_ROUTED.stages == [1, 3]
-        assert TASK_ROUTED.task_routing == {
-            "qa": [1, 3],
-            "summarization": [1],
-            "data2txt": [1],
-        }
-        assert TASK_ROUTED.stage3.method == Stage3Method.READING_PROBE
-
 
 class TestStage3Method:
     """Test Stage3Method enum."""
 
     def test_stage3_methods(self):
-        """All Stage3 methods should be available."""
-        assert Stage3Method.READING_PROBE.value == "reading_probe"
-        assert Stage3Method.SEMANTIC_ENTROPY.value == "semantic_entropy"
-
-    def test_stage3_method_in_config(self):
-        """Stage3Method can be used in Stage3Config."""
-        config = Stage3Config(method=Stage3Method.SEMANTIC_ENTROPY)
-        assert config.method == Stage3Method.SEMANTIC_ENTROPY
+        """Only GROUNDING_PROBE should be available."""
+        assert Stage3Method.GROUNDING_PROBE.value == "grounding_probe"
+        assert len(Stage3Method) == 1
 
     def test_stage3_method_from_string(self):
         """Stage3Method can be set from string value."""
-        config = Stage3Config(method="reading_probe")
-        assert config.method == Stage3Method.READING_PROBE
+        config = Stage3Config(method="grounding_probe")
+        assert config.method == Stage3Method.GROUNDING_PROBE

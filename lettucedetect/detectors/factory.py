@@ -39,7 +39,6 @@ def make_detector(method: str, **kwargs) -> BaseDetector:
         return RAGFactCheckerDetector(**kwargs)
     elif method == "cascade":
         from lettucedetect.configs import CascadeConfig
-        from lettucedetect.detectors.cascade import CascadeDetector
 
         config = kwargs.get("config")
         config_path = kwargs.get("config_path")
@@ -60,6 +59,13 @@ def make_detector(method: str, **kwargs) -> BaseDetector:
             stage_config = getattr(config, stage_key)
             if stage_config == getattr(CascadeConfig(), stage_key):
                 logger.warning(f"No {stage_key} config provided, using defaults")
+
+        if config.strategy == "blend":
+            from lettucedetect.detectors.blend import BlendDetector
+
+            return BlendDetector(config=config)
+
+        from lettucedetect.detectors.cascade import CascadeDetector
 
         return CascadeDetector(config=config)
     else:

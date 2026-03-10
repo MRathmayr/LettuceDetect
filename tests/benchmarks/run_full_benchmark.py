@@ -352,9 +352,9 @@ def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
     _cuda_cleanup()
     _gpu_mem_log(f"before loading {model_size}")
 
-    from lettucedetect.detectors.stage3.reading_probe_detector import ReadingProbeDetector
+    from lettucedetect.detectors.stage3.grounding_probe_detector import GroundingProbeDetector
 
-    detector = ReadingProbeDetector(
+    detector = GroundingProbeDetector(
         model_name_or_path=variant["model"],
         probe_path=probe_path,
         layer_index=variant["layer_index"],

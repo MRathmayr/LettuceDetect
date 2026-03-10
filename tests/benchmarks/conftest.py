@@ -168,9 +168,9 @@ def stage3_detector_3b():
     if not probe_path:
         pytest.skip(f"Probe file not found for 3b")
 
-    from lettucedetect.detectors.stage3.reading_probe_detector import ReadingProbeDetector
+    from lettucedetect.detectors.stage3.grounding_probe_detector import GroundingProbeDetector
 
-    detector = ReadingProbeDetector(
+    detector = GroundingProbeDetector(
         model_name_or_path=variant["model"],
         probe_path=probe_path,
         layer_index=variant["layer_index"],
@@ -211,9 +211,9 @@ def stage3_detector_8b():
     gc.collect()
     torch.cuda.empty_cache()
 
-    from lettucedetect.detectors.stage3.reading_probe_detector import ReadingProbeDetector
+    from lettucedetect.detectors.stage3.grounding_probe_detector import GroundingProbeDetector
 
-    detector = ReadingProbeDetector(
+    detector = GroundingProbeDetector(
         model_name_or_path=variant["model"],
         probe_path=probe_path,
         layer_index=variant["layer_index"],

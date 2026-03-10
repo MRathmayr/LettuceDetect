@@ -17,22 +17,25 @@ from lettucedetect.ragfactchecker import RAGFactChecker
 
 # Cascade configuration
 from lettucedetect.configs import (
+    ACCURATE,
+    BALANCED,
     CascadeConfig,
+    FAST,
+    FAST_CASCADE,
+    FULL_CASCADE,
+    PRESETS,
     RoutingConfig,
+    STAGE1_MINIMAL,
+    STAGE2_ONLY,
+    STAGE3_GROUNDING_PROBE,
     Stage1Config,
     Stage2Config,
     Stage3Config,
     Stage3Method,
-    FAST_CASCADE,
-    FULL_CASCADE,
-    PRESETS,
-    STAGE1_MINIMAL,
-    STAGE2_ONLY,
-    STAGE3_READING_PROBE,
     WITH_NLI,
 )
 
-__version__ = "0.1.7"
+__version__ = "0.2.0"
 
 __all__ = [
     # Existing
@@ -49,12 +52,16 @@ __all__ = [
     "Stage3Config",
     "RoutingConfig",
     "Stage3Method",
-    # Presets
+    # Production presets
+    "FAST",
+    "BALANCED",
+    "ACCURATE",
+    # Legacy / testing presets
     "FULL_CASCADE",
     "FAST_CASCADE",
     "WITH_NLI",
     "STAGE1_MINIMAL",
     "STAGE2_ONLY",
-    "STAGE3_READING_PROBE",
+    "STAGE3_GROUNDING_PROBE",
     "PRESETS",
 ]

@@ -13,7 +13,7 @@ def _run_stage3_accuracy(detector, samples, component_name, dataset_name, config
     """Shared accuracy benchmark logic for Stage 3 detectors.
 
     Args:
-        detector: ReadingProbeDetector instance.
+        detector: GroundingProbeDetector instance.
         samples: List of BenchmarkSample.
         component_name: Component identifier (e.g., "stage3_hallu_probe_3b").
         dataset_name: Dataset name (e.g., "halueval_qa", "ragtruth").

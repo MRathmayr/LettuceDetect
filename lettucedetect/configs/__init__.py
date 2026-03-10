@@ -9,13 +9,15 @@ from lettucedetect.configs.models import (
     Stage3Method,
 )
 from lettucedetect.configs.presets import (
+    ACCURATE,
+    BALANCED,
+    FAST,
     FAST_CASCADE,
     FULL_CASCADE,
     PRESETS,
     STAGE1_MINIMAL,
     STAGE2_ONLY,
-    STAGE3_READING_PROBE,
-    TASK_ROUTED,
+    STAGE3_GROUNDING_PROBE,
     WITH_NLI,
 )
 
@@ -27,13 +29,16 @@ __all__ = [
     "Stage3Config",
     "RoutingConfig",
     "Stage3Method",
-    # Presets
+    # Production presets
+    "FAST",
+    "BALANCED",
+    "ACCURATE",
+    # Legacy / testing presets
     "FULL_CASCADE",
     "FAST_CASCADE",
     "WITH_NLI",
     "STAGE1_MINIMAL",
     "STAGE2_ONLY",
-    "STAGE3_READING_PROBE",
-    "TASK_ROUTED",
+    "STAGE3_GROUNDING_PROBE",
     "PRESETS",
 ]

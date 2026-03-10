@@ -6,22 +6,22 @@ import json
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Stage3Method(str, Enum):
     """Available methods for Stage 3 detection."""
 
-    READING_PROBE = "reading_probe"
-    SEMANTIC_ENTROPY = "semantic_entropy"
+    GROUNDING_PROBE = "grounding_probe"
 
 
 class Stage1Config(BaseModel):
     """Configuration for Stage 1: Transformer + Augmentations.
 
     Weights optimized on RAGTruth benchmark (voting analysis AUROC 0.878):
-    - transformer: 0.70 (primary signal, trained on RAGTruth)
-    - lexical: 0.30 (complementary heuristic)
+    - transformer: 0.65 (primary signal, trained on RAGTruth)
+    - lexical: 0.25 (complementary heuristic)
+    - model2vec: 0.10 (NCS embedding similarity)
     - ner/numeric: 0.0 (disabled - hurt AUROC by flipping correct decisions)
 
     Routing thresholds calibrated on RAGTruth (2026-01-25):
@@ -111,19 +111,18 @@ class Stage2Config(BaseModel):
 
 
 class Stage3Config(BaseModel):
-    """Configuration for Stage 3: Hallu Probe / Semantic Entropy."""
+    """Configuration for Stage 3: Grounding Probe."""
 
-    method: Stage3Method = Stage3Method.READING_PROBE
+    method: Stage3Method = Stage3Method.GROUNDING_PROBE
 
-    # Hallu Probe config
+    # Grounding probe config
     llm_model: str = "Qwen/Qwen2.5-3B-Instruct"
     probe_path: str | None = None
+    probe_repo_id: str | None = None
+    probe_filename: str | None = None
     layer_index: int = -15
     token_position: Literal["slt", "tbg", "mean"] = "mean"
     threshold: float = 0.5  # P(hallucinated) above this = hallucination
-
-    # Semantic Entropy config (offline baseline, not yet implemented)
-    clustering_method: Literal["nli", "embedding"] = "nli"
 
 
 class RoutingConfig(BaseModel):
@@ -136,36 +135,34 @@ class RoutingConfig(BaseModel):
 class CascadeConfig(BaseModel):
     """Main configuration for cascade detector."""
 
+    model_config = ConfigDict(extra="ignore")
+
     stages: list[Literal[1, 2, 3]] = [1, 3]
+    strategy: Literal["cascade", "blend"] = "cascade"
+    blend_alpha: float = Field(default=0.55, ge=0.0, le=1.0)
+    blend_threshold: float = Field(default=0.40, ge=0.0, le=1.0)
     stage1: Stage1Config = Field(default_factory=Stage1Config)
     stage2: Stage2Config = Field(default_factory=Stage2Config)
     stage3: Stage3Config = Field(default_factory=Stage3Config)
     routing: RoutingConfig = Field(default_factory=RoutingConfig)
-    task_routing: dict[str, list[int]] | None = None
 
     @field_validator("stages")
     @classmethod
     def validate_stages_order(cls, v: list[int]) -> list[int]:
-        """Ensure stages are in ascending order."""
+        """Ensure stages are in ascending order with no duplicates."""
+        if len(v) != len(set(v)):
+            raise ValueError(f"Stages must not contain duplicates, got {v}")
         if v != sorted(v):
             raise ValueError(f"Stages must be in ascending order, got {v}")
         return v
 
     @model_validator(mode="after")
-    def _validate_task_routing(self) -> CascadeConfig:
-        if self.task_routing:
-            all_routed_stages: set[int] = set()
-            for stages_list in self.task_routing.values():
-                for s in stages_list:
-                    if s not in (1, 2, 3):
-                        raise ValueError(f"Invalid stage {s} in task_routing (must be 1, 2, or 3)")
-                    all_routed_stages.add(s)
-            missing = all_routed_stages - set(self.stages)
-            if missing:
-                raise ValueError(
-                    f"task_routing references stages {missing} not in stages={self.stages}. "
-                    f"Add them to stages so they get initialized."
-                )
+    def _validate_blend_stages(self) -> CascadeConfig:
+        """Blend strategy requires both Stage 1 and Stage 3."""
+        if self.strategy == "blend" and not ({1, 3} <= set(self.stages)):
+            raise ValueError(
+                f"strategy='blend' requires stages to include both 1 and 3, got {self.stages}"
+            )
         return self
 
     @classmethod

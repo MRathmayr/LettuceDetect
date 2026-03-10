@@ -6,7 +6,7 @@ import logging
 import time
 
 from lettucedetect.cascade.types import CascadeInput, RoutingDecision, StageResult
-from lettucedetect.configs import CascadeConfig, Stage3Method
+from lettucedetect.configs import CascadeConfig
 from lettucedetect.detectors.base import BaseDetector
 
 logger = logging.getLogger(__name__)
@@ -27,11 +27,6 @@ class CascadeDetector(BaseDetector):
         """Initialize cascade detector with config."""
         self.config = config
         self._stages: dict = {}
-        self._classifier = None
-        if config.task_routing:
-            from lettucedetect.detectors.task_classifier import TaskTypeClassifier
-
-            self._classifier = TaskTypeClassifier()
         self._initialize_stages()
 
     def _initialize_stages(self) -> None:
@@ -58,31 +53,25 @@ class CascadeDetector(BaseDetector):
 
     def _init_stage3(self):
         """Initialize Stage 3 detector based on configured method."""
-        if self.config.stage3.method == Stage3Method.READING_PROBE:
-            from lettucedetect.detectors.stage3.reading_probe_detector import (
-                ReadingProbeDetector,
-            )
+        from lettucedetect.detectors.stage3.grounding_probe_detector import (
+            GroundingProbeDetector,
+        )
 
-            return ReadingProbeDetector(
-                model_name_or_path=self.config.stage3.llm_model,
-                probe_path=self.config.stage3.probe_path,
-                layer_index=self.config.stage3.layer_index,
-                token_position=self.config.stage3.token_position,
-                threshold=self.config.stage3.threshold,
-            )
-        elif self.config.stage3.method == Stage3Method.SEMANTIC_ENTROPY:
-            raise NotImplementedError(
-                "Semantic entropy detector not yet implemented (offline baseline only)"
-            )
-        else:
-            raise ValueError(f"Unknown Stage 3 method: {self.config.stage3.method}")
+        return GroundingProbeDetector(
+            model_name_or_path=self.config.stage3.llm_model,
+            probe_path=self.config.stage3.probe_path,
+            probe_repo_id=self.config.stage3.probe_repo_id,
+            probe_filename=self.config.stage3.probe_filename,
+            layer_index=self.config.stage3.layer_index,
+            token_position=self.config.stage3.token_position,
+            threshold=self.config.stage3.threshold,
+        )
 
     def predict(
         self,
         context: list[str],
         answer: str,
         question: str | None = None,
-        task_type: str | None = None,
         output_format: str = "tokens",
     ) -> list | dict:
         """Main prediction - routes through cascade stages.
@@ -90,29 +79,17 @@ class CascadeDetector(BaseDetector):
         Args:
             context: List of context passages.
             answer: The answer to check for hallucination.
-            question: Optional question (used for task-type classification).
-            task_type: Explicit task type ('qa', 'summarization', 'data2txt', 'unknown').
-                If None and task_routing is configured, auto-detects from question/context.
+            question: Optional question.
             output_format: 'tokens', 'spans', or 'detailed'.
         """
         start_time = time.perf_counter()
 
-        # Auto-detect task type if routing is configured and type not provided
-        if self.config.task_routing and task_type is None and self._classifier is not None:
-            task_type = self._classifier.classify(question, context)
-            logger.debug("Auto-detected task_type=%s", task_type)
-
-        # Determine active stages for this input
-        if self.config.task_routing and task_type:
-            active_stages = self.config.task_routing.get(task_type, [1])
-        else:
-            active_stages = self.config.stages
+        active_stages = self.config.stages
 
         cascade_input = CascadeInput(
             context=context,
             answer=answer,
             question=question,
-            task_type=task_type,
         )
 
         stage_results = []
@@ -159,7 +136,7 @@ class CascadeDetector(BaseDetector):
 
         if output_format == "detailed":
             return self._format_detailed(
-                final_result, stage_results, total_latency, task_type
+                final_result, stage_results, total_latency
             )
         elif output_format == "spans":
             return final_result.output if final_result else []
@@ -213,7 +190,6 @@ class CascadeDetector(BaseDetector):
         final_result: StageResult | None,
         stage_results: list[StageResult],
         total_latency: float,
-        task_type: str | None = None,
     ) -> dict:
         """Format detailed output with routing info."""
         if final_result is None:
@@ -222,7 +198,6 @@ class CascadeDetector(BaseDetector):
         return {
             "spans": final_result.output,
             "routing": {
-                "task_type": task_type,
                 "resolved_at_stage": int(final_result.stage_name[-1]),
                 "stages_executed": [int(r.stage_name[-1]) for r in stage_results],
                 "total_latency_ms": total_latency,
@@ -245,7 +220,6 @@ class CascadeDetector(BaseDetector):
         self,
         prompt: str,
         answer: str,
-        task_type: str | None = None,
         output_format: str = "tokens",
     ) -> list | dict:
         """Predict with pre-formatted prompt - implements BaseDetector interface."""
@@ -253,7 +227,6 @@ class CascadeDetector(BaseDetector):
             context=[prompt],
             answer=answer,
             question=None,
-            task_type=task_type,
             output_format=output_format,
         )
 
@@ -261,12 +234,11 @@ class CascadeDetector(BaseDetector):
         self,
         prompts: list[str],
         answers: list[str],
-        task_type: str | None = None,
         output_format: str = "tokens",
     ) -> list:
         """Batch prediction with prompts - implements BaseDetector interface."""
         return [
-            self.predict_prompt(p, a, task_type=task_type, output_format=output_format)
+            self.predict_prompt(p, a, output_format=output_format)
             for p, a in zip(prompts, answers)
         ]
 

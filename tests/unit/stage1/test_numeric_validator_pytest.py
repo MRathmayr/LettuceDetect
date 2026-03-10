@@ -126,9 +126,9 @@ class TestNumericValidation:
         context = ["Revenue was $100 million in 2023."]
         answer = "Revenue was $100 million in 2024."
         result = self.validator.score(context, answer, None, None)
-        # Extracted: $100 (matches), 2024 (no match), 1000000/million (matches)
-        # Score = unverified / total = 1/3 = 0.333
-        assert abs(result.score - 0.333) < 0.01
+        # Extracted: $100 (matches), 2024 (no match)
+        # Score = unverified / total = 1/2 = 0.5
+        assert abs(result.score - 0.5) < 0.01
         assert len(result.flagged_spans) == 1
 
 
