@@ -1,0 +1,87 @@
+{
+  "metadata": {
+    "timestamp": "2026-01-24T21:04:57.986310",
+    "datasets": {
+      "ragtruth": 2700,
+      "halueval_qa": 10000,
+      "halueval_dialogue": 10000,
+      "halueval_summarization": 10000
+    },
+    "total_samples": 32700,
+    "compute_ci": true,
+    "total_time_sec": 14466.024452924728,
+    "total_time_hours": 4.018340125812425
+  },
+  "summary": {
+    "transformer": {
+      "avg_auroc": 0.6841003436245547,
+      "avg_f1": 0.6131977523793384,
+      "avg_optimal_f1": 0.6986025813724323,
+      "avg_latency_mean_ms": 45.38080814486796,
+      "avg_latency_p95_ms": 85.5681967795911,
+      "total_samples": 32700
+    },
+    "ner": {
+      "avg_auroc": 0.5518788469917956,
+      "avg_f1": 0.44822227779979923,
+      "avg_optimal_f1": 0.6579791967001364,
+      "avg_latency_mean_ms": 36.74905604767627,
+      "avg_latency_p95_ms": 70.06106604974508,
+      "total_samples": 32700
+    },
+    "lexical": {
+      "avg_auroc": 0.41615482606915805,
+      "avg_f1": 0.6552545198261364,
+      "avg_optimal_f1": 0.6635174726716487,
+      "avg_latency_mean_ms": 2.8852373446175537,
+      "avg_latency_p95_ms": 5.580284111914562,
+      "total_samples": 32700
+    },
+    "nli": {
+      "avg_auroc": 0.6824940568405631,
+      "avg_f1": 0.6070694896066317,
+      "avg_optimal_f1": 0.6986955401609658,
+      "avg_latency_mean_ms": 55.98766043764801,
+      "avg_latency_p95_ms": 134.49176204910052,
+      "total_samples": 32700
+    },
+    "model2vec": {
+      "avg_auroc": 0.4026527606508098,
+      "avg_f1": 0.0067599777931877745,
+      "avg_optimal_f1": 0.663419724995757,
+      "avg_latency_mean_ms": 0.5361761410710366,
+      "avg_latency_p95_ms": 0.7287865992122744,
+      "total_samples": 32700
+    },
+    "numeric": {
+      "avg_auroc": 0.536090857821543,
+      "avg_f1": 0.5676385493581709,
+      "avg_optimal_f1": 0.6551820417320179,
+      "avg_latency_mean_ms": 0.6785231160930221,
+      "avg_latency_p95_ms": 1.3812449658760364,
+      "total_samples": 32700
+    },
+    "stage1": {
+      "avg_auroc": 0.7020812122338508,
+      "avg_f1": 0.6766784957977525,
+      "avg_optimal_f1": 0.7304489659787508,
+      "avg_latency_mean_ms": 100.25625321353783,
+      "total_samples": 32700
+    },
+    "stage2": {
+      "avg_auroc": 0.6021791292939704,
+      "avg_f1": 0.5718359059390153,
+      "avg_optimal_f1": 0.6739428504387885,
+      "avg_latency_mean_ms": 53.383719083863504,
+      "total_samples": 32700
+    },
+    "cascade_stages12": {
+      "avg_auroc": 0.6599094043532493,
+      "avg_f1": 0.5860082060649712,
+      "avg_optimal_f1": 0.7009877298047226,
+      "avg_latency_mean_ms": 143.57246280966478,
+      "avg_stage1_resolved_pct": 28.706422018348626,
+      "total_samples": 32700
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "timestamp": "2026-01-26T18:27:19.360602",
+    "datasets": {
+      "ragtruth": 2700
+    },
+    "total_samples": 2700,
+    "compute_ci": false,
+    "component_filter": [
+      "ner"
+    ],
+    "total_time_sec": 220.05765557289124,
+    "total_time_hours": 0.061127126548025344
+  },
+  "summary": {
+    "ner": {
+      "avg_auroc": 0.6652891539432333,
+      "avg_f1": 0.4228707564026206,
+      "avg_optimal_f1": 0.5749559038495103,
+      "avg_latency_mean_ms": 80.20873492148624,
+      "avg_latency_p95_ms": 150.74742080023495,
+      "total_samples": 2700
+    }
+  }
+}

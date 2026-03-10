@@ -1,0 +1,235 @@
+========================================
+Benchmark Validation Run (--quick)
+========================================
+Job ID: 7207175
+Node: n3071-012
+Start time: Sun Feb  8 17:51:46 CET 2026
+========================================
+Python 3.12.10
+PyTorch: 2.10.0+cu128, CUDA: True, GPUs: 2
+name, memory.total [MiB]
+NVIDIA A100-PCIE-40GB, 40960 MiB
+NVIDIA A100-PCIE-40GB, 40960 MiB
+
+Running quick validation (100 samples, all datasets, stage3=8b)...
+Loading all datasets (limit=100 per dataset)...
+Loaded 400 samples (400 valid)
+Task types: {'summary': 100, 'qa': 100, 'dialogue': 100, 'summarization': 100}
+
+============================================================
+COMPONENT BENCHMARKS
+============================================================
+
+[1/6] Lexical Overlap...
+     lexical [dialogue]: AUROC=0.490, F1=0.671, OptF1=0.681, n=100
+     lexical [qa]: AUROC=0.951, F1=0.700, OptF1=0.970, n=100
+     lexical [summarization]: AUROC=0.729, F1=0.737, OptF1=0.737, n=100
+     lexical [summary]: AUROC=0.563, F1=0.456, OptF1=0.468, n=100
+   AUROC: 0.668, Latency: 3.09ms
+
+[2/6] Numeric Validator...
+     numeric [dialogue]: AUROC=0.510, F1=0.169, OptF1=0.667, n=100
+     numeric [qa]: AUROC=0.540, F1=0.148, OptF1=0.667, n=100
+     numeric [summarization]: AUROC=0.490, F1=0.073, OptF1=0.667, n=100
+     numeric [summary]: AUROC=0.571, F1=0.118, OptF1=0.425, n=100
+   AUROC: 0.517, Latency: 0.63ms
+
+[3/6] NER Verifier...
+     ner [dialogue]: AUROC=0.558, F1=0.613, OptF1=0.667, n=100
+     ner [qa]: AUROC=0.759, F1=0.641, OptF1=0.723, n=100
+     ner [summarization]: AUROC=0.500, F1=0.206, OptF1=0.667, n=100
+     ner [summary]: AUROC=0.565, F1=0.118, OptF1=0.440, n=100
+   AUROC: 0.618, Latency: 56.72ms
+
+[4/6] Transformer Detector...
+     transformer [dialogue]: AUROC=0.712, F1=0.713, OptF1=0.756, n=100
+     transformer [qa]: AUROC=0.720, F1=0.625, OptF1=0.667, n=100
+     transformer [summarization]: AUROC=0.490, F1=0.320, OptF1=0.667, n=100
+     transformer [summary]: AUROC=0.614, F1=0.390, OptF1=0.425, n=100
+   AUROC: 0.645, Latency: 23.54ms, GPU: 692MB
+
+[5/6] Model2Vec (NCS)...
+     model2vec [dialogue]: AUROC=0.373, F1=0.000, OptF1=0.667, n=100
+     model2vec [qa]: AUROC=0.202, F1=0.000, OptF1=0.667, n=100
+     model2vec [summarization]: AUROC=0.314, F1=0.000, OptF1=0.667, n=100
+     model2vec [summary]: AUROC=0.593, F1=0.000, OptF1=0.479, n=100
+   AUROC: 0.480, Latency: 0.70ms
+
+[6/6] NLI Detector...
+     nli [dialogue]: AUROC=0.798, F1=0.676, OptF1=0.750, n=100
+     nli [qa]: AUROC=0.729, F1=0.661, OptF1=0.747, n=100
+     nli [summarization]: AUROC=0.730, F1=0.729, OptF1=0.729, n=100
+     nli [summary]: AUROC=0.565, F1=0.469, OptF1=0.485, n=100
+   AUROC: 0.720, Latency: 61.32ms, GPU: 3482MB
+
+============================================================
+STAGE BENCHMARKS
+============================================================
+
+[Stage 1] Full pipeline with augmentations...
+     stage1 [dialogue]: AUROC=0.717, F1=0.711, OptF1=0.756, n=100
+     stage1 [qa]: AUROC=0.827, F1=0.779, OptF1=0.796, n=100
+     stage1 [summarization]: AUROC=0.517, F1=0.552, OptF1=0.667, n=100
+     stage1 [summary]: AUROC=0.654, F1=0.436, OptF1=0.468, n=100
+   AUROC: 0.670, Latency: 103.85ms, GPU: 682MB
+
+[Stage 2] Full pipeline (NCS + NLI)...
+     stage2 [dialogue]: AUROC=0.520, F1=0.671, OptF1=0.671, n=100
+     stage2 [qa]: AUROC=0.630, F1=0.673, OptF1=0.673, n=100
+     stage2 [summarization]: AUROC=0.640, F1=0.723, OptF1=0.723, n=100
+     stage2 [summary]: AUROC=0.616, F1=0.485, OptF1=0.485, n=100
+   AUROC: 0.603, Latency: 48.71ms, GPU: 3492MB
+
+============================================================
+CASCADE BENCHMARK (Stages 1+2)
+============================================================
+     cascade_12 [dialogue]: AUROC=0.531, F1=0.676, OptF1=0.676, n=100
+     cascade_12 [qa]: AUROC=0.897, F1=0.744, OptF1=0.909, n=100
+     cascade_12 [summarization]: AUROC=0.681, F1=0.574, OptF1=0.740, n=100
+     cascade_12 [summary]: AUROC=0.671, F1=0.462, OptF1=0.508, n=100
+   AUROC: 0.695, Latency: 125.68ms, GPU: 4070MB
+   Routing: 182/400 (45.5%) resolved at Stage 1
+
+============================================================
+STAGE 3 VARIANT: 8B (meta-llama/Llama-3.1-8B-Instruct)
+============================================================
+
+   Loading cascade [1,3] with meta-llama/Llama-3.1-8B-Instruct...
+
+   [Stage 3] Reading Probe (8B) standalone...
+     stage3_8b [dialogue]: AUROC=0.417, F1=0.667, OptF1=0.667, n=100
+     stage3_8b [qa]: AUROC=0.954, F1=0.840, OptF1=0.897, n=100
+     stage3_8b [summarization]: AUROC=0.630, F1=0.667, OptF1=0.677, n=100
+     stage3_8b [summary]: AUROC=0.449, F1=0.425, OptF1=0.426, n=100
+   AUROC: 0.570, Latency: 156.76ms, GPU: 3363MB
+
+   [Cascade 1+3] (8B)...
+     cascade_13_8b [dialogue]: AUROC=0.412, F1=0.676, OptF1=0.676, n=100
+     cascade_13_8b [qa]: AUROC=0.944, F1=0.831, OptF1=0.909, n=100
+     cascade_13_8b [summarization]: AUROC=0.627, F1=0.563, OptF1=0.721, n=100
+     cascade_13_8b [summary]: AUROC=0.576, F1=0.407, OptF1=0.463, n=100
+   AUROC: 0.648, Latency: 183.40ms, GPU: 3225MB
+   Routing: 182/400 (45.5%) resolved at Stage 1
+
+   [Task-Routed Cascade 1+3] (8B)...
+   (QA -> [1,3], summarization/data2txt/other -> [1] only)
+     cascade_routed_8b [dialogue]: AUROC=0.647, F1=0.713, OptF1=0.739, n=100
+     cascade_routed_8b [qa]: AUROC=0.944, F1=0.831, OptF1=0.909, n=100
+     cascade_routed_8b [summarization]: AUROC=0.632, F1=0.320, OptF1=0.727, n=100
+     cascade_routed_8b [summary]: AUROC=0.640, F1=0.390, OptF1=0.476, n=100
+   AUROC: 0.726, Latency: 110.22ms, GPU: 2447MB
+   Routing: 356/400 (89.0%) resolved at Stage 1
+     dialogue: 100 samples -> Stage1=100, Stage3=0
+     qa: 100 samples -> Stage1=56, Stage3=44
+     summarization: 100 samples -> Stage1=100, Stage3=0
+     summary: 100 samples -> Stage1=100, Stage3=0
+
+================================================================================
+BENCHMARK SUMMARY
+================================================================================
+
+Component                 AUROC         F1      Latency          P95     GPU MB
+--------------------------------------------------------------------------------
+lexical                   0.668      0.654       3.09ms       7.86ms          -
+numeric                   0.517      0.129       0.63ms       1.67ms          -
+ner                       0.618      0.467      56.72ms     172.01ms          -
+transformer               0.645      0.560      23.54ms      47.56ms        692
+model2vec                 0.480      0.000       0.70ms       1.47ms          -
+nli                       0.720      0.645      61.32ms      69.73ms       3482
+--------------------------------------------------------------------------------
+stage1                    0.670      0.624     103.85ms     289.20ms        682
+stage2                    0.603      0.648      48.71ms      58.85ms       3492
+stage3_8b                 0.570      0.648     156.76ms     306.86ms       3363
+--------------------------------------------------------------------------------
+stages_12                 0.695      0.637     125.68ms     303.69ms       4070
+stages_13_8b              0.648      0.642     183.40ms     531.41ms       3225
+task_routed_8b            0.726      0.617     110.22ms     274.38ms       2447
+================================================================================
+
+================================================================================
+PER-TASK BREAKDOWN
+================================================================================
+
+Component            Task Type         AUROC     F1@0.5      OptF1        N
+--------------------------------------------------------------------------------
+lexical              dialogue          0.490      0.671      0.681      100
+lexical              qa                0.951      0.700      0.970      100
+lexical              summarization      0.729      0.737      0.737      100
+lexical              summary           0.563      0.456      0.468      100
+
+numeric              dialogue          0.510      0.169      0.667      100
+numeric              qa                0.540      0.148      0.667      100
+numeric              summarization      0.490      0.073      0.667      100
+numeric              summary           0.571      0.118      0.425      100
+
+ner                  dialogue          0.558      0.613      0.667      100
+ner                  qa                0.759      0.641      0.723      100
+ner                  summarization      0.500      0.206      0.667      100
+ner                  summary           0.565      0.118      0.440      100
+
+transformer          dialogue          0.712      0.713      0.756      100
+transformer          qa                0.720      0.625      0.667      100
+transformer          summarization      0.490      0.320      0.667      100
+transformer          summary           0.614      0.390      0.425      100
+
+model2vec            dialogue          0.373      0.000      0.667      100
+model2vec            qa                0.202      0.000      0.667      100
+model2vec            summarization      0.314      0.000      0.667      100
+model2vec            summary           0.593      0.000      0.479      100
+
+nli                  dialogue          0.798      0.676      0.750      100
+nli                  qa                0.729      0.661      0.747      100
+nli                  summarization      0.730      0.729      0.729      100
+nli                  summary           0.565      0.469      0.485      100
+
+stage1               dialogue          0.717      0.711      0.756      100
+stage1               qa                0.827      0.779      0.796      100
+stage1               summarization      0.517      0.552      0.667      100
+stage1               summary           0.654      0.436      0.468      100
+
+stage2               dialogue          0.520      0.671      0.671      100
+stage2               qa                0.630      0.673      0.673      100
+stage2               summarization      0.640      0.723      0.723      100
+stage2               summary           0.616      0.485      0.485      100
+
+stage3_8b            dialogue          0.417      0.667      0.667      100
+stage3_8b            qa                0.954      0.840      0.897      100
+stage3_8b            summarization      0.630      0.667      0.677      100
+stage3_8b            summary           0.449      0.425      0.426      100
+
+stages_12            dialogue          0.531      0.676      0.676      100
+stages_12            qa                0.897      0.744      0.909      100
+stages_12            summarization      0.681      0.574      0.740      100
+stages_12            summary           0.671      0.462      0.508      100
+
+stages_13_8b         dialogue          0.412      0.676      0.676      100
+stages_13_8b         qa                0.944      0.831      0.909      100
+stages_13_8b         summarization      0.627      0.563      0.721      100
+stages_13_8b         summary           0.576      0.407      0.463      100
+
+task_routed_8b       dialogue          0.647      0.713      0.739      100
+task_routed_8b       qa                0.944      0.831      0.909      100
+task_routed_8b       summarization      0.632      0.320      0.727      100
+task_routed_8b       summary           0.640      0.390      0.476      100
+
+================================================================================
+
+================================================================================
+TASK ROUTING BREAKDOWN
+================================================================================
+
+  task_routed_8b:
+    Task Type         Samples   Stage1   Stage3  Stage3%
+    ------------------------------------------------
+    dialogue              100      100        0     0.0%
+    qa                    100       56       44    44.0%
+    summarization         100      100        0     0.0%
+    summary               100      100        0     0.0%
+================================================================================
+Results saved to: tests/benchmarks/results/benchmark_8b_20260208_175205.json
+
+Total time: 438.6s (7.3m)
+
+========================================
+Validation Complete - Sun Feb  8 17:59:28 CET 2026
+========================================

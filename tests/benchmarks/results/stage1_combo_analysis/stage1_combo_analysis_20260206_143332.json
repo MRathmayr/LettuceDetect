@@ -1,0 +1,607 @@
+{
+  "metadata": {
+    "timestamp": "2026-02-06T14:33:36.493689",
+    "dataset": "ragtruth",
+    "n_samples": 2700,
+    "n_hallucinated": 943,
+    "n_supported": 1757,
+    "source": "/home/michael/Desktop/Diploma/LettuceDetect/tests/benchmarks/results/calibration/calibration_analysis.json"
+  },
+  "baselines": {
+    "lexical": {
+      "auroc": 0.771666,
+      "optimal_f1": 0.636052,
+      "optimal_threshold": 0.61,
+      "score_mean": 0.5987,
+      "score_std": 0.1874
+    },
+    "model2vec": {
+      "auroc": 0.732732,
+      "optimal_f1": 0.609966,
+      "optimal_threshold": 0.11,
+      "score_mean": 0.1318,
+      "score_std": 0.0792
+    },
+    "numeric": {
+      "auroc": 0.657271,
+      "optimal_f1": 0.558916,
+      "optimal_threshold": 0.01,
+      "score_mean": 0.2367,
+      "score_std": 0.3259
+    },
+    "ner": {
+      "auroc": 0.687515,
+      "optimal_f1": 0.591921,
+      "optimal_threshold": 0.11,
+      "score_mean": 0.2465,
+      "score_std": 0.2885
+    },
+    "transformer": {
+      "auroc": 0.83993,
+      "optimal_f1": 0.757151,
+      "optimal_threshold": 0.74,
+      "score_mean": 0.3262,
+      "score_std": 0.4416
+    },
+    "nli": {
+      "auroc": 0.662524,
+      "optimal_f1": 0.582324,
+      "optimal_threshold": 0.47,
+      "score_mean": 0.6381,
+      "score_std": 0.3049
+    }
+  },
+  "stage1_combinations": {
+    "lex_only": {
+      "weights": {
+        "lexical": 1.0
+      },
+      "auroc": 0.771666,
+      "optimal_f1": 0.636052,
+      "optimal_threshold": 0.61,
+      "score_mean": 0.5987,
+      "score_std": 0.1874
+    },
+    "m2v_only": {
+      "weights": {
+        "model2vec": 1.0
+      },
+      "auroc": 0.732732,
+      "optimal_f1": 0.609966,
+      "optimal_threshold": 0.11,
+      "score_mean": 0.1318,
+      "score_std": 0.0792
+    },
+    "lex+m2v_50_50": {
+      "weights": {
+        "lexical": 0.5,
+        "model2vec": 0.5
+      },
+      "auroc": 0.772522,
+      "optimal_f1": 0.635273,
+      "optimal_threshold": 0.37,
+      "score_mean": 0.3653,
+      "score_std": 0.1264
+    },
+    "lex+m2v_60_40": {
+      "weights": {
+        "lexical": 0.6,
+        "model2vec": 0.4
+      },
+      "auroc": 0.773784,
+      "optimal_f1": 0.638975,
+      "optimal_threshold": 0.42,
+      "score_mean": 0.4119,
+      "score_std": 0.138
+    },
+    "lex+m2v_70_30": {
+      "weights": {
+        "lexical": 0.7,
+        "model2vec": 0.3
+      },
+      "auroc": 0.774153,
+      "optimal_f1": 0.638814,
+      "optimal_threshold": 0.48,
+      "score_mean": 0.4586,
+      "score_std": 0.15
+    },
+    "lex+m2v_80_20": {
+      "weights": {
+        "lexical": 0.8,
+        "model2vec": 0.2
+      },
+      "auroc": 0.773743,
+      "optimal_f1": 0.636872,
+      "optimal_threshold": 0.51,
+      "score_mean": 0.5053,
+      "score_std": 0.1622
+    },
+    "lex+m2v+num": {
+      "weights": {
+        "lexical": 0.4,
+        "model2vec": 0.4,
+        "numeric": 0.2
+      },
+      "auroc": 0.760226,
+      "optimal_f1": 0.62731,
+      "optimal_threshold": 0.34,
+      "score_mean": 0.3395,
+      "score_std": 0.1391
+    },
+    "lex+m2v+ner": {
+      "weights": {
+        "lexical": 0.4,
+        "model2vec": 0.4,
+        "ner": 0.2
+      },
+      "auroc": 0.766695,
+      "optimal_f1": 0.634607,
+      "optimal_threshold": 0.34,
+      "score_mean": 0.3415,
+      "score_std": 0.1332
+    },
+    "all_heuristics": {
+      "weights": {
+        "lexical": 0.3,
+        "model2vec": 0.3,
+        "numeric": 0.2,
+        "ner": 0.2
+      },
+      "auroc": 0.763173,
+      "optimal_f1": 0.627148,
+      "optimal_threshold": 0.29,
+      "score_mean": 0.3158,
+      "score_std": 0.1473
+    }
+  },
+  "weight_sweep": [
+    {
+      "lex_weight": 0.0,
+      "m2v_weight": 1.0,
+      "auroc": 0.732732,
+      "optimal_f1": 0.609966,
+      "optimal_threshold": 0.11,
+      "score_mean": 0.1318,
+      "score_std": 0.0792
+    },
+    {
+      "lex_weight": 0.05,
+      "m2v_weight": 0.95,
+      "auroc": 0.742569,
+      "optimal_f1": 0.615794,
+      "optimal_threshold": 0.14,
+      "score_mean": 0.1552,
+      "score_std": 0.0825
+    },
+    {
+      "lex_weight": 0.1,
+      "m2v_weight": 0.9,
+      "auroc": 0.750226,
+      "optimal_f1": 0.624772,
+      "optimal_threshold": 0.17,
+      "score_mean": 0.1785,
+      "score_std": 0.0863
+    },
+    {
+      "lex_weight": 0.15,
+      "m2v_weight": 0.85,
+      "auroc": 0.75603,
+      "optimal_f1": 0.630687,
+      "optimal_threshold": 0.19,
+      "score_mean": 0.2019,
+      "score_std": 0.0905
+    },
+    {
+      "lex_weight": 0.2,
+      "m2v_weight": 0.8,
+      "auroc": 0.760489,
+      "optimal_f1": 0.632689,
+      "optimal_threshold": 0.21,
+      "score_mean": 0.2252,
+      "score_std": 0.095
+    },
+    {
+      "lex_weight": 0.25,
+      "m2v_weight": 0.75,
+      "auroc": 0.763946,
+      "optimal_f1": 0.632841,
+      "optimal_threshold": 0.25,
+      "score_mean": 0.2485,
+      "score_std": 0.0997
+    },
+    {
+      "lex_weight": 0.3,
+      "m2v_weight": 0.7,
+      "auroc": 0.766512,
+      "optimal_f1": 0.633349,
+      "optimal_threshold": 0.28,
+      "score_mean": 0.2719,
+      "score_std": 0.1047
+    },
+    {
+      "lex_weight": 0.35,
+      "m2v_weight": 0.65,
+      "auroc": 0.768595,
+      "optimal_f1": 0.634906,
+      "optimal_threshold": 0.3,
+      "score_mean": 0.2952,
+      "score_std": 0.1099
+    },
+    {
+      "lex_weight": 0.4,
+      "m2v_weight": 0.6,
+      "auroc": 0.770282,
+      "optimal_f1": 0.635523,
+      "optimal_threshold": 0.33,
+      "score_mean": 0.3186,
+      "score_std": 0.1152
+    },
+    {
+      "lex_weight": 0.45,
+      "m2v_weight": 0.55,
+      "auroc": 0.771546,
+      "optimal_f1": 0.634763,
+      "optimal_threshold": 0.35,
+      "score_mean": 0.3419,
+      "score_std": 0.1207
+    },
+    {
+      "lex_weight": 0.5,
+      "m2v_weight": 0.5,
+      "auroc": 0.772522,
+      "optimal_f1": 0.635273,
+      "optimal_threshold": 0.37,
+      "score_mean": 0.3653,
+      "score_std": 0.1264
+    },
+    {
+      "lex_weight": 0.55,
+      "m2v_weight": 0.45,
+      "auroc": 0.77333,
+      "optimal_f1": 0.63744,
+      "optimal_threshold": 0.39,
+      "score_mean": 0.3886,
+      "score_std": 0.1321
+    },
+    {
+      "lex_weight": 0.6,
+      "m2v_weight": 0.4,
+      "auroc": 0.773784,
+      "optimal_f1": 0.638975,
+      "optimal_threshold": 0.42,
+      "score_mean": 0.4119,
+      "score_std": 0.138
+    },
+    {
+      "lex_weight": 0.65,
+      "m2v_weight": 0.35,
+      "auroc": 0.774032,
+      "optimal_f1": 0.639893,
+      "optimal_threshold": 0.45,
+      "score_mean": 0.4353,
+      "score_std": 0.1439
+    },
+    {
+      "lex_weight": 0.7,
+      "m2v_weight": 0.3,
+      "auroc": 0.774153,
+      "optimal_f1": 0.638814,
+      "optimal_threshold": 0.48,
+      "score_mean": 0.4586,
+      "score_std": 0.15
+    },
+    {
+      "lex_weight": 0.75,
+      "m2v_weight": 0.25,
+      "auroc": 0.773981,
+      "optimal_f1": 0.639111,
+      "optimal_threshold": 0.5,
+      "score_mean": 0.482,
+      "score_std": 0.1561
+    },
+    {
+      "lex_weight": 0.8,
+      "m2v_weight": 0.2,
+      "auroc": 0.773743,
+      "optimal_f1": 0.636872,
+      "optimal_threshold": 0.51,
+      "score_mean": 0.5053,
+      "score_std": 0.1622
+    },
+    {
+      "lex_weight": 0.85,
+      "m2v_weight": 0.15,
+      "auroc": 0.773318,
+      "optimal_f1": 0.636072,
+      "optimal_threshold": 0.57,
+      "score_mean": 0.5287,
+      "score_std": 0.1685
+    },
+    {
+      "lex_weight": 0.9,
+      "m2v_weight": 0.1,
+      "auroc": 0.772794,
+      "optimal_f1": 0.637668,
+      "optimal_threshold": 0.6,
+      "score_mean": 0.552,
+      "score_std": 0.1747
+    },
+    {
+      "lex_weight": 0.95,
+      "m2v_weight": 0.05,
+      "auroc": 0.77213,
+      "optimal_f1": 0.636156,
+      "optimal_threshold": 0.62,
+      "score_mean": 0.5753,
+      "score_std": 0.181
+    },
+    {
+      "lex_weight": 1.0,
+      "m2v_weight": 0.0,
+      "auroc": 0.771666,
+      "optimal_f1": 0.636052,
+      "optimal_threshold": 0.61,
+      "score_mean": 0.5987,
+      "score_std": 0.1874
+    }
+  ],
+  "best_lex_m2v_weights": {
+    "lexical": 0.7,
+    "model2vec": 0.3
+  },
+  "comparison": {
+    "current_stage1_trans_lex": {
+      "auroc": 0.877714,
+      "optimal_f1": 0.766996,
+      "optimal_threshold": 0.77,
+      "score_mean": 0.408,
+      "score_std": 0.338
+    },
+    "transformer_only": {
+      "auroc": 0.83993,
+      "optimal_f1": 0.757151,
+      "optimal_threshold": 0.74,
+      "score_mean": 0.3262,
+      "score_std": 0.4416
+    },
+    "new_stage1_lex_m2v": {
+      "auroc": 0.774153,
+      "optimal_f1": 0.638814,
+      "optimal_threshold": 0.48,
+      "score_mean": 0.4586,
+      "score_std": 0.15
+    }
+  },
+  "routing_simulation": [
+    {
+      "th_high": 0.9,
+      "th_low": 0.03,
+      "n_resolved": 0,
+      "resolved_pct": 0.0
+    },
+    {
+      "th_high": 0.85,
+      "th_low": 0.05,
+      "n_resolved": 5,
+      "resolved_pct": 0.19,
+      "accuracy": 0.4
+    },
+    {
+      "th_high": 0.8,
+      "th_low": 0.1,
+      "n_resolved": 37,
+      "resolved_pct": 1.37,
+      "accuracy": 0.4054
+    },
+    {
+      "th_high": 0.75,
+      "th_low": 0.15,
+      "n_resolved": 89,
+      "resolved_pct": 3.3,
+      "accuracy": 0.6629,
+      "resolved_auroc": 0.5568
+    },
+    {
+      "th_high": 0.7,
+      "th_low": 0.2,
+      "n_resolved": 170,
+      "resolved_pct": 6.3,
+      "accuracy": 0.7706,
+      "resolved_auroc": 0.6149
+    },
+    {
+      "th_high": 0.65,
+      "th_low": 0.25,
+      "n_resolved": 440,
+      "resolved_pct": 16.3,
+      "accuracy": 0.8227,
+      "resolved_auroc": 0.8063
+    },
+    {
+      "th_high": 0.6,
+      "th_low": 0.3,
+      "n_resolved": 1021,
+      "resolved_pct": 37.81,
+      "accuracy": 0.7963,
+      "resolved_auroc": 0.8068
+    }
+  ],
+  "cascade_simulation": [
+    {
+      "th_high": 0.9,
+      "th_low": 0.03,
+      "cascade_auroc": 0.83993,
+      "cascade_optimal_f1": 0.757151,
+      "stage1_resolved_n": 0,
+      "stage1_resolved_pct": 0.0,
+      "stage2_resolved_n": 2700
+    },
+    {
+      "th_high": 0.85,
+      "th_low": 0.05,
+      "cascade_auroc": 0.83942,
+      "cascade_optimal_f1": 0.755879,
+      "stage1_resolved_n": 5,
+      "stage1_resolved_pct": 0.19,
+      "stage2_resolved_n": 2695
+    },
+    {
+      "th_high": 0.8,
+      "th_low": 0.1,
+      "cascade_auroc": 0.836339,
+      "cascade_optimal_f1": 0.747941,
+      "stage1_resolved_n": 37,
+      "stage1_resolved_pct": 1.37,
+      "stage2_resolved_n": 2663
+    },
+    {
+      "th_high": 0.75,
+      "th_low": 0.15,
+      "cascade_auroc": 0.833216,
+      "cascade_optimal_f1": 0.745098,
+      "stage1_resolved_n": 89,
+      "stage1_resolved_pct": 3.3,
+      "stage2_resolved_n": 2611
+    },
+    {
+      "th_high": 0.7,
+      "th_low": 0.2,
+      "cascade_auroc": 0.828802,
+      "cascade_optimal_f1": 0.743576,
+      "stage1_resolved_n": 170,
+      "stage1_resolved_pct": 6.3,
+      "stage2_resolved_n": 2530
+    },
+    {
+      "th_high": 0.65,
+      "th_low": 0.25,
+      "cascade_auroc": 0.819101,
+      "cascade_optimal_f1": 0.743372,
+      "stage1_resolved_n": 440,
+      "stage1_resolved_pct": 16.3,
+      "stage2_resolved_n": 2260
+    },
+    {
+      "th_high": 0.6,
+      "th_low": 0.3,
+      "cascade_auroc": 0.797975,
+      "cascade_optimal_f1": 0.732771,
+      "stage1_resolved_n": 1021,
+      "stage1_resolved_pct": 37.81,
+      "stage2_resolved_n": 1679
+    }
+  ],
+  "distributions": {
+    "lexical": {
+      "component": "lexical",
+      "hallucinated": {
+        "mean": 0.7068,
+        "std": 0.134,
+        "min": 0.1681,
+        "p25": 0.6312,
+        "p50": 0.7494,
+        "p75": 0.8029,
+        "max": 0.9242
+      },
+      "supported": {
+        "mean": 0.5407,
+        "std": 0.1862,
+        "min": 0.0513,
+        "p25": 0.4042,
+        "p50": 0.5394,
+        "p75": 0.6931,
+        "max": 1.0
+      },
+      "separation": 0.1661
+    },
+    "model2vec": {
+      "component": "model2vec",
+      "hallucinated": {
+        "mean": 0.1696,
+        "std": 0.0713,
+        "min": 0.0134,
+        "p25": 0.1103,
+        "p50": 0.1781,
+        "p75": 0.2285,
+        "max": 0.3403
+      },
+      "supported": {
+        "mean": 0.1115,
+        "std": 0.0757,
+        "min": 0.0059,
+        "p25": 0.0606,
+        "p50": 0.0918,
+        "p75": 0.1428,
+        "max": 0.5275
+      },
+      "separation": 0.0581
+    },
+    "lex+m2v": {
+      "component": "lex+m2v",
+      "hallucinated": {
+        "mean": 0.5456,
+        "std": 0.1101,
+        "min": 0.1372,
+        "p25": 0.4813,
+        "p50": 0.5848,
+        "p75": 0.6289,
+        "max": 0.72
+      },
+      "supported": {
+        "mean": 0.4119,
+        "std": 0.1477,
+        "min": 0.0427,
+        "p25": 0.3017,
+        "p50": 0.4052,
+        "p75": 0.5246,
+        "max": 0.8583
+      },
+      "separation": 0.1337
+    },
+    "transformer": {
+      "component": "transformer",
+      "hallucinated": {
+        "mean": 0.7175,
+        "std": 0.4093,
+        "min": 0.0,
+        "p25": 0.5515,
+        "p50": 0.9663,
+        "p75": 0.9921,
+        "max": 1.0
+      },
+      "supported": {
+        "mean": 0.1163,
+        "std": 0.289,
+        "min": 0.0,
+        "p25": 0.0,
+        "p50": 0.0,
+        "p75": 0.0,
+        "max": 1.0
+      },
+      "separation": 0.6012
+    },
+    "trans+lex": {
+      "component": "trans+lex",
+      "hallucinated": {
+        "mean": 0.7143,
+        "std": 0.3029,
+        "min": 0.0504,
+        "p25": 0.6048,
+        "p50": 0.8815,
+        "p75": 0.9231,
+        "max": 0.9772
+      },
+      "supported": {
+        "mean": 0.2436,
+        "std": 0.2212,
+        "min": 0.0154,
+        "p25": 0.1238,
+        "p50": 0.1689,
+        "p75": 0.2242,
+        "max": 0.9595
+      },
+      "separation": 0.4707
+    }
+  },
+  "conclusion": "Best lex+m2v AUROC: 0.7742 (lex=0.70, m2v=0.30). Delta vs current Stage1: -0.1036. Model2Vec adds only +0.0025 over lexical alone. Routing simulation: Stage 1 resolves <6% of samples at any reasonable threshold. Cascade AUROC approximately equals transformer alone (0.8399) since Stage 1 barely routes."
+}

@@ -1,0 +1,118 @@
+{
+  "metadata": {
+    "timestamp": "2026-01-26T21:49:57.322785",
+    "n_samples": 2700,
+    "source": "tests/benchmarks/results/calibration/calibration_analysis.json"
+  },
+  "ablation": {
+    "full_cascade": {
+      "auroc": 0.8654390165440344,
+      "f1": 0.7631004366812227
+    },
+    "transformer_only": {
+      "auroc": 0.8399300842381119,
+      "f1": 0.7570872707059477
+    },
+    "without_ner": {
+      "auroc": 0.8692362801483055,
+      "f1": 0.7610132158590308
+    },
+    "without_numeric": {
+      "auroc": 0.8664807517392934,
+      "f1": 0.7663865546218488
+    },
+    "without_lexical": {
+      "auroc": 0.8569334237055716,
+      "f1": 0.7612344342176502
+    }
+  },
+  "flip_analysis": {
+    "ner": {
+      "flip_rate": 0.3748148148148148,
+      "n_flips": 1012,
+      "correct_when_flip": 0.21640316205533597,
+      "verdict": "HURTS"
+    },
+    "numeric": {
+      "flip_rate": 0.3548148148148148,
+      "n_flips": 958,
+      "correct_when_flip": 0.21816283924843424,
+      "verdict": "HURTS"
+    },
+    "lexical": {
+      "flip_rate": 0.2948148148148148,
+      "n_flips": 796,
+      "correct_when_flip": 0.2751256281407035,
+      "verdict": "HURTS"
+    }
+  },
+  "voting_results": {
+    "transformer_only": {
+      "auroc": 0.8399300842381119,
+      "f1": 0.7570872707059477,
+      "threshold": 0.7000000000000001,
+      "ci_low": 0.8238969195889609,
+      "ci_high": 0.855085600171839
+    },
+    "raw_weighted_avg": {
+      "auroc": 0.8654390165440344,
+      "f1": 0.7631004366812227,
+      "threshold": 0.5,
+      "ci_low": 0.8500145934277051,
+      "ci_high": 0.8803343526141654
+    },
+    "calibrated_binary": {
+      "auroc": 0.857364663448916,
+      "f1": 0.7482837528604119,
+      "threshold": 0.55,
+      "ci_low": 0.8410952989022971,
+      "ci_high": 0.8728673130561776
+    },
+    "max_voting": {
+      "auroc": 0.8003707032195412,
+      "f1": 0.7116682738669238,
+      "threshold": 0.8,
+      "ci_low": 0.7819752820041069,
+      "ci_high": 0.817130399458026
+    },
+    "veto_voting": {
+      "auroc": 0.8493567013569717,
+      "f1": 0.7570872707059477,
+      "threshold": 0.7000000000000001,
+      "ci_low": 0.8326972462531362,
+      "ci_high": 0.8639541538339883
+    },
+    "transformer_lexical": {
+      "auroc": 0.87771410947635,
+      "f1": 0.7603211009174312,
+      "threshold": 0.7500000000000001,
+      "ci_low": 0.8628675825663986,
+      "ci_high": 0.8907403030431196
+    }
+  },
+  "disagreement_quadrants": {
+    "both_hal": {
+      "n": 757,
+      "gt_hal": 627,
+      "gt_safe": 130
+    },
+    "both_safe": {
+      "n": 898,
+      "gt_safe": 815,
+      "gt_hal": 83
+    },
+    "trans_hal_aug_safe": {
+      "n": 99,
+      "gt_hal": 54,
+      "gt_safe": 45,
+      "trans_wins": "transformer"
+    },
+    "trans_safe_aug_hal": {
+      "n": 946,
+      "gt_hal": 179,
+      "gt_safe": 767,
+      "trans_wins": "transformer"
+    }
+  },
+  "conclusion": "Components ['ner', 'numeric', 'lexical'] flip decisions and are wrong >50% of the time. Best mechanism: transformer_lexical with AUROC 0.878."
+}

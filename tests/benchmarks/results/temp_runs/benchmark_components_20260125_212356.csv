@@ -1,0 +1,2 @@
+component,dataset,n_samples,auroc,f1,optimal_f1,latency_mean_ms,latency_p95_ms,gpu_peak_mb
+model2vec,ragtruth,2700,0.732732152740349,0.0,0.6122637110832745,1.23,1.90,None

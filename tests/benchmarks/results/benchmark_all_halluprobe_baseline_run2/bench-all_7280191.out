@@ -1,0 +1,833 @@
+========================================
+Full Cascade Benchmark - All Variants
+========================================
+Job ID: 7280191
+Node: n3073-009
+Start time: Sun Feb 15 18:42:31 CET 2026
+========================================
+Python 3.12.10
+PyTorch: 2.10.0+cu128, CUDA: True, GPUs: 2
+name, memory.total [MiB]
+NVIDIA A100-PCIE-40GB, 40960 MiB
+NVIDIA A100-PCIE-40GB, 40960 MiB
+
+Running full benchmark (2 transformers x 4 PCA 512 probes)...
+Loading RAGTruth (limit=None)...
+Loaded 2700 samples (2700 valid)
+Task types: {'summary': 900, 'data2txt': 900, 'qa': 900}
+
+============================================================
+PHASE 1: Model-Independent Components
+============================================================
+
+[1/5] Lexical Overlap...
+     lexical [data2txt]: AUROC=0.666, F1=0.783, OptF1=0.786, n=900
+     lexical [qa]: AUROC=0.703, F1=0.392, OptF1=0.414, n=900
+     lexical [summary]: AUROC=0.657, F1=0.431, OptF1=0.432, n=900
+   AUROC: 0.772, OptF1: 0.636, Latency: 4.33ms
+
+[2/5] Numeric Validator...
+     numeric [data2txt]: AUROC=0.544, F1=0.558, OptF1=0.783, n=900
+     numeric [qa]: AUROC=0.665, F1=0.310, OptF1=0.426, n=900
+     numeric [summary]: AUROC=0.541, F1=0.229, OptF1=0.370, n=900
+   AUROC: 0.637, OptF1: 0.530, Latency: 1.04ms
+
+[3/5] NER Verifier...
+     ner [data2txt]: AUROC=0.541, F1=0.517, OptF1=0.783, n=900
+     ner [qa]: AUROC=0.621, F1=0.297, OptF1=0.369, n=900
+     ner [summary]: AUROC=0.551, F1=0.113, OptF1=0.370, n=900
+   AUROC: 0.688, OptF1: 0.592, Latency: 96.44ms
+
+[4/5] Model2Vec (NCS)...
+     model2vec [data2txt]: AUROC=0.565, F1=0.000, OptF1=0.784, n=900
+     model2vec [qa]: AUROC=0.558, F1=0.000, OptF1=0.329, n=900
+     model2vec [summary]: AUROC=0.602, F1=0.000, OptF1=0.392, n=900
+   AUROC: 0.733, OptF1: 0.612, Latency: 0.96ms
+
+[5/5] NLI Detector...
+     nli [data2txt]: AUROC=0.490, F1=0.768, OptF1=0.783, n=900
+     nli [qa]: AUROC=0.604, F1=0.330, OptF1=0.351, n=900
+     nli [summary]: AUROC=0.591, F1=0.403, OptF1=0.406, n=900
+   AUROC: 0.663, OptF1: 0.582, Latency: 58.11ms, GPU: 3495MB
+
+[Stage 2] Full pipeline (NLI-only)...
+     stage2 [data2txt]: AUROC=0.510, F1=0.774, OptF1=0.783, n=900
+     stage2 [qa]: AUROC=0.595, F1=0.343, OptF1=0.343, n=900
+     stage2 [summary]: AUROC=0.583, F1=0.406, OptF1=0.406, n=900
+   AUROC: 0.635, OptF1: 0.582, Latency: 57.91ms, GPU: 3495MB
+
+============================================================
+PHASE 2: Stage 3 Standalone (LLM-only, run once per model)
+============================================================
+
+[Stage 3] 3B (Qwen/Qwen2.5-3B-Instruct) — PCA 512...
+   [GPU] before loading 3b: 8MB allocated, 20MB reserved
+   [GPU] after loading 3b: 2954MB allocated, 2986MB reserved
+     stage3_3b [data2txt]: AUROC=0.857, F1=0.853, OptF1=0.856, n=900
+     stage3_3b [qa]: AUROC=0.785, F1=0.572, OptF1=0.605, n=900
+     stage3_3b [summary]: AUROC=0.704, F1=0.530, OptF1=0.530, n=900
+   AUROC: 0.840, OptF1: 0.744, Latency: 60.05ms, GPU: 4028MB
+   [GPU] after cleanup 3b: 9MB allocated, 22MB reserved
+
+[Stage 3] 7B (Qwen/Qwen2.5-7B-Instruct) — PCA 512...
+   [GPU] before loading 7b: 9MB allocated, 22MB reserved
+   [GPU] after loading 7b: 6383MB allocated, 6410MB reserved
+     stage3_7b [data2txt]: AUROC=0.864, F1=0.856, OptF1=0.860, n=900
+     stage3_7b [qa]: AUROC=0.800, F1=0.589, OptF1=0.597, n=900
+     stage3_7b [summary]: AUROC=0.730, F1=0.579, OptF1=0.584, n=900
+   AUROC: 0.848, OptF1: 0.754, Latency: 119.92ms, GPU: 7602MB
+   [GPU] after cleanup 7b: 9MB allocated, 22MB reserved
+
+[Stage 3] 8B (meta-llama/Llama-3.1-8B-Instruct) — PCA 512...
+   [GPU] before loading 8b: 9MB allocated, 22MB reserved
+   [GPU] after loading 8b: 6835MB allocated, 6868MB reserved
+     stage3_8b [data2txt]: AUROC=0.873, F1=0.858, OptF1=0.864, n=900
+     stage3_8b [qa]: AUROC=0.805, F1=0.603, OptF1=0.607, n=900
+     stage3_8b [summary]: AUROC=0.742, F1=0.581, OptF1=0.584, n=900
+   AUROC: 0.855, OptF1: 0.759, Latency: 121.35ms, GPU: 8147MB
+   [GPU] after cleanup 8b: 9MB allocated, 22MB reserved
+
+[Stage 3] 14B (Qwen/Qwen2.5-14B-Instruct) — PCA 512...
+   [GPU] before loading 14b: 9MB allocated, 22MB reserved
+   [GPU] after loading 14b: 13045MB allocated, 13096MB reserved
+     stage3_14b [data2txt]: AUROC=0.874, F1=0.862, OptF1=0.864, n=900
+     stage3_14b [qa]: AUROC=0.781, F1=0.580, OptF1=0.591, n=900
+     stage3_14b [summary]: AUROC=0.757, F1=0.618, OptF1=0.625, n=900
+   AUROC: 0.854, OptF1: 0.765, Latency: 198.57ms, GPU: 15080MB
+   [GPU] after cleanup 14b: 9MB allocated, 22MB reserved
+
+============================================================
+PHASE 3: Transformer-Dependent Benchmarks
+============================================================
+
+--- TRANSFORMER: base (KRLabsOrg/lettucedect-base-modernbert-en-v1) ---
+
+[Transformer] base standalone...
+   [GPU] transformer base loaded: 598MB allocated, 610MB reserved
+     transformer_base [data2txt]: AUROC=0.887, F1=0.880, OptF1=0.884, n=900
+     transformer_base [qa]: AUROC=0.841, F1=0.619, OptF1=0.676, n=900
+     transformer_base [summary]: AUROC=0.679, F1=0.486, OptF1=0.508, n=900
+   AUROC: 0.840, OptF1: 0.758, Latency: 30.89ms, GPU: 712MB
+
+[Stage 1] base + lexical + model2vec...
+     stage1_base [data2txt]: AUROC=0.887, F1=0.880, OptF1=0.884, n=900
+     stage1_base [qa]: AUROC=0.841, F1=0.619, OptF1=0.676, n=900
+     stage1_base [summary]: AUROC=0.679, F1=0.486, OptF1=0.508, n=900
+   AUROC: 0.840, OptF1: 0.758, Latency: 51.75ms, GPU: 712MB
+
+[Cascade 1+2] base...
+     cascade_12_base [data2txt]: AUROC=0.524, F1=0.779, OptF1=0.783, n=900
+     cascade_12_base [qa]: AUROC=0.584, F1=0.440, OptF1=0.440, n=900
+     cascade_12_base [summary]: AUROC=0.687, F1=0.491, OptF1=0.495, n=900
+   AUROC: 0.720, OptF1: 0.662, Latency: 89.08ms, GPU: 4097MB
+   Routing: 986/2700 (36.5%) resolved at Stage 1
+
+  [Cascade 1+3] base + 3B...
+   [GPU] before cascade [1,3] base+3b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] base+3b loaded: 3544MB allocated, 3580MB reserved
+     cascade_13_base_3b [data2txt]: AUROC=0.863, F1=0.854, OptF1=0.856, n=900
+     cascade_13_base_3b [qa]: AUROC=0.870, F1=0.590, OptF1=0.611, n=900
+     cascade_13_base_3b [summary]: AUROC=0.757, F1=0.509, OptF1=0.541, n=900
+   AUROC: 0.878, OptF1: 0.749, Latency: 98.35ms, GPU: 4590MB
+   Routing: 986/2700 (36.5%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] base+3b: 9MB allocated, 22MB reserved
+
+==========================================================================================
+SUMMARY: base + 3B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.772    0.606    0.636      4.3ms      8.0ms        -
+numeric                     0.637    0.439    0.530      1.0ms      1.9ms        -
+ner                         0.688    0.403    0.592     96.4ms    176.9ms        -
+model2vec                   0.733    0.000    0.612      1.0ms      1.4ms        -
+nli                         0.663    0.577    0.582     58.1ms     60.3ms     3495
+transformer_base            0.840    0.751    0.758     30.9ms     51.2ms      712
+------------------------------------------------------------------------------------------
+stage2                      0.635    0.582    0.582     57.9ms     60.3ms     3495
+stage3_3b                   0.840    0.738    0.744     60.0ms     91.6ms     4028
+stage1_base                 0.840    0.751    0.758     51.7ms     85.8ms      712
+------------------------------------------------------------------------------------------
+cascade_12_base             0.720    0.661    0.662     89.1ms    142.5ms     4097
+cascade_13_base_3b          0.878    0.745    0.749     98.3ms    183.8ms     4590
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.703    0.392    0.414    900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.665    0.310    0.426    900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.621    0.297    0.369    900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.558    0.000    0.329    900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.604    0.330    0.351    900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_base         data2txt        0.887    0.880    0.884    900
+transformer_base         qa              0.841    0.619    0.676    900
+transformer_base         summary         0.679    0.486    0.508    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.595    0.343    0.343    900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_3b                data2txt        0.857    0.853    0.856    900
+stage3_3b                qa              0.785    0.572    0.605    900
+stage3_3b                summary         0.704    0.530    0.530    900
+
+stage1_base              data2txt        0.887    0.880    0.884    900
+stage1_base              qa              0.841    0.619    0.676    900
+stage1_base              summary         0.679    0.486    0.508    900
+
+cascade_12_base          data2txt        0.524    0.779    0.783    900
+cascade_12_base          qa              0.584    0.440    0.440    900
+cascade_12_base          summary         0.687    0.491    0.495    900
+
+cascade_13_base_3b       data2txt        0.863    0.854    0.856    900
+cascade_13_base_3b       qa              0.870    0.590    0.611    900
+cascade_13_base_3b       summary         0.757    0.509    0.541    900
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_base_3b_20260215_184249.json
+
+  [Cascade 1+3] base + 7B...
+   [GPU] before cascade [1,3] base+7b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] base+7b loaded: 6974MB allocated, 6996MB reserved
+     cascade_13_base_7b [data2txt]: AUROC=0.870, F1=0.857, OptF1=0.861, n=900
+     cascade_13_base_7b [qa]: AUROC=0.873, F1=0.632, OptF1=0.646, n=900
+     cascade_13_base_7b [summary]: AUROC=0.764, F1=0.533, OptF1=0.544, n=900
+   AUROC: 0.882, OptF1: 0.762, Latency: 133.55ms, GPU: 8159MB
+   Routing: 986/2700 (36.5%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] base+7b: 9MB allocated, 22MB reserved
+
+==========================================================================================
+SUMMARY: base + 7B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.772    0.606    0.636      4.3ms      8.0ms        -
+numeric                     0.637    0.439    0.530      1.0ms      1.9ms        -
+ner                         0.688    0.403    0.592     96.4ms    176.9ms        -
+model2vec                   0.733    0.000    0.612      1.0ms      1.4ms        -
+nli                         0.663    0.577    0.582     58.1ms     60.3ms     3495
+transformer_base            0.840    0.751    0.758     30.9ms     51.2ms      712
+------------------------------------------------------------------------------------------
+stage2                      0.635    0.582    0.582     57.9ms     60.3ms     3495
+stage3_7b                   0.848    0.752    0.754    119.9ms    217.1ms     7602
+stage1_base                 0.840    0.751    0.758     51.7ms     85.8ms      712
+------------------------------------------------------------------------------------------
+cascade_12_base             0.720    0.661    0.662     89.1ms    142.5ms     4097
+cascade_13_base_7b          0.882    0.760    0.762    133.6ms    275.1ms     8159
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.703    0.392    0.414    900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.665    0.310    0.426    900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.621    0.297    0.369    900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.558    0.000    0.329    900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.604    0.330    0.351    900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_base         data2txt        0.887    0.880    0.884    900
+transformer_base         qa              0.841    0.619    0.676    900
+transformer_base         summary         0.679    0.486    0.508    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.595    0.343    0.343    900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_7b                data2txt        0.864    0.856    0.860    900
+stage3_7b                qa              0.800    0.589    0.597    900
+stage3_7b                summary         0.730    0.579    0.584    900
+
+stage1_base              data2txt        0.887    0.880    0.884    900
+stage1_base              qa              0.841    0.619    0.676    900
+stage1_base              summary         0.679    0.486    0.508    900
+
+cascade_12_base          data2txt        0.524    0.779    0.783    900
+cascade_12_base          qa              0.584    0.440    0.440    900
+cascade_12_base          summary         0.687    0.491    0.495    900
+
+cascade_13_base_7b       data2txt        0.870    0.857    0.861    900
+cascade_13_base_7b       qa              0.873    0.632    0.646    900
+cascade_13_base_7b       summary         0.764    0.533    0.544    900
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_base_7b_20260215_184249.json
+
+  [Cascade 1+3] base + 8B...
+   [GPU] before cascade [1,3] base+8b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] base+8b loaded: 7425MB allocated, 7460MB reserved
+     cascade_13_base_8b [data2txt]: AUROC=0.882, F1=0.859, OptF1=0.865, n=900
+     cascade_13_base_8b [qa]: AUROC=0.866, F1=0.617, OptF1=0.622, n=900
+     cascade_13_base_8b [summary]: AUROC=0.761, F1=0.513, OptF1=0.543, n=900
+   AUROC: 0.881, OptF1: 0.758, Latency: 135.80ms, GPU: 8697MB
+   Routing: 986/2700 (36.5%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] base+8b: 9MB allocated, 22MB reserved
+
+==========================================================================================
+SUMMARY: base + 8B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.772    0.606    0.636      4.3ms      8.0ms        -
+numeric                     0.637    0.439    0.530      1.0ms      1.9ms        -
+ner                         0.688    0.403    0.592     96.4ms    176.9ms        -
+model2vec                   0.733    0.000    0.612      1.0ms      1.4ms        -
+nli                         0.663    0.577    0.582     58.1ms     60.3ms     3495
+transformer_base            0.840    0.751    0.758     30.9ms     51.2ms      712
+------------------------------------------------------------------------------------------
+stage2                      0.635    0.582    0.582     57.9ms     60.3ms     3495
+stage3_8b                   0.855    0.755    0.759    121.3ms    218.6ms     8147
+stage1_base                 0.840    0.751    0.758     51.7ms     85.8ms      712
+------------------------------------------------------------------------------------------
+cascade_12_base             0.720    0.661    0.662     89.1ms    142.5ms     4097
+cascade_13_base_8b          0.881    0.754    0.758    135.8ms    282.2ms     8697
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.703    0.392    0.414    900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.665    0.310    0.426    900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.621    0.297    0.369    900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.558    0.000    0.329    900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.604    0.330    0.351    900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_base         data2txt        0.887    0.880    0.884    900
+transformer_base         qa              0.841    0.619    0.676    900
+transformer_base         summary         0.679    0.486    0.508    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.595    0.343    0.343    900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_8b                data2txt        0.873    0.858    0.864    900
+stage3_8b                qa              0.805    0.603    0.607    900
+stage3_8b                summary         0.742    0.581    0.584    900
+
+stage1_base              data2txt        0.887    0.880    0.884    900
+stage1_base              qa              0.841    0.619    0.676    900
+stage1_base              summary         0.679    0.486    0.508    900
+
+cascade_12_base          data2txt        0.524    0.779    0.783    900
+cascade_12_base          qa              0.584    0.440    0.440    900
+cascade_12_base          summary         0.687    0.491    0.495    900
+
+cascade_13_base_8b       data2txt        0.882    0.859    0.865    900
+cascade_13_base_8b       qa              0.866    0.617    0.622    900
+cascade_13_base_8b       summary         0.761    0.513    0.543    900
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_base_8b_20260215_184249.json
+
+  [Cascade 1+3] base + 14B...
+   [GPU] before cascade [1,3] base+14b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] base+14b loaded: 13635MB allocated, 13648MB reserved
+     cascade_13_base_14b [data2txt]: AUROC=0.880, F1=0.863, OptF1=0.865, n=900
+     cascade_13_base_14b [qa]: AUROC=0.864, F1=0.600, OptF1=0.624, n=900
+     cascade_13_base_14b [summary]: AUROC=0.795, F1=0.559, OptF1=0.596, n=900
+   AUROC: 0.888, OptF1: 0.765, Latency: 190.93ms, GPU: 15615MB
+   Routing: 986/2700 (36.5%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] base+14b: 9MB allocated, 22MB reserved
+
+==========================================================================================
+SUMMARY: base + 14B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.772    0.606    0.636      4.3ms      8.0ms        -
+numeric                     0.637    0.439    0.530      1.0ms      1.9ms        -
+ner                         0.688    0.403    0.592     96.4ms    176.9ms        -
+model2vec                   0.733    0.000    0.612      1.0ms      1.4ms        -
+nli                         0.663    0.577    0.582     58.1ms     60.3ms     3495
+transformer_base            0.840    0.751    0.758     30.9ms     51.2ms      712
+------------------------------------------------------------------------------------------
+stage2                      0.635    0.582    0.582     57.9ms     60.3ms     3495
+stage3_14b                  0.854    0.763    0.765    198.6ms    360.5ms    15080
+stage1_base                 0.840    0.751    0.758     51.7ms     85.8ms      712
+------------------------------------------------------------------------------------------
+cascade_12_base             0.720    0.661    0.662     89.1ms    142.5ms     4097
+cascade_13_base_14b         0.888    0.762    0.765    190.9ms    433.9ms    15615
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.703    0.392    0.414    900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.665    0.310    0.426    900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.621    0.297    0.369    900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.558    0.000    0.329    900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.604    0.330    0.351    900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_base         data2txt        0.887    0.880    0.884    900
+transformer_base         qa              0.841    0.619    0.676    900
+transformer_base         summary         0.679    0.486    0.508    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.595    0.343    0.343    900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_14b               data2txt        0.874    0.862    0.864    900
+stage3_14b               qa              0.781    0.580    0.591    900
+stage3_14b               summary         0.757    0.618    0.625    900
+
+stage1_base              data2txt        0.887    0.880    0.884    900
+stage1_base              qa              0.841    0.619    0.676    900
+stage1_base              summary         0.679    0.486    0.508    900
+
+cascade_12_base          data2txt        0.524    0.779    0.783    900
+cascade_12_base          qa              0.584    0.440    0.440    900
+cascade_12_base          summary         0.687    0.491    0.495    900
+
+cascade_13_base_14b      data2txt        0.880    0.863    0.865    900
+cascade_13_base_14b      qa              0.864    0.600    0.624    900
+cascade_13_base_14b      summary         0.795    0.559    0.596    900
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_base_14b_20260215_184249.json
+   [GPU] after base complete cleanup: 9MB allocated, 22MB reserved
+
+--- TRANSFORMER: large (KRLabsOrg/lettucedect-large-modernbert-en-v1) ---
+
+[Transformer] large standalone...
+   [GPU] transformer large loaded: 1519MB allocated, 1632MB reserved
+     transformer_large [data2txt]: AUROC=0.897, F1=0.887, OptF1=0.887, n=900
+     transformer_large [qa]: AUROC=0.855, F1=0.687, OptF1=0.702, n=900
+     transformer_large [summary]: AUROC=0.746, F1=0.604, OptF1=0.606, n=900
+   AUROC: 0.864, OptF1: 0.794, Latency: 61.23ms, GPU: 1676MB
+
+[Stage 1] large + lexical + model2vec...
+     stage1_large [data2txt]: AUROC=0.897, F1=0.887, OptF1=0.887, n=900
+     stage1_large [qa]: AUROC=0.855, F1=0.687, OptF1=0.702, n=900
+     stage1_large [summary]: AUROC=0.746, F1=0.604, OptF1=0.606, n=900
+   AUROC: 0.864, OptF1: 0.794, Latency: 81.56ms, GPU: 1676MB
+
+[Cascade 1+2] large...
+     cascade_12_large [data2txt]: AUROC=0.515, F1=0.778, OptF1=0.783, n=900
+     cascade_12_large [qa]: AUROC=0.572, F1=0.438, OptF1=0.438, n=900
+     cascade_12_large [summary]: AUROC=0.703, F1=0.529, OptF1=0.533, n=900
+   AUROC: 0.719, OptF1: 0.668, Latency: 119.03ms, GPU: 5061MB
+   Routing: 993/2700 (36.8%) resolved at Stage 1
+
+  [Cascade 1+3] large + 3B...
+   [GPU] before cascade [1,3] large+3b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] large+3b loaded: 4467MB allocated, 4588MB reserved
+     cascade_13_large_3b [data2txt]: AUROC=0.860, F1=0.853, OptF1=0.856, n=900
+     cascade_13_large_3b [qa]: AUROC=0.878, F1=0.607, OptF1=0.626, n=900
+     cascade_13_large_3b [summary]: AUROC=0.778, F1=0.518, OptF1=0.580, n=900
+   AUROC: 0.883, OptF1: 0.752, Latency: 131.17ms, GPU: 5520MB
+   Routing: 993/2700 (36.8%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] large+3b: 9MB allocated, 22MB reserved
+
+==========================================================================================
+SUMMARY: large + 3B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.772    0.606    0.636      4.3ms      8.0ms        -
+numeric                     0.637    0.439    0.530      1.0ms      1.9ms        -
+ner                         0.688    0.403    0.592     96.4ms    176.9ms        -
+model2vec                   0.733    0.000    0.612      1.0ms      1.4ms        -
+nli                         0.663    0.577    0.582     58.1ms     60.3ms     3495
+transformer_large           0.864    0.792    0.794     61.2ms    109.7ms     1676
+------------------------------------------------------------------------------------------
+stage2                      0.635    0.582    0.582     57.9ms     60.3ms     3495
+stage3_3b                   0.840    0.738    0.744     60.0ms     91.6ms     4028
+stage1_large                0.864    0.792    0.794     81.6ms    144.8ms     1676
+------------------------------------------------------------------------------------------
+cascade_12_large            0.719    0.668    0.668    119.0ms    199.0ms     5061
+cascade_13_large_3b         0.883    0.750    0.752    131.2ms    249.4ms     5520
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.703    0.392    0.414    900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.665    0.310    0.426    900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.621    0.297    0.369    900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.558    0.000    0.329    900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.604    0.330    0.351    900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_large        data2txt        0.897    0.887    0.887    900
+transformer_large        qa              0.855    0.687    0.702    900
+transformer_large        summary         0.746    0.604    0.606    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.595    0.343    0.343    900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_3b                data2txt        0.857    0.853    0.856    900
+stage3_3b                qa              0.785    0.572    0.605    900
+stage3_3b                summary         0.704    0.530    0.530    900
+
+stage1_large             data2txt        0.897    0.887    0.887    900
+stage1_large             qa              0.855    0.687    0.702    900
+stage1_large             summary         0.746    0.604    0.606    900
+
+cascade_12_large         data2txt        0.515    0.778    0.783    900
+cascade_12_large         qa              0.572    0.438    0.438    900
+cascade_12_large         summary         0.703    0.529    0.533    900
+
+cascade_13_large_3b      data2txt        0.860    0.853    0.856    900
+cascade_13_large_3b      qa              0.878    0.607    0.626    900
+cascade_13_large_3b      summary         0.778    0.518    0.580    900
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_large_3b_20260215_184249.json
+
+  [Cascade 1+3] large + 7B...
+   [GPU] before cascade [1,3] large+7b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] large+7b loaded: 8338MB allocated, 8470MB reserved
+     cascade_13_large_7b [data2txt]: AUROC=0.868, F1=0.856, OptF1=0.860, n=900
+     cascade_13_large_7b [qa]: AUROC=0.876, F1=0.635, OptF1=0.654, n=900
+     cascade_13_large_7b [summary]: AUROC=0.786, F1=0.545, OptF1=0.581, n=900
+   AUROC: 0.886, OptF1: 0.764, Latency: 160.78ms, GPU: 9526MB
+   Routing: 993/2700 (36.8%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] large+7b: 9MB allocated, 22MB reserved
+
+==========================================================================================
+SUMMARY: large + 7B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.772    0.606    0.636      4.3ms      8.0ms        -
+numeric                     0.637    0.439    0.530      1.0ms      1.9ms        -
+ner                         0.688    0.403    0.592     96.4ms    176.9ms        -
+model2vec                   0.733    0.000    0.612      1.0ms      1.4ms        -
+nli                         0.663    0.577    0.582     58.1ms     60.3ms     3495
+transformer_large           0.864    0.792    0.794     61.2ms    109.7ms     1676
+------------------------------------------------------------------------------------------
+stage2                      0.635    0.582    0.582     57.9ms     60.3ms     3495
+stage3_7b                   0.848    0.752    0.754    119.9ms    217.1ms     7602
+stage1_large                0.864    0.792    0.794     81.6ms    144.8ms     1676
+------------------------------------------------------------------------------------------
+cascade_12_large            0.719    0.668    0.668    119.0ms    199.0ms     5061
+cascade_13_large_7b         0.886    0.762    0.764    160.8ms    327.3ms     9526
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.703    0.392    0.414    900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.665    0.310    0.426    900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.621    0.297    0.369    900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.558    0.000    0.329    900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.604    0.330    0.351    900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_large        data2txt        0.897    0.887    0.887    900
+transformer_large        qa              0.855    0.687    0.702    900
+transformer_large        summary         0.746    0.604    0.606    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.595    0.343    0.343    900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_7b                data2txt        0.864    0.856    0.860    900
+stage3_7b                qa              0.800    0.589    0.597    900
+stage3_7b                summary         0.730    0.579    0.584    900
+
+stage1_large             data2txt        0.897    0.887    0.887    900
+stage1_large             qa              0.855    0.687    0.702    900
+stage1_large             summary         0.746    0.604    0.606    900
+
+cascade_12_large         data2txt        0.515    0.778    0.783    900
+cascade_12_large         qa              0.572    0.438    0.438    900
+cascade_12_large         summary         0.703    0.529    0.533    900
+
+cascade_13_large_7b      data2txt        0.868    0.856    0.860    900
+cascade_13_large_7b      qa              0.876    0.635    0.654    900
+cascade_13_large_7b      summary         0.786    0.545    0.581    900
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_large_7b_20260215_184249.json
+
+  [Cascade 1+3] large + 8B...
+   [GPU] before cascade [1,3] large+8b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] large+8b loaded: 8761MB allocated, 8876MB reserved
+     cascade_13_large_8b [data2txt]: AUROC=0.880, F1=0.858, OptF1=0.865, n=900
+     cascade_13_large_8b [qa]: AUROC=0.875, F1=0.625, OptF1=0.630, n=900
+     cascade_13_large_8b [summary]: AUROC=0.780, F1=0.550, OptF1=0.572, n=900
+   AUROC: 0.886, OptF1: 0.762, Latency: 163.39ms, GPU: 10048MB
+   Routing: 993/2700 (36.8%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] large+8b: 9MB allocated, 22MB reserved
+
+==========================================================================================
+SUMMARY: large + 8B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.772    0.606    0.636      4.3ms      8.0ms        -
+numeric                     0.637    0.439    0.530      1.0ms      1.9ms        -
+ner                         0.688    0.403    0.592     96.4ms    176.9ms        -
+model2vec                   0.733    0.000    0.612      1.0ms      1.4ms        -
+nli                         0.663    0.577    0.582     58.1ms     60.3ms     3495
+transformer_large           0.864    0.792    0.794     61.2ms    109.7ms     1676
+------------------------------------------------------------------------------------------
+stage2                      0.635    0.582    0.582     57.9ms     60.3ms     3495
+stage3_8b                   0.855    0.755    0.759    121.3ms    218.6ms     8147
+stage1_large                0.864    0.792    0.794     81.6ms    144.8ms     1676
+------------------------------------------------------------------------------------------
+cascade_12_large            0.719    0.668    0.668    119.0ms    199.0ms     5061
+cascade_13_large_8b         0.886    0.760    0.762    163.4ms    334.1ms    10048
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.703    0.392    0.414    900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.665    0.310    0.426    900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.621    0.297    0.369    900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.558    0.000    0.329    900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.604    0.330    0.351    900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_large        data2txt        0.897    0.887    0.887    900
+transformer_large        qa              0.855    0.687    0.702    900
+transformer_large        summary         0.746    0.604    0.606    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.595    0.343    0.343    900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_8b                data2txt        0.873    0.858    0.864    900
+stage3_8b                qa              0.805    0.603    0.607    900
+stage3_8b                summary         0.742    0.581    0.584    900
+
+stage1_large             data2txt        0.897    0.887    0.887    900
+stage1_large             qa              0.855    0.687    0.702    900
+stage1_large             summary         0.746    0.604    0.606    900
+
+cascade_12_large         data2txt        0.515    0.778    0.783    900
+cascade_12_large         qa              0.572    0.438    0.438    900
+cascade_12_large         summary         0.703    0.529    0.533    900
+
+cascade_13_large_8b      data2txt        0.880    0.858    0.865    900
+cascade_13_large_8b      qa              0.875    0.625    0.630    900
+cascade_13_large_8b      summary         0.780    0.550    0.572    900
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_large_8b_20260215_184249.json
+
+  [Cascade 1+3] large + 14B...
+   [GPU] before cascade [1,3] large+14b: 9MB allocated, 22MB reserved
+   [GPU] cascade [1,3] large+14b loaded: 14555MB allocated, 14670MB reserved
+     cascade_13_large_14b [data2txt]: AUROC=0.879, F1=0.863, OptF1=0.865, n=900
+     cascade_13_large_14b [qa]: AUROC=0.871, F1=0.603, OptF1=0.635, n=900
+     cascade_13_large_14b [summary]: AUROC=0.812, F1=0.571, OptF1=0.618, n=900
+   AUROC: 0.893, OptF1: 0.768, Latency: 218.78ms, GPU: 16530MB
+   Routing: 993/2700 (36.8%) resolved at Stage 1
+   [GPU] after cleanup cascade [1,3] large+14b: 9MB allocated, 22MB reserved
+
+==========================================================================================
+SUMMARY: large + 14B
+==========================================================================================
+
+Component                   AUROC   F1@0.5    OptF1    Latency        P95   GPU MB
+------------------------------------------------------------------------------------------
+lexical                     0.772    0.606    0.636      4.3ms      8.0ms        -
+numeric                     0.637    0.439    0.530      1.0ms      1.9ms        -
+ner                         0.688    0.403    0.592     96.4ms    176.9ms        -
+model2vec                   0.733    0.000    0.612      1.0ms      1.4ms        -
+nli                         0.663    0.577    0.582     58.1ms     60.3ms     3495
+transformer_large           0.864    0.792    0.794     61.2ms    109.7ms     1676
+------------------------------------------------------------------------------------------
+stage2                      0.635    0.582    0.582     57.9ms     60.3ms     3495
+stage3_14b                  0.854    0.763    0.765    198.6ms    360.5ms    15080
+stage1_large                0.864    0.792    0.794     81.6ms    144.8ms     1676
+------------------------------------------------------------------------------------------
+cascade_12_large            0.719    0.668    0.668    119.0ms    199.0ms     5061
+cascade_13_large_14b        0.893    0.765    0.768    218.8ms    483.6ms    16530
+==========================================================================================
+
+==========================================================================================
+PER-TASK BREAKDOWN
+==========================================================================================
+
+Component                Task Type       AUROC   F1@0.5    OptF1      N
+------------------------------------------------------------------------------------------
+lexical                  data2txt        0.666    0.783    0.786    900
+lexical                  qa              0.703    0.392    0.414    900
+lexical                  summary         0.657    0.431    0.432    900
+
+numeric                  data2txt        0.544    0.558    0.783    900
+numeric                  qa              0.665    0.310    0.426    900
+numeric                  summary         0.541    0.229    0.370    900
+
+ner                      data2txt        0.541    0.517    0.783    900
+ner                      qa              0.621    0.297    0.369    900
+ner                      summary         0.551    0.113    0.370    900
+
+model2vec                data2txt        0.565    0.000    0.784    900
+model2vec                qa              0.558    0.000    0.329    900
+model2vec                summary         0.602    0.000    0.392    900
+
+nli                      data2txt        0.490    0.768    0.783    900
+nli                      qa              0.604    0.330    0.351    900
+nli                      summary         0.591    0.403    0.406    900
+
+transformer_large        data2txt        0.897    0.887    0.887    900
+transformer_large        qa              0.855    0.687    0.702    900
+transformer_large        summary         0.746    0.604    0.606    900
+
+stage2                   data2txt        0.510    0.774    0.783    900
+stage2                   qa              0.595    0.343    0.343    900
+stage2                   summary         0.583    0.406    0.406    900
+
+stage3_14b               data2txt        0.874    0.862    0.864    900
+stage3_14b               qa              0.781    0.580    0.591    900
+stage3_14b               summary         0.757    0.618    0.625    900
+
+stage1_large             data2txt        0.897    0.887    0.887    900
+stage1_large             qa              0.855    0.687    0.702    900
+stage1_large             summary         0.746    0.604    0.606    900
+
+cascade_12_large         data2txt        0.515    0.778    0.783    900
+cascade_12_large         qa              0.572    0.438    0.438    900
+cascade_12_large         summary         0.703    0.529    0.533    900
+
+cascade_13_large_14b     data2txt        0.879    0.863    0.865    900
+cascade_13_large_14b     qa              0.871    0.603    0.635    900
+cascade_13_large_14b     summary         0.812    0.571    0.618    900
+
+==========================================================================================
+Results saved to: tests/benchmarks/results/benchmark_large_14b_20260215_184249.json
+   [GPU] after large complete cleanup: 9MB allocated, 22MB reserved
+
+Total time: 6690.5s (111.5m)
+
+========================================
+Benchmark Complete - Sun Feb 15 20:34:23 CET 2026
+========================================
+-rw-r--r-- 1 mrathmayr p73025 1.5M Feb 15 19:51 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_base_14b_20260215_184249.json
+-rw-r--r-- 1 mrathmayr p73025 1.5M Feb 15 19:29 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_base_3b_20260215_184249.json
+-rw-r--r-- 1 mrathmayr p73025 1.5M Feb 15 19:36 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_base_7b_20260215_184249.json
+-rw-r--r-- 1 mrathmayr p73025 1.5M Feb 15 19:42 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_base_8b_20260215_184249.json
+-rw-r--r-- 1 mrathmayr p73025 1.5M Feb 15 20:34 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_large_14b_20260215_184249.json
+-rw-r--r-- 1 mrathmayr p73025 1.5M Feb 15 20:09 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_large_3b_20260215_184249.json
+-rw-r--r-- 1 mrathmayr p73025 1.5M Feb 15 20:16 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_large_7b_20260215_184249.json
+-rw-r--r-- 1 mrathmayr p73025 1.5M Feb 15 20:24 /gpfs/data/fs73025/mrathmayr/LettuceDetect/tests/benchmarks/results/benchmark_large_8b_20260215_184249.json
