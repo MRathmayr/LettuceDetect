@@ -30,6 +30,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/krlabsorg/lettucedetect"
+Documentation = "https://krlabsorg.github.io/LettuceDetect"
 
 [project.optional-dependencies]
 dev = [
@@ -60,11 +61,17 @@ stage3 = [
 cascade = [
     "lettucedetect[stage1,stage2,stage3]",
 ]
+docs = [
+    "mkdocs-material>=9.0",
+    "mkdocstrings[python]>=0.24",
+]
 
 [tool.setuptools]
 packages = ["lettucedetect", "lettucedetect_api"]
 
-# pytest config in tests/pytest.ini
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*_pytest.py"
 
 [tool.ruff]
 line-length = 100
@@ -93,8 +100,13 @@ ignore = [
     "ANN003", # **kwargs annotation
     "ANN204", # missing return type for __init__
     "PTH123", # path.open
+    "C901",   # function complexity
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "ANN001", "ANN201", "ANN202", "D103", "F841"]
+"lettucedetect/preprocess/**" = ["ANN001", "ANN201"]
+"lettucedetect/datasets/analyze_lengths.py" = ["ANN201", "D103", "E741"]
+"lettucedetect/models/evaluator.py" = ["ANN001", "ANN201", "D401"]
 "lettucedetect_api/test_server.py" = ["S101"]
 "lettucedetect_api/test_client.py" = ["S101"]

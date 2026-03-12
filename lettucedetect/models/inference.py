@@ -23,7 +23,12 @@ class HallucinationDetector:
     :param kwargs: Passed straight through to the chosen detector's constructor.
     """
 
-    def __init__(self, method: str = "transformer", **kwargs):
+    def __init__(self, method: str = "transformer", **kwargs) -> None:
+        """Initialize the detector.
+
+        :param method: Detection method to use.
+        :param kwargs: Passed to the detector constructor.
+        """
         self.detector = make_detector(method, **kwargs)
 
     def predict(
@@ -54,6 +59,7 @@ class HallucinationDetector:
         self, prompts: list[str], answers: list[str], output_format: str = "tokens"
     ) -> list:
         """Batch version of :py:meth:`predict_prompt`.
+
         Length of *prompts* and *answers* must match.
 
         :param prompts: List of prompt strings.
