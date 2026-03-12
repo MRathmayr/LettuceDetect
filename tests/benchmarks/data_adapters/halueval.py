@@ -28,11 +28,13 @@ class HaluEvalAdapter(DatasetAdapter):
 
         Args:
             subset: Which HaluEval subset to load
+
         """
         self.subset = subset
 
     @property
     def name(self) -> str:
+        """Return dataset name."""
         return f"halueval_{self.subset.replace('_samples', '')}"
 
     def load(self, limit: int | None = None) -> list[BenchmarkSample]:

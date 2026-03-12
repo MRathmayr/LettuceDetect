@@ -8,8 +8,8 @@ from lettucedetect.cascade.types import (
 )
 
 __all__ = [
+    "AugmentationResult",
+    "CascadeInput",
     "RoutingDecision",
     "StageResult",
-    "CascadeInput",
-    "AugmentationResult",
 ]

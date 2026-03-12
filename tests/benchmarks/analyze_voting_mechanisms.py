@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Analyze voting mechanisms to diagnose cascade performance regression.
 
 Calibrated binary voting decreased cascade AUROC from 0.789 to 0.758.
@@ -111,7 +110,9 @@ def compute_weighted_avg(scores: dict[str, float], weights: dict[str, float]) ->
     return weighted_sum / total_weight
 
 
-def bootstrap_ci(y_true: list[int], y_pred: list[float], n_bootstrap: int = 1000) -> tuple[float, float]:
+def bootstrap_ci(
+    y_true: list[int], y_pred: list[float], n_bootstrap: int = 1000
+) -> tuple[float, float]:
     """Compute 95% confidence interval for AUROC using bootstrap."""
     rng = np.random.default_rng(42)
     n = len(y_true)
@@ -130,7 +131,7 @@ def bootstrap_ci(y_true: list[int], y_pred: list[float], n_bootstrap: int = 1000
 
 
 def run_ablation_study(samples: list[SampleData]) -> dict:
-    """Ablation study: What if we remove each augmentation?"""
+    """Run ablation study: measure impact of removing each augmentation."""
     print("\n" + "=" * 80)
     print("ABLATION STUDY")
     print("=" * 80)
@@ -199,7 +200,9 @@ def run_ablation_study(samples: list[SampleData]) -> dict:
     # Highlight key finding
     if results["transformer_only"]["auroc"] > baseline_auroc:
         improvement = results["transformer_only"]["auroc"] - baseline_auroc
-        print(f"\n>>> Transformer alone ({results['transformer_only']['auroc']:.3f}) BEATS full cascade ({baseline_auroc:.3f}) by +{improvement:.3f}")
+        print(
+            f"\n>>> Transformer alone ({results['transformer_only']['auroc']:.3f}) BEATS full cascade ({baseline_auroc:.3f}) by +{improvement:.3f}"
+        )
 
     return results
 
@@ -249,7 +252,13 @@ def run_flip_analysis(samples: list[SampleData]) -> dict:
         else:
             correct_when_flip = 0.5
 
-        verdict = "HURTS" if correct_when_flip < 0.5 else "HELPS" if correct_when_flip > 0.55 else "neutral"
+        verdict = (
+            "HURTS"
+            if correct_when_flip < 0.5
+            else "HELPS"
+            if correct_when_flip > 0.55
+            else "neutral"
+        )
 
         results[aug_name] = {
             "flip_rate": float(flip_rate),
@@ -258,9 +267,9 @@ def run_flip_analysis(samples: list[SampleData]) -> dict:
             "verdict": verdict,
         }
 
-        pct_str = f"{100*flip_rate:.0f}%"
-        correct_str = f"{100*correct_when_flip:.0f}%"
-        verdict_suffix = f" (< 50%)" if correct_when_flip < 0.5 else ""
+        pct_str = f"{100 * flip_rate:.0f}%"
+        correct_str = f"{100 * correct_when_flip:.0f}%"
+        verdict_suffix = " (< 50%)" if correct_when_flip < 0.5 else ""
         print(f"{aug_name:<12} {pct_str:<15} {correct_str:<20} {verdict}{verdict_suffix}")
 
     return results
@@ -346,7 +355,9 @@ def run_voting_mechanisms(samples: list[SampleData]) -> dict:
     for s in samples:
         scores = {"transformer": s.transformer_score, "lexical": s.lexical_score}
         trans_lex_scores.append(compute_weighted_avg(scores, trans_lex_weights))
-    results["transformer_lexical"] = _evaluate_mechanism(y_true, trans_lex_scores, "Transformer+lexical")
+    results["transformer_lexical"] = _evaluate_mechanism(
+        y_true, trans_lex_scores, "Transformer+lexical"
+    )
 
     # Print sorted by AUROC
     print(f"\n{'Mechanism':<22} {'AUROC':>8} {'F1':>8} {'95% CI':<18}")
@@ -384,12 +395,7 @@ def run_disagreement_analysis(samples: list[SampleData]) -> dict:
 
     # Get scores and thresholds
     trans_scores = np.array([s.transformer_score for s in samples])
-    aug_scores = np.array(
-        [
-            (s.ner_score + s.numeric_score + s.lexical_score) / 3
-            for s in samples
-        ]
-    )
+    aug_scores = np.array([(s.ner_score + s.numeric_score + s.lexical_score) / 3 for s in samples])
 
     trans_thresh, _ = get_optimal_threshold(y_true.tolist(), trans_scores.tolist())
     aug_thresh, _ = get_optimal_threshold(y_true.tolist(), aug_scores.tolist())
@@ -482,8 +488,8 @@ def run_disagreement_analysis(samples: list[SampleData]) -> dict:
         trans_wins = q3["gt_hal"] + q4["gt_safe"]
         aug_wins = q3["gt_safe"] + q4["gt_hal"]
         print(f"\nSUMMARY: On {total_disagree} disagreements:")
-        print(f"  Transformer correct: {trans_wins} ({100*trans_wins/total_disagree:.0f}%)")
-        print(f"  Augmentations correct: {aug_wins} ({100*aug_wins/total_disagree:.0f}%)")
+        print(f"  Transformer correct: {trans_wins} ({100 * trans_wins / total_disagree:.0f}%)")
+        print(f"  Augmentations correct: {aug_wins} ({100 * aug_wins / total_disagree:.0f}%)")
 
         if trans_wins > aug_wins:
             print("\n>>> Transformer wins most disagreements - augmentations hurt performance")
@@ -518,7 +524,9 @@ def generate_conclusion(ablation: dict, flip: dict, voting: dict, disagreement: 
     if "transformer_only" in [best_mech[0]]:
         conclusions.append("RECOMMENDATION: Use transformer only, disable augmentations.")
     elif best_mech[0] == "veto_voting":
-        conclusions.append("RECOMMENDATION: Use veto voting - augmentations can only flag hallucinations.")
+        conclusions.append(
+            "RECOMMENDATION: Use veto voting - augmentations can only flag hallucinations."
+        )
 
     return " ".join(conclusions)
 

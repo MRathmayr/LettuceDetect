@@ -34,6 +34,7 @@ class Stage2Aggregator:
         Args:
             weights: Dict with keys "ncs", "nli" and float weights
             config: AggregatorConfig with thresholds
+
         """
         self.weights = weights
         self.config = config or AggregatorConfig()
@@ -54,6 +55,7 @@ class Stage2Aggregator:
             (hallucination_score, is_hallucination) where:
             - hallucination_score: 0.0 = supported, 1.0 = hallucinated
             - is_hallucination: True if score >= 0.5
+
         """
         # Support scores: high = supported, low = hallucination
         support_scores = {
@@ -80,6 +82,7 @@ class Stage2Aggregator:
 
         Returns:
             Weighted average of binary votes (0.0 to 1.0, hallucination direction)
+
         """
         weighted_sum = 0.0
         total_weight = 0.0
@@ -105,6 +108,7 @@ class Stage2Aggregator:
 
         Returns:
             Hallucination score (weighted average converted from support)
+
         """
         weighted_sum = 0.0
         total_weight = 0.0
@@ -142,6 +146,7 @@ class Stage2Aggregator:
 
         Returns:
             RoutingDecision enum value
+
         """
         # Check if in confident zone
         in_confident_zone = (
@@ -183,6 +188,7 @@ class Stage2Aggregator:
 
         Returns:
             StageResult for cascade
+
         """
         # Compute Stage 2's own agreement between NCS and NLI
         component_scores = [scores.ncs_score, scores.nli_score]

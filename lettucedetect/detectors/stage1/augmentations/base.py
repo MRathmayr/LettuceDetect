@@ -49,11 +49,12 @@ class BaseAugmentation(ABC):
             - evidence: Factual metadata about what was checked
             - details: Component-specific verification details
             - flagged_spans: Specific spans identified as potentially hallucinated
+
         """
         pass
 
     def preload(self) -> None:
-        """Optional: preload resources for consistent latency."""
+        """Preload resources for consistent latency."""
         pass
 
     def safe_score(
@@ -63,7 +64,7 @@ class BaseAugmentation(ABC):
         question: str | None,
         token_predictions: list[dict] | None,
     ) -> AugmentationResult:
-        """Wrapper with error handling - graceful degradation on failure."""
+        """Wrap score() with error handling for graceful degradation on failure."""
         try:
             return self.score(context, answer, question, token_predictions)
         except Exception as e:

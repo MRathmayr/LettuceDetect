@@ -1,7 +1,5 @@
 """Unit tests for ScoreAggregator."""
 
-import pytest
-
 from lettucedetect.cascade.types import AugmentationResult
 from lettucedetect.detectors.stage1.aggregator import (
     AggregationConfig,
@@ -89,8 +87,12 @@ class TestAggregation:
         """
         preds = [{"token": "x", "pred": 1, "prob": 0.8}]  # transformer: 0.8 hallucination
         aug_results = {
-            "ner": AugmentationResult(score=0.0, evidence={}, details={}, flagged_spans=[]),  # supported
-            "numeric": AugmentationResult(score=1.0, evidence={}, details={}, flagged_spans=[]),  # hallucinated
+            "ner": AugmentationResult(
+                score=0.0, evidence={}, details={}, flagged_spans=[]
+            ),  # supported
+            "numeric": AugmentationResult(
+                score=1.0, evidence={}, details={}, flagged_spans=[]
+            ),  # hallucinated
         }
         result = self.aggregator.aggregate(preds, aug_results)
         # 0.5 * 0.8 + 0.25 * 0.0 + 0.25 * 1.0 = 0.4 + 0 + 0.25 = 0.65
@@ -101,7 +103,9 @@ class TestAggregation:
         preds = [{"token": "x", "pred": 0, "prob": 0.1}]  # transformer: 0.0 hallucination
         aug_results = {
             "ner": AugmentationResult(score=None, evidence={}, details={}, flagged_spans=[]),
-            "numeric": AugmentationResult(score=0.0, evidence={}, details={}, flagged_spans=[]),  # supported
+            "numeric": AugmentationResult(
+                score=0.0, evidence={}, details={}, flagged_spans=[]
+            ),  # supported
         }
         result = self.aggregator.aggregate(preds, aug_results)
         # Only transformer (0.0) and numeric (0.0)
@@ -456,8 +460,12 @@ class TestCalibratedVoting:
         """All scores above threshold -> all vote 1 -> score = 1.0."""
         preds = [{"token": "x", "pred": 1, "prob": 0.8}]  # 0.8 >= 0.5 -> vote 1
         aug_results = {
-            "ner": AugmentationResult(score=0.6, evidence={}, details={}, flagged_spans=[]),  # >= 0.5 -> vote 1
-            "numeric": AugmentationResult(score=0.7, evidence={}, details={}, flagged_spans=[]),  # >= 0.5 -> vote 1
+            "ner": AugmentationResult(
+                score=0.6, evidence={}, details={}, flagged_spans=[]
+            ),  # >= 0.5 -> vote 1
+            "numeric": AugmentationResult(
+                score=0.7, evidence={}, details={}, flagged_spans=[]
+            ),  # >= 0.5 -> vote 1
         }
         result = self.aggregator.aggregate(preds, aug_results)
         assert result.hallucination_score == 1.0
@@ -466,8 +474,12 @@ class TestCalibratedVoting:
         """All scores below threshold -> all vote 0 -> score = 0.0."""
         preds = [{"token": "x", "pred": 0, "prob": 0.1}]  # 0.0 < 0.5 -> vote 0
         aug_results = {
-            "ner": AugmentationResult(score=0.4, evidence={}, details={}, flagged_spans=[]),  # < 0.5 -> vote 0
-            "numeric": AugmentationResult(score=0.3, evidence={}, details={}, flagged_spans=[]),  # < 0.5 -> vote 0
+            "ner": AugmentationResult(
+                score=0.4, evidence={}, details={}, flagged_spans=[]
+            ),  # < 0.5 -> vote 0
+            "numeric": AugmentationResult(
+                score=0.3, evidence={}, details={}, flagged_spans=[]
+            ),  # < 0.5 -> vote 0
         }
         result = self.aggregator.aggregate(preds, aug_results)
         assert result.hallucination_score == 0.0
@@ -476,8 +488,12 @@ class TestCalibratedVoting:
         """Mixed votes -> weighted average of binary votes."""
         preds = [{"token": "x", "pred": 1, "prob": 0.8}]  # 0.8 >= 0.5 -> vote 1
         aug_results = {
-            "ner": AugmentationResult(score=0.4, evidence={}, details={}, flagged_spans=[]),  # < 0.5 -> vote 0
-            "numeric": AugmentationResult(score=0.6, evidence={}, details={}, flagged_spans=[]),  # >= 0.5 -> vote 1
+            "ner": AugmentationResult(
+                score=0.4, evidence={}, details={}, flagged_spans=[]
+            ),  # < 0.5 -> vote 0
+            "numeric": AugmentationResult(
+                score=0.6, evidence={}, details={}, flagged_spans=[]
+            ),  # >= 0.5 -> vote 1
         }
         result = self.aggregator.aggregate(preds, aug_results)
         # Votes: transformer=1, ner=0, numeric=1
@@ -498,7 +514,9 @@ class TestCalibratedVoting:
 
         preds = [{"token": "x", "pred": 1, "prob": 0.5}]  # 0.5 < 0.7 -> vote 0
         aug_results = {
-            "ner": AugmentationResult(score=0.2, evidence={}, details={}, flagged_spans=[]),  # 0.2 >= 0.1 -> vote 1
+            "ner": AugmentationResult(
+                score=0.2, evidence={}, details={}, flagged_spans=[]
+            ),  # 0.2 >= 0.1 -> vote 1
         }
         result = aggregator.aggregate(preds, aug_results)
         # Votes: transformer=0, ner=1 -> (0.5*0 + 0.5*1) / 1.0 = 0.5

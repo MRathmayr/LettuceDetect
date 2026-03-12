@@ -46,6 +46,7 @@ class Stage1Detector(BaseDetector):
             augmentations: List of augmentation names (overrides config.augmentations)
             aggregation_config: Optional custom aggregation config
             **kwargs: Additional arguments (model_path overrides config)
+
         """
         self.config = config or Stage1Config()
 
@@ -110,6 +111,7 @@ class Stage1Detector(BaseDetector):
 
         Returns:
             Dict mapping augmentation names to AugmentationResult
+
         """
         aug_results = {}
         for aug in self._augmentations:
@@ -141,6 +143,7 @@ class Stage1Detector(BaseDetector):
 
         Returns:
             Tuple of (transformer_preds, aggregated_score)
+
         """
         # 1. Run TransformerDetector
         transformer_preds = self._transformer.predict(
@@ -165,7 +168,7 @@ class Stage1Detector(BaseDetector):
         question: str | None = None,
         output_format: str = "tokens",
     ) -> list:
-        """Main prediction method - implements BaseDetector interface."""
+        """Predict hallucination tokens or spans for the given context and answer."""
         transformer_preds, aggregated = self._detect(context, answer, question)
 
         # Format output
@@ -219,13 +222,12 @@ class Stage1Detector(BaseDetector):
         Returns:
             StageResult with hallucination_score, confidence, routing decision,
             component scores, and output predictions.
+
         """
         start = time.perf_counter()
 
         # Core detection logic
-        transformer_preds, aggregated = self._detect(
-            input.context, input.answer, input.question
-        )
+        transformer_preds, aggregated = self._detect(input.context, input.answer, input.question)
 
         # Determine routing decision
         if aggregated.confident:

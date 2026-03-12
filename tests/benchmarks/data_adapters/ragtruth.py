@@ -20,6 +20,7 @@ class RAGTruthAdapter(DatasetAdapter):
 
     @property
     def name(self) -> str:
+        """Return dataset name."""
         return "ragtruth"
 
     def load(self, limit: int | None = None) -> list[BenchmarkSample]:

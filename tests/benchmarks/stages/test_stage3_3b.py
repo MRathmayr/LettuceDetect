@@ -53,9 +53,9 @@ class TestStage3BenchmarkQwen3B:
                 )
 
         stats = timer.get_stats()
-        print(f"\n{'='*60}")
-        print(f"Stage 3 (Qwen 3B) Latency - HaluEval QA")
-        print(f"{'='*60}")
+        print(f"\n{'=' * 60}")
+        print("Stage 3 (Qwen 3B) Latency - HaluEval QA")
+        print(f"{'=' * 60}")
         print(f"Mean: {stats.mean_ms:.2f}ms, P95: {stats.p95_ms:.2f}ms")
         print(f"Min: {stats.min_ms:.2f}ms, Max: {stats.max_ms:.2f}ms")
         # Stage 3 target: 50-200ms per sample
@@ -67,15 +67,21 @@ class TestStage3BenchmarkQwen3B:
     ):
         """Benchmark Stage 3 (3B) accuracy on HaluEval QA."""
         _run_stage3_accuracy(
-            stage3_detector_3b, halueval_qa_samples,
-            "stage3_hallu_probe_3b", "halueval_qa", _3B_CONFIG, benchmark_config,
+            stage3_detector_3b,
+            halueval_qa_samples,
+            "stage3_hallu_probe_3b",
+            "halueval_qa",
+            _3B_CONFIG,
+            benchmark_config,
         )
 
-    def test_stage3_accuracy_ragtruth(
-        self, stage3_detector_3b, ragtruth_samples, benchmark_config
-    ):
+    def test_stage3_accuracy_ragtruth(self, stage3_detector_3b, ragtruth_samples, benchmark_config):
         """Benchmark Stage 3 (3B) accuracy on RAGTruth."""
         _run_stage3_accuracy(
-            stage3_detector_3b, ragtruth_samples,
-            "stage3_hallu_probe_3b", "ragtruth", _3B_CONFIG, benchmark_config,
+            stage3_detector_3b,
+            ragtruth_samples,
+            "stage3_hallu_probe_3b",
+            "ragtruth",
+            _3B_CONFIG,
+            benchmark_config,
         )

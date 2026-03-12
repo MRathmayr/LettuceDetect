@@ -8,7 +8,7 @@ from lettucedetect.detectors.stage1.augmentations.numeric_validator import Numer
 __all__ = [
     "BaseAugmentation",
     "NERConfig",
-    "NumericConfig",
     "NERVerifier",
+    "NumericConfig",
     "NumericValidator",
 ]

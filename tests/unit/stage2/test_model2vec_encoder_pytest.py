@@ -1,7 +1,6 @@
 """Unit tests for Model2VecEncoder."""
 
 import numpy as np
-import pytest
 
 from lettucedetect.detectors.stage2.config import Model2VecConfig
 from lettucedetect.detectors.stage2.model2vec_encoder import Model2VecEncoder

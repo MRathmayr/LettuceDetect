@@ -6,11 +6,9 @@ and entity matching work correctly with real-world RAG examples.
 Unified score direction: 0.0 = supported, 1.0 = hallucinated
 """
 
-import pytest
-
 from lettucedetect.detectors.stage1.augmentations.ner_verifier import (
-    NERVerifier,
     NERConfig,
+    NERVerifier,
 )
 
 
@@ -87,29 +85,19 @@ class TestEntityVerificationRealWorld:
         assert len(result.flagged_spans) > 0
         flagged_texts = [span["text"] for span in result.flagged_spans]
         # At least one hallucinated entity should be flagged
-        assert any(
-            "Michael Johnson" in text or "TechCorp" in text for text in flagged_texts
-        )
+        assert any("Michael Johnson" in text or "TechCorp" in text for text in flagged_texts)
 
-    def test_medical_context_supported(
-        self, medical_context, medical_answer_supported
-    ):
+    def test_medical_context_supported(self, medical_context, medical_answer_supported):
         """Verify supported medical answer."""
-        result = self.verifier.score(
-            medical_context, medical_answer_supported, None, None
-        )
+        result = self.verifier.score(medical_context, medical_answer_supported, None, None)
         # Note: spaCy may misclassify drug names like "Metformin" as PERSON
         # We just verify the system doesn't crash and returns a valid score
         assert result.score is not None
         assert 0 <= result.score <= 1.0
 
-    def test_medical_context_hallucinated(
-        self, medical_context, medical_answer_hallucinated
-    ):
+    def test_medical_context_hallucinated(self, medical_context, medical_answer_hallucinated):
         """Verify hallucinated medical answer is flagged."""
-        result = self.verifier.score(
-            medical_context, medical_answer_hallucinated, None, None
-        )
+        result = self.verifier.score(medical_context, medical_answer_hallucinated, None, None)
         # "Glucomax", "James Wilson", "Stanford" are not in context
         assert len(result.flagged_spans) > 0
         flagged_texts = [span["text"] for span in result.flagged_spans]
@@ -119,13 +107,9 @@ class TestEntityVerificationRealWorld:
             for text in flagged_texts
         )
 
-    def test_geographic_context_supported(
-        self, geographic_context, geographic_answer_supported
-    ):
+    def test_geographic_context_supported(self, geographic_context, geographic_answer_supported):
         """Verify supported geographic answer."""
-        result = self.verifier.score(
-            geographic_context, geographic_answer_supported, None, None
-        )
+        result = self.verifier.score(geographic_context, geographic_answer_supported, None, None)
         # Mount Everest, Edmund Hillary, Tenzing Norgay should be verified
         # With unified direction, supported = low score
         assert result.score <= 0.5
@@ -134,9 +118,7 @@ class TestEntityVerificationRealWorld:
         self, geographic_context, geographic_answer_hallucinated
     ):
         """Verify hallucinated geographic answer is flagged."""
-        result = self.verifier.score(
-            geographic_context, geographic_answer_hallucinated, None, None
-        )
+        result = self.verifier.score(geographic_context, geographic_answer_hallucinated, None, None)
         # "Pakistan" and "George Mallory" are not in context
         flagged_texts = [span["text"] for span in result.flagged_spans]
         # Should flag at least one fabricated entity -> high hallucination score

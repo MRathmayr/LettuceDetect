@@ -8,7 +8,6 @@ from tests.benchmarks.core import (
     PredictionResult,
     compute_accuracy_metrics,
 )
-from tests.benchmarks.core.memory import MemoryTracker
 
 
 @pytest.mark.benchmark
@@ -95,9 +94,9 @@ class TestLexicalOverlapBenchmark:
         assert timing.mean_ms < 10, f"Too slow: {timing.mean_ms:.2f}ms"
 
         # Print summary
-        print(f"\n{'='*60}")
-        print(f"Lexical Overlap Benchmark Results")
-        print(f"{'='*60}")
+        print(f"\n{'=' * 60}")
+        print("Lexical Overlap Benchmark Results")
+        print(f"{'=' * 60}")
         print(f"Samples: {metrics.n_samples}")
         print(f"AUROC: {metrics.auroc:.3f}" if metrics.auroc is not None else "AUROC: N/A")
         print(f"F1: {metrics.f1:.3f}" if metrics.f1 is not None else "F1: N/A")

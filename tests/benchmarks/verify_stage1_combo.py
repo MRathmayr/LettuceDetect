@@ -7,10 +7,11 @@ Results saved to tests/benchmarks/results/stage1_combo_analysis/
 """
 
 import json
-import numpy as np
 from datetime import datetime
 from pathlib import Path
-from sklearn.metrics import roc_auc_score, f1_score
+
+import numpy as np
+from sklearn.metrics import f1_score, roc_auc_score
 
 DATA_PATH = Path(__file__).parent / "results" / "calibration" / "calibration_analysis.json"
 OUTPUT_DIR = Path(__file__).parent / "results" / "stage1_combo_analysis"
@@ -57,7 +58,9 @@ def compute_combo_auroc(samples, weights: dict[str, float]) -> dict:
     }
 
 
-def compute_routing_simulation(samples, weights: dict[str, float], th_high: float, th_low: float) -> dict:
+def compute_routing_simulation(
+    samples, weights: dict[str, float], th_high: float, th_low: float
+) -> dict:
     """Simulate routing with given thresholds."""
     y_true = np.array([s["ground_truth"] for s in samples])
     total_weight = sum(w for w in weights.values() if w > 0)
@@ -88,7 +91,9 @@ def compute_routing_simulation(samples, weights: dict[str, float], th_high: floa
         resolved_truth = y_true[resolved]
         result["accuracy"] = round(float((resolved_preds == resolved_truth).mean()), 4)
         if len(np.unique(resolved_truth)) > 1:
-            result["resolved_auroc"] = round(float(roc_auc_score(resolved_truth, y_scores[resolved])), 4)
+            result["resolved_auroc"] = round(
+                float(roc_auc_score(resolved_truth, y_scores[resolved])), 4
+            )
     return result
 
 
@@ -187,7 +192,9 @@ def main():
     for comp in components:
         result = compute_combo_auroc(samples, {comp: 1.0})
         baselines[comp] = result
-        print(f"  {comp:15s}  AUROC={result['auroc']:.4f}  F1={result['optimal_f1']:.4f}  thresh={result['optimal_threshold']:.2f}")
+        print(
+            f"  {comp:15s}  AUROC={result['auroc']:.4f}  F1={result['optimal_f1']:.4f}  thresh={result['optimal_threshold']:.2f}"
+        )
 
     # === Stage 1 combinations ===
     print()
@@ -231,7 +238,7 @@ def main():
             marker = " <-- best"
         print(f"  lex={lex_w:.2f} m2v={m2v_w:.2f}  AUROC={result['auroc']:.4f}{marker}")
 
-    print(f"\nBest: lex={best_lex_w:.2f} m2v={1-best_lex_w:.2f} AUROC={best_auroc:.4f}")
+    print(f"\nBest: lex={best_lex_w:.2f} m2v={1 - best_lex_w:.2f} AUROC={best_auroc:.4f}")
 
     # === Comparison ===
     print()
@@ -241,10 +248,18 @@ def main():
     current_s1 = compute_combo_auroc(samples, {"transformer": 0.7, "lexical": 0.3})
     trans_only = compute_combo_auroc(samples, {"transformer": 1.0})
     best_new_s1 = compute_combo_auroc(samples, {"lexical": best_lex_w, "model2vec": 1 - best_lex_w})
-    print(f"  Current Stage1 (trans=0.7 lex=0.3):  AUROC={current_s1['auroc']:.4f}  F1={current_s1['optimal_f1']:.4f}")
-    print(f"  Transformer only:                     AUROC={trans_only['auroc']:.4f}  F1={trans_only['optimal_f1']:.4f}")
-    print(f"  New Stage1 best (lex+m2v):             AUROC={best_new_s1['auroc']:.4f}  F1={best_new_s1['optimal_f1']:.4f}")
-    print(f"  Delta vs current:                      AUROC={best_new_s1['auroc'] - current_s1['auroc']:+.4f}")
+    print(
+        f"  Current Stage1 (trans=0.7 lex=0.3):  AUROC={current_s1['auroc']:.4f}  F1={current_s1['optimal_f1']:.4f}"
+    )
+    print(
+        f"  Transformer only:                     AUROC={trans_only['auroc']:.4f}  F1={trans_only['optimal_f1']:.4f}"
+    )
+    print(
+        f"  New Stage1 best (lex+m2v):             AUROC={best_new_s1['auroc']:.4f}  F1={best_new_s1['optimal_f1']:.4f}"
+    )
+    print(
+        f"  Delta vs current:                      AUROC={best_new_s1['auroc'] - current_s1['auroc']:+.4f}"
+    )
 
     # === Routing simulation ===
     print()
@@ -254,14 +269,21 @@ def main():
     best_weights = {"lexical": best_lex_w, "model2vec": 1 - best_lex_w}
     routing_results = []
     thresholds = [
-        (0.90, 0.03), (0.85, 0.05), (0.80, 0.10), (0.75, 0.15),
-        (0.70, 0.20), (0.65, 0.25), (0.60, 0.30),
+        (0.90, 0.03),
+        (0.85, 0.05),
+        (0.80, 0.10),
+        (0.75, 0.15),
+        (0.70, 0.20),
+        (0.65, 0.25),
+        (0.60, 0.30),
     ]
     for th_high, th_low in thresholds:
         r = compute_routing_simulation(samples, best_weights, th_high, th_low)
         routing_results.append(r)
         acc = r.get("accuracy", 0)
-        print(f"  th_high={th_high:.2f} th_low={th_low:.2f}  resolved={r['n_resolved']:4d} ({r['resolved_pct']:5.1f}%)  accuracy={acc:.3f}")
+        print(
+            f"  th_high={th_high:.2f} th_low={th_low:.2f}  resolved={r['n_resolved']:4d} ({r['resolved_pct']:5.1f}%)  accuracy={acc:.3f}"
+        )
 
     # === Cascade AUROC simulation ===
     print()
@@ -273,8 +295,10 @@ def main():
     for th_high, th_low in thresholds:
         c = compute_cascade_auroc(samples, best_weights, s2_weights, th_high, th_low)
         cascade_results.append({"th_high": th_high, "th_low": th_low, **c})
-        print(f"  th_high={th_high:.2f} th_low={th_low:.2f}  cascade_auroc={c['cascade_auroc']:.4f}  "
-              f"s1_resolved={c['stage1_resolved_pct']:5.1f}%  f1={c['cascade_optimal_f1']:.4f}")
+        print(
+            f"  th_high={th_high:.2f} th_low={th_low:.2f}  cascade_auroc={c['cascade_auroc']:.4f}  "
+            f"s1_resolved={c['stage1_resolved_pct']:5.1f}%  f1={c['cascade_optimal_f1']:.4f}"
+        )
 
     # Baseline: just transformer alone
     print(f"\n  Transformer alone:         AUROC={trans_only['auroc']:.4f}")
@@ -288,25 +312,30 @@ def main():
     dist_components = {
         "lexical": np.array([s["lexical_score"] for s in samples]),
         "model2vec": np.array([s["model2vec_score"] for s in samples]),
-        "lex+m2v": np.array([
-            best_lex_w * s["lexical_score"] + (1 - best_lex_w) * s["model2vec_score"]
-            for s in samples
-        ]),
+        "lex+m2v": np.array(
+            [
+                best_lex_w * s["lexical_score"] + (1 - best_lex_w) * s["model2vec_score"]
+                for s in samples
+            ]
+        ),
         "transformer": np.array([s["transformer_score"] for s in samples]),
-        "trans+lex": np.array([
-            0.7 * s["transformer_score"] + 0.3 * s["lexical_score"]
-            for s in samples
-        ]),
+        "trans+lex": np.array(
+            [0.7 * s["transformer_score"] + 0.3 * s["lexical_score"] for s in samples]
+        ),
     }
     distributions = {}
     for name, scores in dist_components.items():
         d = compute_distributions(samples, y_true, name, scores)
         distributions[name] = d
         print(f"\n  {name}:")
-        print(f"    Hal: mean={d['hallucinated']['mean']:.3f} std={d['hallucinated']['std']:.3f} "
-              f"[{d['hallucinated']['min']:.3f} - {d['hallucinated']['max']:.3f}]")
-        print(f"    Sup: mean={d['supported']['mean']:.3f} std={d['supported']['std']:.3f} "
-              f"[{d['supported']['min']:.3f} - {d['supported']['max']:.3f}]")
+        print(
+            f"    Hal: mean={d['hallucinated']['mean']:.3f} std={d['hallucinated']['std']:.3f} "
+            f"[{d['hallucinated']['min']:.3f} - {d['hallucinated']['max']:.3f}]"
+        )
+        print(
+            f"    Sup: mean={d['supported']['mean']:.3f} std={d['supported']['std']:.3f} "
+            f"[{d['supported']['min']:.3f} - {d['supported']['max']:.3f}]"
+        )
         print(f"    Separation: {d['separation']:+.3f}")
 
     # === Save all results ===
@@ -332,7 +361,7 @@ def main():
         "cascade_simulation": cascade_results,
         "distributions": distributions,
         "conclusion": (
-            f"Best lex+m2v AUROC: {best_auroc:.4f} (lex={best_lex_w:.2f}, m2v={1-best_lex_w:.2f}). "
+            f"Best lex+m2v AUROC: {best_auroc:.4f} (lex={best_lex_w:.2f}, m2v={1 - best_lex_w:.2f}). "
             f"Delta vs current Stage1: {best_new_s1['auroc'] - current_s1['auroc']:+.4f}. "
             f"Model2Vec adds only +{best_auroc - baselines['lexical']['auroc']:.4f} over lexical alone. "
             f"Routing simulation: Stage 1 resolves <6% of samples at any reasonable threshold. "

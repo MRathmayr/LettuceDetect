@@ -27,15 +27,21 @@ class TestStage3BenchmarkLlama8B:
     ):
         """Benchmark Stage 3 (8B) accuracy on HaluEval QA."""
         _run_stage3_accuracy(
-            stage3_detector_8b, halueval_qa_samples,
-            "stage3_hallu_probe_8b", "halueval_qa", _8B_CONFIG, benchmark_config,
+            stage3_detector_8b,
+            halueval_qa_samples,
+            "stage3_hallu_probe_8b",
+            "halueval_qa",
+            _8B_CONFIG,
+            benchmark_config,
         )
 
-    def test_stage3_accuracy_ragtruth(
-        self, stage3_detector_8b, ragtruth_samples, benchmark_config
-    ):
+    def test_stage3_accuracy_ragtruth(self, stage3_detector_8b, ragtruth_samples, benchmark_config):
         """Benchmark Stage 3 (8B) accuracy on RAGTruth."""
         _run_stage3_accuracy(
-            stage3_detector_8b, ragtruth_samples,
-            "stage3_hallu_probe_8b", "ragtruth", _8B_CONFIG, benchmark_config,
+            stage3_detector_8b,
+            ragtruth_samples,
+            "stage3_hallu_probe_8b",
+            "ragtruth",
+            _8B_CONFIG,
+            benchmark_config,
         )

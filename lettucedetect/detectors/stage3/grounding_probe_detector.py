@@ -12,14 +12,12 @@ from __future__ import annotations
 
 import logging
 
-import numpy as np
-
 from lettucedetect.cascade.types import RoutingDecision, StageResult
 from lettucedetect.detectors.stage3.base_stage3 import Stage3Detector
+from lettucedetect.detectors.stage3.probes.grounding_probe import GroundingProbe
 from lettucedetect.detectors.stage3.probes.hidden_state_extractor import (
     HiddenStateExtractor,
 )
-from lettucedetect.detectors.stage3.probes.grounding_probe import GroundingProbe
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +40,10 @@ class GroundingProbeDetector(Stage3Detector):
         probe_repo_id: str | None = None,
         probe_filename: str | None = None,
         layer_index: int = -15,
-        token_position: str = "mean",
+        token_position: str = "mean",  # noqa: S107
         threshold: float = 0.5,
-    ):
+    ) -> None:
+        """Initialize grounding probe detector with LLM and sklearn probe."""
         self._threshold = threshold
         self._layer_index = layer_index
 
@@ -93,6 +92,7 @@ class GroundingProbeDetector(Stage3Detector):
         answer: str,
         question: str | None = None,
     ) -> StageResult:
+        """Compute hallucination probability from LLM hidden states."""
         hidden_state = self._extractor.extract(answer, question, context)
         hidden_np = hidden_state.cpu().float().numpy().reshape(1, -1)
 

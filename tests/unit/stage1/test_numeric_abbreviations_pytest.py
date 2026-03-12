@@ -27,15 +27,18 @@ def validator():
 class TestAbbreviationMultipliers:
     """Test that abbreviations are correctly parsed as multipliers."""
 
-    @pytest.mark.parametrize("text,expected", [
-        ("10k employees", 10_000),
-        ("5M users", 5_000_000),
-        ("2.5bn revenue", 2_500_000_000),
-        ("3 trillion dollars", 3_000_000_000_000),
-        ("100k downloads", 100_000),
-        ("1.5m subscribers", 1_500_000),
-        ("7B parameters", 7_000_000_000),
-    ])
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            ("10k employees", 10_000),
+            ("5M users", 5_000_000),
+            ("2.5bn revenue", 2_500_000_000),
+            ("3 trillion dollars", 3_000_000_000_000),
+            ("100k downloads", 100_000),
+            ("1.5m subscribers", 1_500_000),
+            ("7B parameters", 7_000_000_000),
+        ],
+    )
     def test_abbreviation_multipliers(self, validator, text, expected):
         """Abbreviations should be parsed as multipliers."""
         numbers = validator._extract_numbers(text)
@@ -46,10 +49,13 @@ class TestAbbreviationMultipliers:
             f"Expected {expected} in {values} for text: '{text}'"
         )
 
-    @pytest.mark.parametrize("text,raw_value,wrong_value", [
-        ("5 km distance", 5, 5000),     # km = kilometer, not k multiplier
-        ("10 mm thick", 10, 10000),     # mm = millimeter, not m multiplier
-    ])
+    @pytest.mark.parametrize(
+        "text,raw_value,wrong_value",
+        [
+            ("5 km distance", 5, 5000),  # km = kilometer, not k multiplier
+            ("10 mm thick", 10, 10000),  # mm = millimeter, not m multiplier
+        ],
+    )
     def test_units_not_parsed_as_multipliers(self, validator, text, raw_value, wrong_value):
         """Units like km, mm should NOT be parsed as multipliers."""
         numbers = validator._extract_numbers(text)
@@ -107,21 +113,22 @@ class TestWordNumbers:
     that aren't actually numeric in context, causing AUROC regression on RAGTruth.
     """
 
-    @pytest.mark.parametrize("text,expected", [
-        ("five apples", 5),
-        ("twelve months", 12),
-        ("a dozen donuts", 12),
-        ("a score of years", 20),
-        ("half the pie", 0.5),
-        ("a quarter of", 0.25),
-    ])
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            ("five apples", 5),
+            ("twelve months", 12),
+            ("a dozen donuts", 12),
+            ("a score of years", 20),
+            ("half the pie", 0.5),
+            ("a quarter of", 0.25),
+        ],
+    )
     def test_simple_word_numbers(self, validator, text, expected):
         """Simple word numbers should be parsed correctly."""
         numbers = validator._extract_numbers(text)
         values = [n.value for n in numbers]
-        assert any(abs(v - expected) < 0.01 for v in values), (
-            f"Expected {expected} in {values}"
-        )
+        assert any(abs(v - expected) < 0.01 for v in values), f"Expected {expected} in {values}"
 
     def test_compound_word_numbers(self, validator):
         """Compound word numbers like 'twenty-three' should be parsed."""
@@ -140,12 +147,15 @@ class TestWordNumbers:
 class TestFractions:
     """Test fraction parsing."""
 
-    @pytest.mark.parametrize("text,expected", [
-        ("3/4 complete", 0.75),
-        ("1/2 the time", 0.5),
-        ("1/4 remaining", 0.25),
-        ("2/3 majority", 0.666),
-    ])
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            ("3/4 complete", 0.75),
+            ("1/2 the time", 0.5),
+            ("1/4 remaining", 0.25),
+            ("2/3 majority", 0.666),
+        ],
+    )
     def test_fractions(self, validator, text, expected):
         """Fractions should be parsed correctly."""
         numbers = validator._extract_numbers(text)
@@ -208,13 +218,16 @@ class TestRanges:
 class TestOrdinals:
     """Test ordinal number parsing."""
 
-    @pytest.mark.parametrize("text,expected", [
-        ("1st place", 1),
-        ("2nd position", 2),
-        ("3rd quarter", 3),
-        ("23rd day", 23),
-        ("100th anniversary", 100),
-    ])
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            ("1st place", 1),
+            ("2nd position", 2),
+            ("3rd quarter", 3),
+            ("23rd day", 23),
+            ("100th anniversary", 100),
+        ],
+    )
     def test_ordinals(self, validator, text, expected):
         """Ordinals should be parsed correctly."""
         numbers = validator._extract_numbers(text)
@@ -226,12 +239,15 @@ class TestOrdinals:
 class TestScientificNotation:
     """Test scientific notation parsing."""
 
-    @pytest.mark.parametrize("text,expected", [
-        ("1e6 cells", 1_000_000),
-        ("2.5e3 units", 2500),
-        ("1.5E9 bytes", 1_500_000_000),
-        ("3e-2 meters", 0.03),
-    ])
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            ("1e6 cells", 1_000_000),
+            ("2.5e3 units", 2500),
+            ("1.5E9 bytes", 1_500_000_000),
+            ("3e-2 meters", 0.03),
+        ],
+    )
     def test_scientific_notation(self, validator, text, expected):
         """Scientific notation should be parsed correctly."""
         numbers = validator._extract_numbers(text)
@@ -255,7 +271,9 @@ class TestTypeCompatibility:
         # 1M (1,000,000) should match 1000000
         assert result.evidence["numbers_verified"] >= 1
 
-    @pytest.mark.skip(reason="Word number extraction disabled - causes false positives in benchmark")
+    @pytest.mark.skip(
+        reason="Word number extraction disabled - causes false positives in benchmark"
+    )
     def test_word_number_matches_integer(self, validator):
         """Word number should match equivalent integer in context."""
         result = validator.score(

@@ -1,8 +1,6 @@
 """Unit tests for LexicalOverlapCalculator."""
 
-import pytest
-
-from lettucedetect.utils.lexical import LexicalOverlapCalculator, LexicalConfig
+from lettucedetect.utils.lexical import LexicalConfig, LexicalOverlapCalculator
 
 
 class TestTokenization:
@@ -141,7 +139,7 @@ class TestAugmentationInterface:
         assert calc.name == "lexical"
 
     def test_score_method(self):
-        """score method returns AugmentationResult."""
+        """Score method returns AugmentationResult."""
         calc = LexicalOverlapCalculator()
         result = calc.score(["context text"], "answer text", None, None)
         assert hasattr(result, "score")
@@ -150,13 +148,13 @@ class TestAugmentationInterface:
         assert hasattr(result, "flagged_spans")
 
     def test_score_details(self):
-        """score method includes jaccard in details."""
+        """Score method includes jaccard in details."""
         calc = LexicalOverlapCalculator()
         result = calc.score(["context text"], "answer text", None, None)
         assert "jaccard" in result.details
 
     def test_preload_downloads_nltk(self):
-        """preload downloads NLTK resources."""
+        """Preload downloads NLTK resources."""
         calc = LexicalOverlapCalculator()
         calc.preload()  # Should not raise
 
@@ -185,33 +183,25 @@ class TestNegationPreservation:
 
     def test_negation_words_preserved(self):
         """Negation words 'not', 'no', 'never' are not removed as stopwords."""
-        calc = LexicalOverlapCalculator(
-            LexicalConfig(use_stemming=False, remove_stopwords=True)
-        )
+        calc = LexicalOverlapCalculator(LexicalConfig(use_stemming=False, remove_stopwords=True))
         tokens = calc._tokenize("This is not true")
         assert "not" in tokens
 
     def test_negation_no_preserved(self):
         """'no' is preserved."""
-        calc = LexicalOverlapCalculator(
-            LexicalConfig(use_stemming=False, remove_stopwords=True)
-        )
+        calc = LexicalOverlapCalculator(LexicalConfig(use_stemming=False, remove_stopwords=True))
         tokens = calc._tokenize("There is no evidence")
         assert "no" in tokens
 
     def test_negation_never_preserved(self):
         """'never' is preserved."""
-        calc = LexicalOverlapCalculator(
-            LexicalConfig(use_stemming=False, remove_stopwords=True)
-        )
+        calc = LexicalOverlapCalculator(LexicalConfig(use_stemming=False, remove_stopwords=True))
         tokens = calc._tokenize("This has never happened")
         assert "never" in tokens
 
     def test_negation_contractions_preserved(self):
         """Contracted negations like 'don't' -> 'don' are preserved."""
-        calc = LexicalOverlapCalculator(
-            LexicalConfig(use_stemming=False, remove_stopwords=True)
-        )
+        calc = LexicalOverlapCalculator(LexicalConfig(use_stemming=False, remove_stopwords=True))
         # "don't" tokenizes to ["don", "t"]
         tokens = calc._tokenize("I don't know")
         assert "don" in tokens
@@ -237,9 +227,7 @@ class TestNegationPreservation:
 
     def test_other_stopwords_still_removed(self):
         """Other stopwords (not negations) are still removed."""
-        calc = LexicalOverlapCalculator(
-            LexicalConfig(use_stemming=False, remove_stopwords=True)
-        )
+        calc = LexicalOverlapCalculator(LexicalConfig(use_stemming=False, remove_stopwords=True))
         tokens = calc._tokenize("The cat is on the mat")
         # "the", "is", "on" are stopwords and should be removed
         assert "the" not in tokens

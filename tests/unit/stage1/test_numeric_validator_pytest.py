@@ -1,10 +1,8 @@
 """Unit tests for NumericValidator augmentation."""
 
-import pytest
-
 from lettucedetect.detectors.stage1.augmentations.numeric_validator import (
-    NumericValidator,
     NumericConfig,
+    NumericValidator,
 )
 
 
@@ -168,6 +166,6 @@ class TestAugmentationInterface:
         assert result.score is not None
 
     def test_preload_succeeds(self):
-        """preload doesn't raise."""
+        """Preload doesn't raise."""
         validator = NumericValidator()
         validator.preload()  # Should not raise

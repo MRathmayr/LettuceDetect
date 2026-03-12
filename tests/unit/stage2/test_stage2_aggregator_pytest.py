@@ -1,10 +1,7 @@
 """Unit tests for Stage2Aggregator."""
 
-import pytest
-
 from lettucedetect.cascade.types import RoutingDecision
 from lettucedetect.detectors.stage2.aggregator import (
-    AggregatorConfig,
     Stage2Aggregator,
     Stage2Scores,
 )

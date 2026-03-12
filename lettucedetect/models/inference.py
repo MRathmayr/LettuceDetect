@@ -14,10 +14,10 @@ class HallucinationDetector:
 
     :param method: Detection method. One of:
 
-        - ``"transformer"`` – Token-classifier using ModernBERT (default). Requires ``model_path``.
-        - ``"llm"`` – OpenAI function-calling based detection. Requires ``model`` (e.g., "gpt-4o").
-        - ``"rag_fact_checker"`` – Triplet-based fact checking via OpenAI API.
-        - ``"cascade"`` – Latency-tiered cascade (Stage 1-3). Requires ``config`` (CascadeConfig
+        - ``"transformer"`` - Token-classifier using ModernBERT (default). Requires ``model_path``.
+        - ``"llm"`` - OpenAI function-calling based detection. Requires ``model`` (e.g., "gpt-4o").
+        - ``"rag_fact_checker"`` - Triplet-based fact checking via OpenAI API.
+        - ``"cascade"`` - Latency-tiered cascade (Stage 1-3). Requires ``config`` (CascadeConfig
           or dict) or ``config_path`` (JSON file).
 
     :param kwargs: Passed straight through to the chosen detector's constructor.

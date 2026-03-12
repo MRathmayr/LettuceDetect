@@ -38,6 +38,7 @@ class NLIContradictionDetector:
 
         Args:
             device: Device to run model on ("cuda", "cpu", or None for auto-detect).
+
         """
         self._model: PreTrainedModel | None = None
         self._tokenizer: PreTrainedTokenizer | None = None
@@ -88,6 +89,7 @@ class NLIContradictionDetector:
 
         Returns:
             Hallucination score in [0, 1] where 0 = supported, 1 = hallucinated.
+
         """
         # MiniCheck format
         input_text = f"Document: {context}\nClaim: {answer}"
@@ -132,6 +134,7 @@ class NLIContradictionDetector:
         Returns:
             Dict with hallucination_score, max_hallucination, mean_hallucination.
             All scores are in range [0, 1] where 0 = supported, 1 = hallucinated.
+
         """
         if not context_texts:
             return {

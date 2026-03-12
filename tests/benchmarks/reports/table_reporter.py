@@ -13,6 +13,7 @@ class TableReporter:
 
         Args:
             output_dir: Directory to write reports to
+
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -25,6 +26,7 @@ class TableReporter:
 
         Returns:
             Formatted table string
+
         """
         lines = []
         lines.append("=" * 100)
@@ -62,30 +64,73 @@ class TableReporter:
 
         Returns:
             Detailed formatted string
+
         """
         lines = []
-        lines.append(f"{'='*60}")
+        lines.append(f"{'=' * 60}")
         lines.append(f"{result.component} on {result.dataset}")
-        lines.append(f"{'='*60}")
+        lines.append(f"{'=' * 60}")
         lines.append("")
 
         # Accuracy metrics
         lines.append("Accuracy Metrics:")
-        lines.append(f"  AUROC:           {result.metrics.auroc:.4f}" if result.metrics.auroc else "  AUROC:           N/A")
+        lines.append(
+            f"  AUROC:           {result.metrics.auroc:.4f}"
+            if result.metrics.auroc
+            else "  AUROC:           N/A"
+        )
         if result.metrics.auroc_ci_lower and result.metrics.auroc_ci_upper:
-            lines.append(f"  AUROC 95% CI:    [{result.metrics.auroc_ci_lower:.4f}, {result.metrics.auroc_ci_upper:.4f}]")
-        lines.append(f"  Accuracy:        {result.metrics.accuracy:.4f}" if result.metrics.accuracy else "  Accuracy:        N/A")
-        lines.append(f"  Precision:       {result.metrics.precision:.4f}" if result.metrics.precision else "  Precision:       N/A")
-        lines.append(f"  Recall:          {result.metrics.recall:.4f}" if result.metrics.recall else "  Recall:          N/A")
-        lines.append(f"  F1:              {result.metrics.f1:.4f}" if result.metrics.f1 else "  F1:              N/A")
+            lines.append(
+                f"  AUROC 95% CI:    [{result.metrics.auroc_ci_lower:.4f}, {result.metrics.auroc_ci_upper:.4f}]"
+            )
+        lines.append(
+            f"  Accuracy:        {result.metrics.accuracy:.4f}"
+            if result.metrics.accuracy
+            else "  Accuracy:        N/A"
+        )
+        lines.append(
+            f"  Precision:       {result.metrics.precision:.4f}"
+            if result.metrics.precision
+            else "  Precision:       N/A"
+        )
+        lines.append(
+            f"  Recall:          {result.metrics.recall:.4f}"
+            if result.metrics.recall
+            else "  Recall:          N/A"
+        )
+        lines.append(
+            f"  F1:              {result.metrics.f1:.4f}"
+            if result.metrics.f1
+            else "  F1:              N/A"
+        )
         lines.append("")
 
         lines.append("Optimal Threshold Metrics:")
-        lines.append(f"  Threshold:       {result.metrics.optimal_threshold:.4f}" if result.metrics.optimal_threshold else "  Threshold:       N/A")
-        lines.append(f"  Optimal F1:      {result.metrics.optimal_f1:.4f}" if result.metrics.optimal_f1 else "  Optimal F1:      N/A")
-        lines.append(f"  MCC:             {result.metrics.mcc:.4f}" if result.metrics.mcc else "  MCC:             N/A")
-        lines.append(f"  Balanced Acc:    {result.metrics.balanced_accuracy:.4f}" if result.metrics.balanced_accuracy else "  Balanced Acc:    N/A")
-        lines.append(f"  Specificity:     {result.metrics.specificity:.4f}" if result.metrics.specificity else "  Specificity:     N/A")
+        lines.append(
+            f"  Threshold:       {result.metrics.optimal_threshold:.4f}"
+            if result.metrics.optimal_threshold
+            else "  Threshold:       N/A"
+        )
+        lines.append(
+            f"  Optimal F1:      {result.metrics.optimal_f1:.4f}"
+            if result.metrics.optimal_f1
+            else "  Optimal F1:      N/A"
+        )
+        lines.append(
+            f"  MCC:             {result.metrics.mcc:.4f}"
+            if result.metrics.mcc
+            else "  MCC:             N/A"
+        )
+        lines.append(
+            f"  Balanced Acc:    {result.metrics.balanced_accuracy:.4f}"
+            if result.metrics.balanced_accuracy
+            else "  Balanced Acc:    N/A"
+        )
+        lines.append(
+            f"  Specificity:     {result.metrics.specificity:.4f}"
+            if result.metrics.specificity
+            else "  Specificity:     N/A"
+        )
         lines.append("")
 
         # Timing metrics
@@ -140,6 +185,7 @@ class TableReporter:
 
         Returns:
             Path to saved file
+
         """
         table = self.format_results(results)
         output_path = self.output_dir / filename
@@ -152,6 +198,7 @@ class TableReporter:
 
         Args:
             results: List of BenchmarkResults
+
         """
         print(self.format_results(results))
 
@@ -160,6 +207,7 @@ class TableReporter:
 
         Args:
             result: BenchmarkResults to print
+
         """
         print(self.format_detailed(result))
 

@@ -16,6 +16,7 @@ class JSONReporter:
 
         Args:
             output_dir: Directory to write reports to
+
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -35,6 +36,7 @@ class JSONReporter:
 
         Returns:
             Path to saved file
+
         """
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -80,6 +82,7 @@ class JSONReporter:
 
         Returns:
             Path to saved file
+
         """
         summary = {
             "timestamp": datetime.now().isoformat(),
@@ -111,6 +114,7 @@ class JSONReporter:
 
         Returns:
             Dictionary with benchmark data
+
         """
         with open(filepath) as f:
             return json.load(f)

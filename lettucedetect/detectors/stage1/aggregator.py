@@ -27,7 +27,7 @@ class AggregationConfig:
     """
 
     threshold_high: float = 0.7  # Above this = confident hallucination
-    threshold_low: float = 0.3   # Below this = confident supported
+    threshold_low: float = 0.3  # Below this = confident supported
     agreement_threshold: float = 0.5  # Below this = escalate due to component disagreement
 
     # Calibrated voting: convert scores to binary using optimal thresholds
@@ -35,8 +35,8 @@ class AggregationConfig:
     use_calibrated_voting: bool = False
     optimal_thresholds: dict | None = None  # Per-component optimal thresholds
 
-    def __post_init__(self):
-        # Default optimal thresholds from RAGTruth benchmark (run_4)
+    def __post_init__(self) -> None:
+        """Set default optimal thresholds from RAGTruth benchmark."""
         if self.optimal_thresholds is None:
             self.optimal_thresholds = {
                 "transformer": 0.744,
@@ -74,6 +74,7 @@ class ScoreAggregator:
             weights: Weight dict from Stage1Config.weights
                      e.g., {"transformer": 0.5, "ner": 0.2, "numeric": 0.15, "lexical": 0.15}
             config: AggregationConfig with thresholds
+
         """
         self.weights = weights
         self.config = config or AggregationConfig()
@@ -103,6 +104,7 @@ class ScoreAggregator:
 
         Returns:
             Weighted average of binary votes (0.0 to 1.0)
+
         """
         weighted_sum = 0.0
         total_weight = 0.0
@@ -125,6 +127,7 @@ class ScoreAggregator:
 
         Returns:
             Weighted average of raw scores
+
         """
         weighted_sum = 0.0
         total_weight = 0.0
@@ -155,6 +158,7 @@ class ScoreAggregator:
 
         Returns:
             AggregatedScore with unified hallucination score and routing decision
+
         """
         scores = {}
         active_components = {}  # name -> (score, weight, is_active)
@@ -228,6 +232,7 @@ class ScoreAggregator:
 
         Returns:
             Dict with aggregated evidence counts
+
         """
         evidence = {
             "tokens_analyzed": len(transformer_preds),
@@ -275,9 +280,7 @@ class ScoreAggregator:
 
         # Deduplicate overlapping spans (keep highest confidence)
         merged = []
-        for span in sorted(
-            all_spans, key=lambda s: (s.get("start", 0), -s.get("confidence", 0))
-        ):
+        for span in sorted(all_spans, key=lambda s: (s.get("start", 0), -s.get("confidence", 0))):
             overlaps = False
             for existing in merged:
                 if self._spans_overlap(span, existing):
@@ -293,9 +296,7 @@ class ScoreAggregator:
 
     def _spans_overlap(self, a: dict, b: dict) -> bool:
         """Check if two spans overlap."""
-        return not (
-            a.get("end", 0) <= b.get("start", 0) or b.get("end", 0) <= a.get("start", 0)
-        )
+        return not (a.get("end", 0) <= b.get("start", 0) or b.get("end", 0) <= a.get("start", 0))
 
     def _get_routing_reason(
         self, score: float, confident: bool, escalate: bool, agreement: float
@@ -303,12 +304,16 @@ class ScoreAggregator:
         """Generate human-readable routing explanation."""
         if confident:
             if score >= self.threshold_high:
-                return f"High confidence hallucination (score={score:.2f}, agreement={agreement:.2f})"
+                return (
+                    f"High confidence hallucination (score={score:.2f}, agreement={agreement:.2f})"
+                )
             else:
                 return f"High confidence supported (score={score:.2f}, agreement={agreement:.2f})"
         elif escalate:
             if agreement < self.agreement_threshold:
                 return f"Components disagree, escalating (score={score:.2f}, agreement={agreement:.2f})"
-            return f"Uncertain, escalating to Stage 2 (score={score:.2f}, agreement={agreement:.2f})"
+            return (
+                f"Uncertain, escalating to Stage 2 (score={score:.2f}, agreement={agreement:.2f})"
+            )
         else:
             return f"Uncertain but below escalation threshold (score={score:.2f}, agreement={agreement:.2f})"

@@ -16,9 +16,9 @@ def clear_cuda_cache():
     """Clear CUDA cache after each test to prevent OOM errors."""
     yield
     if torch.cuda.is_available():
-        gc.collect()                    # FIRST: release Python refs to GPU tensors
-        torch.cuda.synchronize()        # SECOND: wait for GPU ops to complete
-        torch.cuda.empty_cache()        # THIRD: free unreferenced GPU memory
+        gc.collect()  # FIRST: release Python refs to GPU tensors
+        torch.cuda.synchronize()  # SECOND: wait for GPU ops to complete
+        torch.cuda.empty_cache()  # THIRD: free unreferenced GPU memory
 
 
 @pytest.fixture(scope="class", autouse=True)
@@ -38,7 +38,7 @@ def clear_cuda_between_classes():
 
 @pytest.fixture
 def sample_context():
-    """Basic sample context for testing."""
+    """Return basic sample context for testing."""
     return ["The capital of France is Paris. It has a population of 2.1 million."]
 
 
@@ -383,7 +383,7 @@ def stage1_detector_all():
 @pytest.fixture
 def stage1_detector_routing():
     """Stage1Detector with routing config for escalation tests - auto cleanup."""
-    from lettucedetect.detectors.stage1 import Stage1Detector, AggregationConfig
+    from lettucedetect.detectors.stage1 import AggregationConfig, Stage1Detector
 
     agg_config = AggregationConfig(
         threshold_high=0.7,

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Run LettuceDetect benchmarks.
 
 Usage:
@@ -60,7 +59,8 @@ def main():
         help="Limit samples per dataset",
     )
     parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Verbose output",
     )
@@ -97,7 +97,7 @@ def main():
         print(f"Running: {' '.join(cmd)}")
 
     # Run pytest
-    result = subprocess.run(cmd, cwd=".")
+    result = subprocess.run(cmd, cwd=".")  # noqa: S603
     return result.returncode
 
 

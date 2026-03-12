@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 from dataclasses import dataclass
+from typing import ClassVar
 
 from lettucedetect.cascade.types import AugmentationResult
 from lettucedetect.detectors.stage1.augmentations.base import BaseAugmentation
@@ -29,12 +30,31 @@ class LexicalOverlapCalculator(BaseAugmentation):
 
     # Negation words to preserve (not remove as stopwords)
     # Includes contractions that contain negation semantically
-    PRESERVE_NEGATIONS = {
-        "not", "no", "nor", "never", "neither",
-        "nobody", "nothing", "nowhere", "none",
+    PRESERVE_NEGATIONS: ClassVar[set[str]] = {
+        "not",
+        "no",
+        "nor",
+        "never",
+        "neither",
+        "nobody",
+        "nothing",
+        "nowhere",
+        "none",
         # Contractions with negation (after tokenization "don't" -> "don", "t")
-        "don", "doesn", "didn", "won", "wouldn", "couldn", "shouldn",
-        "isn", "aren", "wasn", "weren", "hasn", "haven", "hadn",
+        "don",
+        "doesn",
+        "didn",
+        "won",
+        "wouldn",
+        "couldn",
+        "shouldn",
+        "isn",
+        "aren",
+        "wasn",
+        "weren",
+        "hasn",
+        "haven",
+        "hadn",
     }
 
     def __init__(self, config: LexicalConfig | None = None) -> None:
@@ -66,10 +86,7 @@ class LexicalOverlapCalculator(BaseAugmentation):
 
         if self._stopwords:
             # Keep negation words even though they're in stopwords
-            tokens = [
-                t for t in tokens
-                if t not in self._stopwords or t in self.PRESERVE_NEGATIONS
-            ]
+            tokens = [t for t in tokens if t not in self._stopwords or t in self.PRESERVE_NEGATIONS]
 
         if self._stemmer:
             tokens = [self._stemmer.stem(t) for t in tokens]

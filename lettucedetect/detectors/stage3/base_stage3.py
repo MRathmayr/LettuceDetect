@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 from abc import abstractmethod
 
-from lettucedetect.cascade.types import CascadeInput, RoutingDecision, StageResult
+from lettucedetect.cascade.types import CascadeInput, StageResult
 from lettucedetect.detectors.base import BaseDetector
 
 
@@ -37,6 +37,7 @@ class Stage3Detector(BaseDetector):
 
         Returns:
             StageResult with hallucination score and routing decision.
+
         """
         pass
 
@@ -47,26 +48,21 @@ class Stage3Detector(BaseDetector):
         question: str | None = None,
         output_format: str = "tokens",
     ) -> list:
+        """Predict hallucination for the given context and answer."""
         result = self.predict_uncertainty(context, answer, question)
         if output_format == "spans":
-            return self._format_spans(
-                result.is_hallucination, result.hallucination_score, answer
-            )
-        return self._format_tokens(
-            result.is_hallucination, result.hallucination_score, answer
-        )
+            return self._format_spans(result.is_hallucination, result.hallucination_score, answer)
+        return self._format_tokens(result.is_hallucination, result.hallucination_score, answer)
 
-    def predict_prompt(
-        self, prompt: str, answer: str, output_format: str = "tokens"
-    ) -> list:
+    def predict_prompt(self, prompt: str, answer: str, output_format: str = "tokens") -> list:
+        """Predict with a pre-formatted prompt."""
         return self.predict([prompt], answer, question=None, output_format=output_format)
 
     def predict_prompt_batch(
         self, prompts: list[str], answers: list[str], output_format: str = "tokens"
     ) -> list:
-        return [
-            self.predict_prompt(p, a, output_format) for p, a in zip(prompts, answers)
-        ]
+        """Predict hallucination for a batch of prompts."""
+        return [self.predict_prompt(p, a, output_format) for p, a in zip(prompts, answers)]
 
     def predict_stage(
         self,
@@ -74,6 +70,7 @@ class Stage3Detector(BaseDetector):
         output_format: str = "tokens",
         has_next_stage: bool = True,
     ) -> StageResult:
+        """Run cascade stage prediction and return StageResult."""
         start = time.perf_counter()
 
         result = self.predict_uncertainty(input.context, input.answer, input.question)
@@ -93,20 +90,14 @@ class Stage3Detector(BaseDetector):
 
         return result
 
-    def _format_tokens(
-        self, is_hallucination: bool, score: float, answer: str
-    ) -> list[dict]:
+    def _format_tokens(self, is_hallucination: bool, score: float, answer: str) -> list[dict]:
         """Response-level: all tokens get same score if hallucinated."""
         if not is_hallucination:
             return []
         return [{"token": t, "pred": 1, "prob": score} for t in answer.split()]
 
-    def _format_spans(
-        self, is_hallucination: bool, score: float, answer: str
-    ) -> list[dict]:
+    def _format_spans(self, is_hallucination: bool, score: float, answer: str) -> list[dict]:
         """Single span covering entire answer if hallucinated."""
         if not is_hallucination:
             return []
-        return [
-            {"start": 0, "end": len(answer), "text": answer, "confidence": score}
-        ]
+        return [{"start": 0, "end": len(answer), "text": answer, "confidence": score}]

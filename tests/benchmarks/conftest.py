@@ -166,7 +166,7 @@ def stage3_detector_3b():
     variant = STAGE3_VARIANTS["3b"]
     probe_path = resolve_probe_path(variant["probe_subdir"])
     if not probe_path:
-        pytest.skip(f"Probe file not found for 3b")
+        pytest.skip("Probe file not found for 3b")
 
     from lettucedetect.detectors.stage3.grounding_probe_detector import GroundingProbeDetector
 
@@ -174,7 +174,7 @@ def stage3_detector_3b():
         model_name_or_path=variant["model"],
         probe_path=probe_path,
         layer_index=variant["layer_index"],
-        token_position="mean",
+        token_position="mean",  # noqa: S106
         threshold=0.5,
     )
     yield detector
@@ -217,7 +217,7 @@ def stage3_detector_8b():
         model_name_or_path=variant["model"],
         probe_path=probe_path,
         layer_index=variant["layer_index"],
-        token_position="mean",
+        token_position="mean",  # noqa: S106
         threshold=0.5,
     )
     yield detector

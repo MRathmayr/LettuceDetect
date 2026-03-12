@@ -20,7 +20,8 @@ class Model2VecEncoder:
     # Approximate characters per token for chunking (4 chars/token average)
     CHARS_PER_TOKEN = 4
 
-    def __init__(self, config: Model2VecConfig | None = None):
+    def __init__(self, config: Model2VecConfig | None = None) -> None:
+        """Initialize encoder with optional config."""
         self.config = config or Model2VecConfig()
         self._model = None  # Lazy loading
         self._dim: int | None = None  # Store model dimension after loading
@@ -44,6 +45,7 @@ class Model2VecEncoder:
 
         Returns:
             List of text chunks.
+
         """
         if not self.config.enable_chunking:
             return [text]
@@ -97,6 +99,7 @@ class Model2VecEncoder:
         Returns:
             Embeddings array of shape (len(texts), embedding_dim).
             On error, returns zero embeddings with warning.
+
         """
         # Use actual model dimension or default
         dim = self._dim if self._dim else self.DEFAULT_DIM
@@ -139,6 +142,7 @@ class Model2VecEncoder:
             Dict with max, mean, weighted_mean similarity scores.
             If include_variance=True, also includes std deviation.
             Empty context returns neutral 0.5 scores.
+
         """
         neutral_result = {"max": 0.5, "mean": 0.5, "weighted_mean": 0.5}
         if self.config.include_variance:
@@ -160,7 +164,7 @@ class Model2VecEncoder:
                 all_chunks.extend(chunks)
 
             # Encode all chunks and answer together
-            all_embeddings = self.encode(all_chunks + [answer])
+            all_embeddings = self.encode([*all_chunks, answer])
             chunk_embs = all_embeddings[:-1]
             answer_emb = all_embeddings[-1]
 
@@ -174,7 +178,7 @@ class Model2VecEncoder:
             passage_similarities = []
             idx = 0
             for chunk_count in passage_chunk_counts:
-                passage_chunk_sims = chunk_similarities[idx:idx + chunk_count]
+                passage_chunk_sims = chunk_similarities[idx : idx + chunk_count]
                 # Max within passage
                 passage_similarities.append(max(passage_chunk_sims))
                 idx += chunk_count

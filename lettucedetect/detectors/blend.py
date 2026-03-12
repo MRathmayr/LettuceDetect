@@ -25,6 +25,7 @@ class BlendDetector(BaseDetector):
     """
 
     def __init__(self, config: CascadeConfig) -> None:
+        """Initialize blend detector with cascade config."""
         self.config = config
         self._alpha = config.blend_alpha
         self._threshold = config.blend_threshold
@@ -63,6 +64,7 @@ class BlendDetector(BaseDetector):
             answer: The answer to check for hallucination.
             question: Optional question.
             output_format: 'tokens', 'spans', or 'detailed'.
+
         """
         start_time = time.perf_counter()
 
@@ -105,9 +107,7 @@ class BlendDetector(BaseDetector):
 
         return output
 
-    def _run_stage3(
-        self, cascade_input: CascadeInput, output_format: str
-    ) -> StageResult | None:
+    def _run_stage3(self, cascade_input: CascadeInput, output_format: str) -> StageResult | None:
         """Run Stage 3 with error fallback."""
         try:
             s3_start = time.perf_counter()
@@ -173,8 +173,7 @@ class BlendDetector(BaseDetector):
     ) -> list:
         """Batch prediction with prompts."""
         return [
-            self.predict_prompt(p, a, output_format=output_format)
-            for p, a in zip(prompts, answers)
+            self.predict_prompt(p, a, output_format=output_format) for p, a in zip(prompts, answers)
         ]
 
     def warmup(self) -> None:

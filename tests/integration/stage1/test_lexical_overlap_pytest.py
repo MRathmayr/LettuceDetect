@@ -4,9 +4,7 @@ These tests verify lexical overlap calculation works correctly
 with real-world text from various domains.
 """
 
-import pytest
-
-from lettucedetect.utils.lexical import LexicalOverlapCalculator, LexicalConfig
+from lettucedetect.utils.lexical import LexicalConfig, LexicalOverlapCalculator
 
 
 class TestFinancialTextOverlap:
@@ -16,9 +14,7 @@ class TestFinancialTextOverlap:
         """Set up calculator."""
         self.calc = LexicalOverlapCalculator()
 
-    def test_supported_financial_answer(
-        self, financial_report_context, financial_answer_supported
-    ):
+    def test_supported_financial_answer(self, financial_report_context, financial_answer_supported):
         """Verify high overlap for supported financial answer."""
         score = self.calc.compute_support_score(
             financial_report_context, financial_answer_supported
@@ -47,18 +43,14 @@ class TestMedicalTextOverlap:
 
     def test_supported_medical_answer(self, medical_context, medical_answer_supported):
         """Verify high overlap for supported medical answer."""
-        score = self.calc.compute_support_score(
-            medical_context, medical_answer_supported
-        )
+        score = self.calc.compute_support_score(medical_context, medical_answer_supported)
         assert score > 0.15
 
     def test_hallucinated_medical_answer(
         self, medical_context, medical_answer_supported, medical_answer_hallucinated
     ):
         """Verify lower overlap for hallucinated medical answer."""
-        supported_score = self.calc.compute_support_score(
-            medical_context, medical_answer_supported
-        )
+        supported_score = self.calc.compute_support_score(medical_context, medical_answer_supported)
         hallucinated_score = self.calc.compute_support_score(
             medical_context, medical_answer_hallucinated
         )
@@ -73,13 +65,9 @@ class TestGeographicTextOverlap:
         """Set up calculator."""
         self.calc = LexicalOverlapCalculator()
 
-    def test_supported_geographic_answer(
-        self, geographic_context, geographic_answer_supported
-    ):
+    def test_supported_geographic_answer(self, geographic_context, geographic_answer_supported):
         """Verify high overlap for supported geographic answer."""
-        score = self.calc.compute_support_score(
-            geographic_context, geographic_answer_supported
-        )
+        score = self.calc.compute_support_score(geographic_context, geographic_answer_supported)
         assert score > 0.2
 
     def test_hallucinated_geographic_answer(
@@ -103,9 +91,7 @@ class TestMultiPassageOverlap:
         """Set up calculator."""
         self.calc = LexicalOverlapCalculator()
 
-    def test_multi_passage_supported(
-        self, multi_passage_context, multi_passage_answer_supported
-    ):
+    def test_multi_passage_supported(self, multi_passage_context, multi_passage_answer_supported):
         """Verify overlap calculation across multiple passages."""
         score = self.calc.compute_support_score(
             multi_passage_context, multi_passage_answer_supported
@@ -165,15 +151,11 @@ class TestPreprocessingOptions:
         answer = "The fox jumps."
 
         # With stopwords
-        with_stopwords = LexicalOverlapCalculator(
-            LexicalConfig(remove_stopwords=False)
-        )
+        with_stopwords = LexicalOverlapCalculator(LexicalConfig(remove_stopwords=False))
         score_with = with_stopwords.compute_support_score(context, answer)
 
         # Without stopwords
-        without_stopwords = LexicalOverlapCalculator(
-            LexicalConfig(remove_stopwords=True)
-        )
+        without_stopwords = LexicalOverlapCalculator(LexicalConfig(remove_stopwords=True))
         score_without = without_stopwords.compute_support_score(context, answer)
 
         # Both should give valid scores

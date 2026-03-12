@@ -28,6 +28,7 @@ class MemoryTracker:
         Args:
             track_gpu: Whether to track GPU memory (requires torch with CUDA)
             track_ram: Whether to track RAM usage (requires psutil)
+
         """
         self.track_gpu = track_gpu and TORCH_AVAILABLE and torch.cuda.is_available()
         self.track_ram = track_ram and PSUTIL_AVAILABLE

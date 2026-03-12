@@ -103,13 +103,17 @@ class TestStage1Benchmark:
         assert metrics.n_samples > 0, "No predictions made"
         assert timing.mean_ms < 200, f"Too slow: {timing.mean_ms:.2f}ms"
 
-        print(f"\n{'='*60}")
-        print(f"Stage 1 Full Pipeline Benchmark Results")
-        print(f"{'='*60}")
+        print(f"\n{'=' * 60}")
+        print("Stage 1 Full Pipeline Benchmark Results")
+        print(f"{'=' * 60}")
         print(f"Samples: {metrics.n_samples}")
         print(f"AUROC: {metrics.auroc:.3f}" if metrics.auroc is not None else "AUROC: N/A")
         print(f"F1: {metrics.f1:.3f}" if metrics.f1 is not None else "F1: N/A")
-        print(f"Optimal F1: {metrics.optimal_f1:.3f}" if metrics.optimal_f1 is not None else "Optimal F1: N/A")
+        print(
+            f"Optimal F1: {metrics.optimal_f1:.3f}"
+            if metrics.optimal_f1 is not None
+            else "Optimal F1: N/A"
+        )
         print(f"Latency: {timing.mean_ms:.2f}ms (P95: {timing.p95_ms:.2f}ms)")
         if memory.gpu_peak_mb:
             print(f"GPU Peak: {memory.gpu_peak_mb:.1f}MB")
@@ -144,7 +148,9 @@ class TestStage1Benchmark:
         if total_times:
             import numpy as np
 
-            print(f"\n{'='*60}")
-            print(f"Stage 1 Component Breakdown")
-            print(f"{'='*60}")
-            print(f"Total latency: {np.mean(total_times):.2f}ms (P95: {np.percentile(total_times, 95):.2f}ms)")
+            print(f"\n{'=' * 60}")
+            print("Stage 1 Component Breakdown")
+            print(f"{'=' * 60}")
+            print(
+                f"Total latency: {np.mean(total_times):.2f}ms (P95: {np.percentile(total_times, 95):.2f}ms)"
+            )

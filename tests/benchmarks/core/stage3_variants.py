@@ -4,7 +4,7 @@ Used by run_full_benchmark.py and conftest.py
 to keep probe paths, layer indices, and model names in sync.
 """
 
-import os
+from pathlib import Path
 
 # Stage 3 model variant configs (hallu probes trained on RAGTruth)
 STAGE3_VARIANTS = {
@@ -38,8 +38,7 @@ def resolve_probe_path(probe_subdir: str) -> str | None:
     tests/benchmarks/), not inside LettuceDetect/.
     """
     # From tests/benchmarks/core/ -> 4 levels up to Diploma/
-    probe_path = os.path.abspath(os.path.join(
-        os.path.dirname(__file__), "../../../..",
-        f"hallu-training/results/{probe_subdir}",
-    ))
-    return probe_path if os.path.exists(probe_path) else None
+    probe_path = (
+        Path(__file__).parent / "../../../.." / f"hallu-training/results/{probe_subdir}"
+    ).resolve()
+    return str(probe_path) if probe_path.exists() else None

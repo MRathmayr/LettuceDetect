@@ -52,7 +52,7 @@ class AggregatorConfig:
     """
 
     threshold_high: float = 0.85  # Above this = confident hallucination
-    threshold_low: float = 0.3   # Below this = confident supported
+    threshold_low: float = 0.3  # Below this = confident supported
     agreement_threshold: float = 0.5  # Below this = escalate due to component disagreement
     use_stage1_score: bool = True
     stage1_weight: float = 0.3
@@ -61,8 +61,8 @@ class AggregatorConfig:
     use_calibrated_voting: bool = True
     optimal_thresholds: dict | None = None  # Per-component optimal thresholds
 
-    def __post_init__(self):
-        # Default optimal thresholds from RAGTruth benchmark (run_4)
+    def __post_init__(self) -> None:
+        """Set default optimal thresholds from RAGTruth benchmark."""
         # NCS uses hallucination score direction (low similarity = high hallucination)
         if self.optimal_thresholds is None:
             self.optimal_thresholds = {

@@ -22,6 +22,7 @@ def _run_stage3_accuracy(detector, samples, component_name, dataset_name, config
 
     Returns:
         Tuple of (BenchmarkResults, AccuracyMetrics, TimingStats).
+
     """
     predictions = []
     timer = BenchmarkTimer(sync_cuda=True)
@@ -75,13 +76,17 @@ def _run_stage3_accuracy(detector, samples, component_name, dataset_name, config
     assert metrics.n_samples > 0, "No predictions made"
 
     label = config.get("model", component_name).split("/")[-1]
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Stage 3 ({label}) - {dataset_name}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Samples: {metrics.n_samples}")
     print(f"AUROC: {metrics.auroc:.3f}" if metrics.auroc is not None else "AUROC: N/A")
     print(f"F1: {metrics.f1:.3f}" if metrics.f1 is not None else "F1: N/A")
-    print(f"Optimal F1: {metrics.optimal_f1:.3f} @ {metrics.optimal_threshold:.3f}" if metrics.optimal_f1 is not None else "Optimal F1: N/A")
+    print(
+        f"Optimal F1: {metrics.optimal_f1:.3f} @ {metrics.optimal_threshold:.3f}"
+        if metrics.optimal_f1 is not None
+        else "Optimal F1: N/A"
+    )
     print(f"Latency: {timing.mean_ms:.2f}ms (P95: {timing.p95_ms:.2f}ms)")
     if memory.gpu_peak_mb:
         print(f"GPU Peak: {memory.gpu_peak_mb:.1f}MB")

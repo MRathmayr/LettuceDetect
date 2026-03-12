@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Analyze error correlation between components.
 
 Key question: Do components make errors on the SAME samples or DIFFERENT samples?
@@ -20,6 +19,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from sklearn.metrics import roc_auc_score
+
 from tests.benchmarks.data_adapters import RAGTruthAdapter
 
 
@@ -37,6 +37,7 @@ def get_optimal_threshold(y_true, y_pred):
 
 def clear_gpu():
     import gc
+
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -61,13 +62,14 @@ def main():
     # === Transformer ===
     print("\n[1/6] Running Transformer...")
     from lettucedetect.detectors.transformer import TransformerDetector
+
     transformer = TransformerDetector(model_path="KRLabsOrg/lettucedect-base-modernbert-en-v1")
     transformer.warmup()
 
     scores = []
     for i, s in enumerate(samples):
         if (i + 1) % 500 == 0:
-            print(f"  {i+1}/{len(samples)}")
+            print(f"  {i + 1}/{len(samples)}")
         spans = transformer.predict(s.context, s.response, s.question, output_format="spans")
         score = max((sp.get("confidence", 0.5) for sp in spans), default=0.0)
         scores.append(score)
@@ -78,6 +80,7 @@ def main():
     # === Lexical ===
     print("\n[2/6] Running Lexical...")
     from lettucedetect.utils.lexical import LexicalOverlapCalculator
+
     lexical = LexicalOverlapCalculator()
     scores = []
     for s in samples:
@@ -88,6 +91,7 @@ def main():
     # === NER ===
     print("\n[3/6] Running NER...")
     from lettucedetect.detectors.stage1.augmentations.ner_verifier import NERVerifier
+
     ner = NERVerifier()
     ner.preload()
     scores = []
@@ -99,6 +103,7 @@ def main():
     # === Numeric ===
     print("\n[4/6] Running Numeric...")
     from lettucedetect.detectors.stage1.augmentations.numeric_validator import NumericValidator
+
     numeric = NumericValidator()
     scores = []
     for s in samples:
@@ -109,6 +114,7 @@ def main():
     # === Model2Vec ===
     print("\n[5/6] Running Model2Vec...")
     from lettucedetect.detectors.stage2.model2vec_encoder import Model2VecEncoder
+
     model2vec = Model2VecEncoder()
     scores = []
     for s in samples:
@@ -122,12 +128,13 @@ def main():
     # === NLI ===
     print("\n[6/6] Running NLI...")
     from lettucedetect.detectors.stage2.nli_detector import NLIContradictionDetector
+
     nli = NLIContradictionDetector()
     nli.preload()
     scores = []
     for i, s in enumerate(samples):
         if (i + 1) % 500 == 0:
-            print(f"  {i+1}/{len(samples)}")
+            print(f"  {i + 1}/{len(samples)}")
         result = nli.compute_context_nli(s.context, s.response)
         scores.append(result["hallucination_score"])
     component_scores["nli"] = scores
@@ -152,7 +159,9 @@ def main():
         errors = (preds != np.array(y_true)).astype(int)
         component_errors[name] = errors
 
-        print(f"{name:12s}: AUROC={auroc:.3f}, Acc={acc:.3f} @ thresh={thresh:.2f}, Errors={errors.sum()}/{len(errors)}")
+        print(
+            f"{name:12s}: AUROC={auroc:.3f}, Acc={acc:.3f} @ thresh={thresh:.2f}, Errors={errors.sum()}/{len(errors)}"
+        )
 
     # === Error Correlation Matrix ===
     print("\n" + "=" * 70)
@@ -186,7 +195,9 @@ def main():
     transformer_wrong_indices = np.where(transformer_errors == 1)[0]
     n_transformer_wrong = len(transformer_wrong_indices)
 
-    print(f"\nTransformer wrong on {n_transformer_wrong} samples ({100*n_transformer_wrong/len(samples):.1f}%)")
+    print(
+        f"\nTransformer wrong on {n_transformer_wrong} samples ({100 * n_transformer_wrong / len(samples):.1f}%)"
+    )
     print("\nOn those samples, other components:")
 
     for name, errors in component_errors.items():
@@ -195,7 +206,9 @@ def main():
         # How many times is this component RIGHT when transformer is WRONG?
         other_correct_when_trans_wrong = (errors[transformer_wrong_indices] == 0).sum()
         pct = 100 * other_correct_when_trans_wrong / n_transformer_wrong
-        print(f"  {name:12s}: correct {other_correct_when_trans_wrong}/{n_transformer_wrong} ({pct:.1f}%)")
+        print(
+            f"  {name:12s}: correct {other_correct_when_trans_wrong}/{n_transformer_wrong} ({pct:.1f}%)"
+        )
 
     # === Complementary Analysis ===
     print("\n" + "=" * 70)
@@ -224,13 +237,15 @@ def main():
     print("=" * 70)
 
     # When do all components agree vs disagree?
-    trans_preds = (np.array(component_scores["transformer"]) >= component_thresholds["transformer"]).astype(int)
+    trans_preds = (
+        np.array(component_scores["transformer"]) >= component_thresholds["transformer"]
+    ).astype(int)
 
     for name in names:
         if name == "transformer":
             continue
         other_preds = (np.array(component_scores[name]) >= component_thresholds[name]).astype(int)
-        agree = (trans_preds == other_preds)
+        agree = trans_preds == other_preds
 
         # Accuracy when they agree vs disagree
         agree_mask = agree
@@ -250,7 +265,9 @@ def main():
 
         print(f"\n{name} vs transformer:")
         print(f"  Agree:    {agree_mask.sum():4d} samples, accuracy={agree_acc:.3f}")
-        print(f"  Disagree: {disagree_mask.sum():4d} samples, transformer right={trans_right:.3f}, {name} right={other_right:.3f}")
+        print(
+            f"  Disagree: {disagree_mask.sum():4d} samples, transformer right={trans_right:.3f}, {name} right={other_right:.3f}"
+        )
 
     print("\n" + "=" * 70)
     print("DONE")

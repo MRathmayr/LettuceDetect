@@ -103,13 +103,17 @@ class TestStage2Benchmark:
         assert metrics.n_samples > 0, "No predictions made"
         assert timing.mean_ms < 250, f"Too slow: {timing.mean_ms:.2f}ms"
 
-        print(f"\n{'='*60}")
-        print(f"Stage 2 Full Pipeline Benchmark Results")
-        print(f"{'='*60}")
+        print(f"\n{'=' * 60}")
+        print("Stage 2 Full Pipeline Benchmark Results")
+        print(f"{'=' * 60}")
         print(f"Samples: {metrics.n_samples}")
         print(f"AUROC: {metrics.auroc:.3f}" if metrics.auroc is not None else "AUROC: N/A")
         print(f"F1: {metrics.f1:.3f}" if metrics.f1 is not None else "F1: N/A")
-        print(f"Optimal F1: {metrics.optimal_f1:.3f}" if metrics.optimal_f1 is not None else "Optimal F1: N/A")
+        print(
+            f"Optimal F1: {metrics.optimal_f1:.3f}"
+            if metrics.optimal_f1 is not None
+            else "Optimal F1: N/A"
+        )
         print(f"Latency: {timing.mean_ms:.2f}ms (P95: {timing.p95_ms:.2f}ms)")
         if memory.gpu_peak_mb:
             print(f"GPU Peak: {memory.gpu_peak_mb:.1f}MB")
@@ -136,8 +140,8 @@ class TestStage2Benchmark:
         if ncs_scores:
             import numpy as np
 
-            print(f"\n{'='*60}")
-            print(f"Stage 2 Component Scores")
-            print(f"{'='*60}")
+            print(f"\n{'=' * 60}")
+            print("Stage 2 Component Scores")
+            print(f"{'=' * 60}")
             print(f"NCS: mean={np.mean(ncs_scores):.3f}, std={np.std(ncs_scores):.3f}")
             print(f"NLI: mean={np.mean(nli_scores):.3f}, std={np.std(nli_scores):.3f}")

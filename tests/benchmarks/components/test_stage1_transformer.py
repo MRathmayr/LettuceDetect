@@ -16,9 +16,7 @@ def transformer_detector():
     """Create TransformerDetector instance."""
     from lettucedetect.detectors.transformer import TransformerDetector
 
-    detector = TransformerDetector(
-        model_path="KRLabsOrg/lettucedect-base-modernbert-en-v1"
-    )
+    detector = TransformerDetector(model_path="KRLabsOrg/lettucedect-base-modernbert-en-v1")
     detector.warmup()
     return detector
 
@@ -115,9 +113,9 @@ class TestTransformerDetectorBenchmark:
         assert metrics.n_samples > 0, "No predictions made"
         assert timing.mean_ms < 150, f"Too slow: {timing.mean_ms:.2f}ms"
 
-        print(f"\n{'='*60}")
-        print(f"TransformerDetector Benchmark Results")
-        print(f"{'='*60}")
+        print(f"\n{'=' * 60}")
+        print("TransformerDetector Benchmark Results")
+        print(f"{'=' * 60}")
         print(f"Samples: {metrics.n_samples}")
         print(f"AUROC: {metrics.auroc:.3f}" if metrics.auroc is not None else "AUROC: N/A")
         print(f"F1: {metrics.f1:.3f}" if metrics.f1 is not None else "F1: N/A")

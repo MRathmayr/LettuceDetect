@@ -36,6 +36,7 @@ def compute_auroc_ci(
 
     Returns:
         Tuple of (lower_bound, upper_bound)
+
     """
     rng = np.random.RandomState(seed)
     n_samples = len(y_true)
@@ -76,6 +77,7 @@ def compute_accuracy_metrics(
 
     Returns:
         AccuracyMetrics with all computed metrics
+
     """
     # Filter valid predictions
     valid = [p for p in predictions if p.ground_truth in (0, 1)]
@@ -136,9 +138,7 @@ def compute_accuracy_metrics(
         auroc_ci = (None, None)
 
     # PR curve for optimal threshold
-    precision_curve, recall_curve, pr_thresholds = precision_recall_curve(
-        y_true, y_scores
-    )
+    precision_curve, recall_curve, pr_thresholds = precision_recall_curve(y_true, y_scores)
 
     # Best F1 threshold
     f1_scores = (
@@ -158,7 +158,7 @@ def compute_accuracy_metrics(
     y_pred_optimal = (y_scores >= best_f1_threshold).astype(int)
 
     # Confusion matrix at optimal threshold for specificity
-    tn, fp, fn, tp = confusion_matrix(y_true, y_pred_optimal).ravel()
+    tn, fp, _fn, _tp = confusion_matrix(y_true, y_pred_optimal).ravel()
     specificity = float(tn / (tn + fp)) if (tn + fp) > 0 else 0.0
 
     # Calibration metrics (clamp scores to [0, 1] for Brier score)
@@ -196,6 +196,7 @@ def compute_curves(
 
     Returns:
         Dictionary with roc_curve and pr_curve data
+
     """
     valid = [p for p in predictions if p.ground_truth in (0, 1)]
 
@@ -209,12 +210,10 @@ def compute_curves(
         return {"roc_curve": None, "pr_curve": None}
 
     # ROC curve
-    fpr, tpr, roc_thresholds = roc_curve(y_true, y_scores)
+    fpr, tpr, _roc_thresholds = roc_curve(y_true, y_scores)
 
     # PR curve
-    precision_curve, recall_curve, pr_thresholds = precision_recall_curve(
-        y_true, y_scores
-    )
+    precision_curve, recall_curve, _pr_thresholds = precision_recall_curve(y_true, y_scores)
 
     return {
         "roc_curve": {

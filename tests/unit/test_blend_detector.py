@@ -2,10 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from lettucedetect.cascade.types import CascadeInput, RoutingDecision, StageResult
-from lettucedetect.configs.models import CascadeConfig, Stage1Config, Stage3Config
+from lettucedetect.cascade.types import RoutingDecision, StageResult
+from lettucedetect.configs.models import CascadeConfig
 
 
 def _make_stage_result(stage_name, score, output=None):
@@ -35,8 +33,12 @@ def _make_blend_detector(alpha=0.5, threshold=0.5, mock_s1=None, mock_s3=None):
         blend_threshold=threshold,
     )
 
-    with patch("lettucedetect.detectors.stage1.Stage1Detector") as s1_cls, \
-         patch("lettucedetect.detectors.stage3.grounding_probe_detector.GroundingProbeDetector") as s3_cls:
+    with (
+        patch("lettucedetect.detectors.stage1.Stage1Detector") as s1_cls,
+        patch(
+            "lettucedetect.detectors.stage3.grounding_probe_detector.GroundingProbeDetector"
+        ) as s3_cls,
+    ):
         s1_cls.return_value = mock_s1 or MagicMock()
         s3_cls.return_value = mock_s3 or MagicMock()
         detector = BlendDetector(config=config)

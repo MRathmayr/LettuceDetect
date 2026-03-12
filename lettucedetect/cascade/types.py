@@ -33,6 +33,7 @@ class StageResult:
 
         degraded: True if any component failed during inference
         component_errors: List of error messages from failed components
+
     """
 
     stage_name: str
@@ -78,6 +79,7 @@ class AugmentationResult:
         flagged_spans: Spans flagged by this augmentation as potentially hallucinated
         is_active: Whether component found content to verify (default True).
                    False when nothing to check (no entities/numbers) - excluded from weighted avg.
+
     """
 
     score: float  # 0.0 = supported, 1.0 = hallucinated

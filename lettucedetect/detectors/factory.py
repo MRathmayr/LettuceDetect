@@ -70,6 +70,5 @@ def make_detector(method: str, **kwargs) -> BaseDetector:
         return CascadeDetector(config=config)
     else:
         raise ValueError(
-            f"Unknown detector method: {method}. "
-            f"Valid: transformer, llm, rag_fact_checker, cascade"
+            f"Unknown detector method: {method}. Valid: transformer, llm, rag_fact_checker, cascade"
         )

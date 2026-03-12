@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Run full benchmark suite and save results to JSON.
 
 3-phase benchmark:
@@ -47,7 +46,7 @@ def _gpu_mem_log(label: str):
             alloc = torch.cuda.memory_allocated() / 1024**2
             reserved = torch.cuda.memory_reserved() / 1024**2
             print(f"   [GPU] {label}: {alloc:.0f}MB allocated, {reserved:.0f}MB reserved")
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
 
@@ -58,7 +57,7 @@ def _cuda_cleanup():
 
         if torch.cuda.is_available():
             torch.cuda.synchronize()
-    except Exception:
+    except Exception:  # noqa: S110
         pass
     gc.collect()
     try:
@@ -66,7 +65,7 @@ def _cuda_cleanup():
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
 
@@ -91,7 +90,9 @@ def _compute_per_task_metrics(predictions, valid_samples, component_name):
         auroc_str = f"{metrics.auroc:.3f}" if metrics.auroc is not None else "N/A"
         f1_str = f"{metrics.f1:.3f}" if metrics.f1 is not None else "N/A"
         opt_f1_str = f"{metrics.optimal_f1:.3f}" if metrics.optimal_f1 is not None else "N/A"
-        print(f"     {component_name} [{task_type}]: AUROC={auroc_str}, F1={f1_str}, OptF1={opt_f1_str}, n={metrics.n_samples}")
+        print(
+            f"     {component_name} [{task_type}]: AUROC={auroc_str}, F1={f1_str}, OptF1={opt_f1_str}, n={metrics.n_samples}"
+        )
 
     return results
 
@@ -118,7 +119,9 @@ def _compute_per_benchmark_metrics(predictions, valid_samples, component_name):
         auroc_str = f"{metrics.auroc:.3f}" if metrics.auroc is not None else "N/A"
         f1_str = f"{metrics.f1:.3f}" if metrics.f1 is not None else "N/A"
         opt_f1_str = f"{metrics.optimal_f1:.3f}" if metrics.optimal_f1 is not None else "N/A"
-        print(f"     {component_name} [{bench_name}]: AUROC={auroc_str}, F1={f1_str}, OptF1={opt_f1_str}, n={metrics.n_samples}")
+        print(
+            f"     {component_name} [{bench_name}]: AUROC={auroc_str}, F1={f1_str}, OptF1={opt_f1_str}, n={metrics.n_samples}"
+        )
 
     return results
 
@@ -167,7 +170,9 @@ def _print_component_result(metrics, stats, mem_stats=None):
 # ================================================================
 
 
-def run_model_independent_benchmarks(valid_samples: list, benchmark_map: dict | None = None) -> dict:
+def run_model_independent_benchmarks(
+    valid_samples: list, benchmark_map: dict | None = None
+) -> dict:
     """Run model-independent component + stage2 benchmarks.
 
     Includes: lexical, numeric, ner, model2vec, nli, stage2.
@@ -193,7 +198,11 @@ def run_model_independent_benchmarks(valid_samples: list, benchmark_map: dict | 
     for s in valid_samples:
         with timer.measure():
             r = lexical.score(s.context, s.response, s.question, None)
-        predictions.append(PredictionResult(s.id, s.ground_truth, r.score, int(r.score >= 0.5), timer.last_ms, "lexical"))
+        predictions.append(
+            PredictionResult(
+                s.id, s.ground_truth, r.score, int(r.score >= 0.5), timer.last_ms, "lexical"
+            )
+        )
     stats = timer.get_stats()
     metrics = compute_accuracy_metrics(predictions)
     results["components"]["lexical"] = {
@@ -214,7 +223,11 @@ def run_model_independent_benchmarks(valid_samples: list, benchmark_map: dict | 
     for s in valid_samples:
         with timer.measure():
             r = numeric.score(s.context, s.response, s.question, None)
-        predictions.append(PredictionResult(s.id, s.ground_truth, r.score, int(r.score >= 0.5), timer.last_ms, "numeric"))
+        predictions.append(
+            PredictionResult(
+                s.id, s.ground_truth, r.score, int(r.score >= 0.5), timer.last_ms, "numeric"
+            )
+        )
     stats = timer.get_stats()
     metrics = compute_accuracy_metrics(predictions)
     results["components"]["numeric"] = {
@@ -235,7 +248,11 @@ def run_model_independent_benchmarks(valid_samples: list, benchmark_map: dict | 
     for s in valid_samples:
         with timer.measure():
             r = ner.score(s.context, s.response, s.question, None)
-        predictions.append(PredictionResult(s.id, s.ground_truth, r.score, int(r.score >= 0.5), timer.last_ms, "ner"))
+        predictions.append(
+            PredictionResult(
+                s.id, s.ground_truth, r.score, int(r.score >= 0.5), timer.last_ms, "ner"
+            )
+        )
     stats = timer.get_stats()
     metrics = compute_accuracy_metrics(predictions)
     results["components"]["ner"] = {
@@ -257,7 +274,11 @@ def run_model_independent_benchmarks(valid_samples: list, benchmark_map: dict | 
         with timer.measure():
             ncs = m2v.compute_ncs(s.context, s.response)
         score = (1.0 - ncs["max"]) / 2.0
-        predictions.append(PredictionResult(s.id, s.ground_truth, score, int(score >= 0.5), timer.last_ms, "model2vec"))
+        predictions.append(
+            PredictionResult(
+                s.id, s.ground_truth, score, int(score >= 0.5), timer.last_ms, "model2vec"
+            )
+        )
     stats = timer.get_stats()
     metrics = compute_accuracy_metrics(predictions)
     results["components"]["model2vec"] = {
@@ -281,7 +302,11 @@ def run_model_independent_benchmarks(valid_samples: list, benchmark_map: dict | 
             with timer.measure():
                 r = nli.compute_context_nli(s.context, s.response)
             score = r["hallucination_score"]
-            predictions.append(PredictionResult(s.id, s.ground_truth, score, int(score >= 0.5), timer.last_ms, "nli"))
+            predictions.append(
+                PredictionResult(
+                    s.id, s.ground_truth, score, int(score >= 0.5), timer.last_ms, "nli"
+                )
+            )
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
     metrics = compute_accuracy_metrics(predictions)
@@ -308,7 +333,11 @@ def run_model_independent_benchmarks(valid_samples: list, benchmark_map: dict | 
             with timer.measure():
                 spans = stage2.predict(s.context, s.response, s.question, output_format="spans")
             score = max((sp.get("confidence", 0.5) for sp in spans), default=0.0)
-            predictions.append(PredictionResult(s.id, s.ground_truth, score, int(bool(spans)), timer.last_ms, "stage2"))
+            predictions.append(
+                PredictionResult(
+                    s.id, s.ground_truth, score, int(bool(spans)), timer.last_ms, "stage2"
+                )
+            )
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
     metrics = compute_accuracy_metrics(predictions)
@@ -329,9 +358,14 @@ def run_model_independent_benchmarks(valid_samples: list, benchmark_map: dict | 
 # ================================================================
 
 
-def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
-                          save_predictions: bool = False, task_map: dict | None = None,
-                          benchmark_map: dict | None = None) -> dict:
+def run_stage3_standalone(
+    valid_samples: list,
+    model_size: str,
+    variant: dict,
+    save_predictions: bool = False,
+    task_map: dict | None = None,
+    benchmark_map: dict | None = None,
+) -> dict:
     """Run Stage 3 standalone (LLM + probe only, no transformer).
 
     Returns result dict, or empty dict on failure.
@@ -358,7 +392,7 @@ def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
         model_name_or_path=variant["model"],
         probe_path=probe_path,
         layer_index=variant["layer_index"],
-        token_position="mean",
+        token_position="mean",  # noqa: S106
     )
     detector.warmup()
     _gpu_mem_log(f"after loading {model_size}")
@@ -371,7 +405,16 @@ def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
             with timer.measure():
                 result = detector.predict_uncertainty(s.context, s.response, s.question)
             score = result.hallucination_score
-            predictions.append(PredictionResult(s.id, s.ground_truth, score, int(score >= 0.5), timer.last_ms, f"stage3_{model_size}"))
+            predictions.append(
+                PredictionResult(
+                    s.id,
+                    s.ground_truth,
+                    score,
+                    int(score >= 0.5),
+                    timer.last_ms,
+                    f"stage3_{model_size}",
+                )
+            )
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
     metrics = compute_accuracy_metrics(predictions)
@@ -379,7 +422,9 @@ def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
     result = {
         **_make_result_dict(metrics, stats, mem_stats),
         "per_task": _compute_per_task_metrics(predictions, valid_samples, f"stage3_{model_size}"),
-        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, f"stage3_{model_size}"),
+        "per_benchmark": _compute_per_benchmark_metrics(
+            predictions, valid_samples, f"stage3_{model_size}"
+        ),
     }
     if save_predictions:
         result["predictions"] = _predictions_to_list(predictions, task_map, benchmark_map)
@@ -397,9 +442,14 @@ def run_stage3_standalone(valid_samples: list, model_size: str, variant: dict,
 # ================================================================
 
 
-def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: str,
-                               save_predictions: bool = False, task_map: dict | None = None,
-                               benchmark_map: dict | None = None) -> dict:
+def run_transformer_benchmarks(
+    valid_samples: list,
+    model_path: str,
+    model_tag: str,
+    save_predictions: bool = False,
+    task_map: dict | None = None,
+    benchmark_map: dict | None = None,
+) -> dict:
     """Run transformer standalone + stage1 + cascade[1,2] for a specific transformer.
 
     Returns dict with keys: transformer_{tag}, stage1_{tag}, cascade_12_{tag}.
@@ -422,17 +472,32 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
     with memory.track():
         for s in valid_samples:
             with timer.measure():
-                spans = transformer.predict(s.context, s.response, s.question, output_format="spans")
+                spans = transformer.predict(
+                    s.context, s.response, s.question, output_format="spans"
+                )
             score = max((sp.get("confidence", 0.5) for sp in spans), default=0.0)
-            predictions.append(PredictionResult(s.id, s.ground_truth, score, int(bool(spans)), timer.last_ms, f"transformer_{model_tag}"))
+            predictions.append(
+                PredictionResult(
+                    s.id,
+                    s.ground_truth,
+                    score,
+                    int(bool(spans)),
+                    timer.last_ms,
+                    f"transformer_{model_tag}",
+                )
+            )
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
     metrics = compute_accuracy_metrics(predictions)
     results[f"transformer_{model_tag}"] = {
         **_make_result_dict(metrics, stats, mem_stats),
         "model_path": model_path,
-        "per_task": _compute_per_task_metrics(predictions, valid_samples, f"transformer_{model_tag}"),
-        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, f"transformer_{model_tag}"),
+        "per_task": _compute_per_task_metrics(
+            predictions, valid_samples, f"transformer_{model_tag}"
+        ),
+        "per_benchmark": _compute_per_benchmark_metrics(
+            predictions, valid_samples, f"transformer_{model_tag}"
+        ),
     }
     _print_component_result(metrics, stats, mem_stats)
     del transformer
@@ -443,7 +508,9 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
     from lettucedetect.configs.models import Stage1Config
     from lettucedetect.detectors.stage1.detector import Stage1Detector
 
-    stage1 = Stage1Detector(config=Stage1Config(model_path=model_path, augmentations=["lexical", "model2vec"]))
+    stage1 = Stage1Detector(
+        config=Stage1Config(model_path=model_path, augmentations=["lexical", "model2vec"])
+    )
     stage1.warmup()
     timer = BenchmarkTimer(sync_cuda=True)
     memory = MemoryTracker()
@@ -453,7 +520,16 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
             with timer.measure():
                 spans = stage1.predict(s.context, s.response, s.question, output_format="spans")
             score = max((sp.get("confidence", 0.5) for sp in spans), default=0.0)
-            predictions.append(PredictionResult(s.id, s.ground_truth, score, int(bool(spans)), timer.last_ms, f"stage1_{model_tag}"))
+            predictions.append(
+                PredictionResult(
+                    s.id,
+                    s.ground_truth,
+                    score,
+                    int(bool(spans)),
+                    timer.last_ms,
+                    f"stage1_{model_tag}",
+                )
+            )
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
     metrics = compute_accuracy_metrics(predictions)
@@ -461,10 +537,14 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
         **_make_result_dict(metrics, stats, mem_stats),
         "model_path": model_path,
         "per_task": _compute_per_task_metrics(predictions, valid_samples, f"stage1_{model_tag}"),
-        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, f"stage1_{model_tag}"),
+        "per_benchmark": _compute_per_benchmark_metrics(
+            predictions, valid_samples, f"stage1_{model_tag}"
+        ),
     }
     if save_predictions:
-        results[f"stage1_{model_tag}"]["predictions"] = _predictions_to_list(predictions, task_map, benchmark_map)
+        results[f"stage1_{model_tag}"]["predictions"] = _predictions_to_list(
+            predictions, task_map, benchmark_map
+        )
     _print_component_result(metrics, stats, mem_stats)
     del stage1
     _cuda_cleanup()
@@ -491,7 +571,9 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
     with memory.track():
         for s in valid_samples:
             with timer.measure():
-                result = cascade.predict(s.context, s.response, s.question, output_format="detailed")
+                result = cascade.predict(
+                    s.context, s.response, s.question, output_format="detailed"
+                )
 
             if isinstance(result, dict):
                 score = result.get("scores", {}).get("final_score", 0.0)
@@ -503,7 +585,16 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
             else:
                 score = max((sp.get("confidence", 0.5) for sp in result), default=0.0)
 
-            predictions.append(PredictionResult(s.id, s.ground_truth, score, int(score >= 0.5), timer.last_ms, f"cascade_12_{model_tag}"))
+            predictions.append(
+                PredictionResult(
+                    s.id,
+                    s.ground_truth,
+                    score,
+                    int(score >= 0.5),
+                    timer.last_ms,
+                    f"cascade_12_{model_tag}",
+                )
+            )
 
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
@@ -515,12 +606,18 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
         "model_path": model_path,
         "stage1_resolved_pct": 100 * stage1_resolved / total if total > 0 else 0,
         "stage2_resolved_pct": 100 * stage2_resolved / total if total > 0 else 0,
-        "per_task": _compute_per_task_metrics(predictions, valid_samples, f"cascade_12_{model_tag}"),
-        "per_benchmark": _compute_per_benchmark_metrics(predictions, valid_samples, f"cascade_12_{model_tag}"),
+        "per_task": _compute_per_task_metrics(
+            predictions, valid_samples, f"cascade_12_{model_tag}"
+        ),
+        "per_benchmark": _compute_per_benchmark_metrics(
+            predictions, valid_samples, f"cascade_12_{model_tag}"
+        ),
     }
     _print_component_result(metrics, stats, mem_stats)
     if total > 0:
-        print(f"   Routing: {stage1_resolved}/{total} ({100*stage1_resolved/total:.1f}%) resolved at Stage 1")
+        print(
+            f"   Routing: {stage1_resolved}/{total} ({100 * stage1_resolved / total:.1f}%) resolved at Stage 1"
+        )
 
     del cascade
     _cuda_cleanup()
@@ -528,9 +625,16 @@ def run_transformer_benchmarks(valid_samples: list, model_path: str, model_tag: 
     return results
 
 
-def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_path: str, model_tag: str,
-                   save_predictions: bool = False, task_map: dict | None = None,
-                   benchmark_map: dict | None = None) -> dict:
+def run_cascade_13(
+    valid_samples: list,
+    model_size: str,
+    variant: dict,
+    model_path: str,
+    model_tag: str,
+    save_predictions: bool = False,
+    task_map: dict | None = None,
+    benchmark_map: dict | None = None,
+) -> dict:
     """Run Cascade[1,3] for a specific transformer + stage3 variant.
 
     Returns result dict, or empty dict on failure.
@@ -561,7 +665,7 @@ def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_pa
             llm_model=variant["model"],
             probe_path=probe_path,
             layer_index=variant["layer_index"],
-            token_position="mean",
+            token_position="mean",  # noqa: S106
         ),
     )
     cascade = CascadeDetector(config)
@@ -577,7 +681,9 @@ def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_pa
     with memory.track():
         for s in valid_samples:
             with timer.measure():
-                result = cascade.predict(s.context, s.response, s.question, output_format="detailed")
+                result = cascade.predict(
+                    s.context, s.response, s.question, output_format="detailed"
+                )
 
             if isinstance(result, dict):
                 score = result.get("scores", {}).get("final_score", 0.0)
@@ -589,7 +695,16 @@ def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_pa
             else:
                 score = max((sp.get("confidence", 0.5) for sp in result), default=0.0)
 
-            predictions.append(PredictionResult(s.id, s.ground_truth, score, int(score >= 0.5), timer.last_ms, f"cascade_13_{model_tag}_{model_size}"))
+            predictions.append(
+                PredictionResult(
+                    s.id,
+                    s.ground_truth,
+                    score,
+                    int(score >= 0.5),
+                    timer.last_ms,
+                    f"cascade_13_{model_tag}_{model_size}",
+                )
+            )
 
     stats = timer.get_stats()
     mem_stats = memory.get_stats()
@@ -610,7 +725,9 @@ def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_pa
         result["predictions"] = _predictions_to_list(predictions, task_map, benchmark_map)
     _print_component_result(metrics, stats, mem_stats)
     if total > 0:
-        print(f"   Routing: {stage1_resolved}/{total} ({100*stage1_resolved/total:.1f}%) resolved at Stage 1")
+        print(
+            f"   Routing: {stage1_resolved}/{total} ({100 * stage1_resolved / total:.1f}%) resolved at Stage 1"
+        )
 
     del cascade
     _cuda_cleanup()
@@ -624,9 +741,14 @@ def run_cascade_13(valid_samples: list, model_size: str, variant: dict, model_pa
 # ================================================================
 
 
-def compute_blend_results(s1_predictions: list[dict], s3_predictions: list[dict],
-                          valid_samples: list, model_tag: str, model_size: str,
-                          benchmark_map: dict | None = None) -> dict:
+def compute_blend_results(
+    s1_predictions: list[dict],
+    s3_predictions: list[dict],
+    valid_samples: list,
+    model_tag: str,
+    model_size: str,
+    benchmark_map: dict | None = None,
+) -> dict:
     """Compute blended scores from Stage 1 + Stage 3 per-sample predictions.
 
     Sweeps alpha in [0.0, 1.0] step 0.05 where:
@@ -636,7 +758,7 @@ def compute_blend_results(s1_predictions: list[dict], s3_predictions: list[dict]
     Requires per-sample predictions (save_predictions=True in earlier phases).
     """
     import numpy as np
-    from sklearn.metrics import f1_score as sk_f1, roc_auc_score
+    from sklearn.metrics import roc_auc_score
 
     from tests.benchmarks.core import PredictionResult, compute_accuracy_metrics
 
@@ -683,13 +805,15 @@ def compute_blend_results(s1_predictions: list[dict], s3_predictions: list[dict]
         ]
         metrics = compute_accuracy_metrics(predictions, compute_ci=False)
 
-        sweep_results.append({
-            "alpha": alpha,
-            "auroc": auroc,
-            "f1_at_05": metrics.f1,
-            "optimal_f1": metrics.optimal_f1,
-            "optimal_threshold": metrics.optimal_threshold,
-        })
+        sweep_results.append(
+            {
+                "alpha": alpha,
+                "auroc": auroc,
+                "f1_at_05": metrics.f1,
+                "optimal_f1": metrics.optimal_f1,
+                "optimal_threshold": metrics.optimal_threshold,
+            }
+        )
 
         if auroc > best_auroc_val:
             best_auroc_val = auroc
@@ -702,23 +826,31 @@ def compute_blend_results(s1_predictions: list[dict], s3_predictions: list[dict]
     best_alpha = best_auroc_alpha
     blend_scores = best_alpha * s1_scores + (1 - best_alpha) * s3_scores
     best_predictions = [
-        PredictionResult(sid, int(gt[i]), float(blend_scores[i]),
-                        int(blend_scores[i] >= 0.5), 0.0, f"blend_{model_tag}_{model_size}")
+        PredictionResult(
+            sid,
+            int(gt[i]),
+            float(blend_scores[i]),
+            int(blend_scores[i] >= 0.5),
+            0.0,
+            f"blend_{model_tag}_{model_size}",
+        )
         for i, sid in enumerate(common_ids)
     ]
     best_metrics = compute_accuracy_metrics(best_predictions)
 
     key = f"blend_{model_tag}_{model_size}"
     result = best_metrics.to_dict()
-    result.update({
-        "best_alpha_auroc": best_auroc_alpha,
-        "best_alpha_optf1": best_optf1_alpha,
-        "transformer_model": model_tag,
-        "llm_model": model_size,
-        "per_task": _compute_per_task_metrics(best_predictions, valid_samples, key),
-        "per_benchmark": _compute_per_benchmark_metrics(best_predictions, valid_samples, key),
-        "alpha_sweep": sweep_results,
-    })
+    result.update(
+        {
+            "best_alpha_auroc": best_auroc_alpha,
+            "best_alpha_optf1": best_optf1_alpha,
+            "transformer_model": model_tag,
+            "llm_model": model_size,
+            "per_task": _compute_per_task_metrics(best_predictions, valid_samples, key),
+            "per_benchmark": _compute_per_benchmark_metrics(best_predictions, valid_samples, key),
+            "alpha_sweep": sweep_results,
+        }
+    )
 
     # Per-benchmark blend metrics (best alpha per benchmark)
     if benchmark_map:
@@ -750,8 +882,14 @@ def compute_blend_results(s1_predictions: list[dict], s3_predictions: list[dict]
                 # Compute metrics at this benchmark's best alpha
                 b_blend_scores = b_best_alpha * b_s1 + (1 - b_best_alpha) * b_s3
                 b_preds = [
-                    PredictionResult(sid, int(b_gt[i]), float(b_blend_scores[i]),
-                                    int(b_blend_scores[i] >= 0.5), 0.0, f"blend_{bench_name}")
+                    PredictionResult(
+                        sid,
+                        int(b_gt[i]),
+                        float(b_blend_scores[i]),
+                        int(b_blend_scores[i] >= 0.5),
+                        0.0,
+                        f"blend_{bench_name}",
+                    )
                     for i, sid in enumerate(bench_ids)
                 ]
                 b_metrics = compute_accuracy_metrics(b_preds, compute_ci=False)
@@ -760,7 +898,9 @@ def compute_blend_results(s1_predictions: list[dict], s3_predictions: list[dict]
                     "best_alpha": b_best_alpha,
                     "n_samples": len(bench_ids),
                 }
-                print(f"   Blend [{bench_name}]: alpha={b_best_alpha:.2f}, AUROC={b_best_auroc:.4f}, n={len(bench_ids)}")
+                print(
+                    f"   Blend [{bench_name}]: alpha={b_best_alpha:.2f}, AUROC={b_best_auroc:.4f}, n={len(bench_ids)}"
+                )
             if per_bench_blend:
                 result["per_benchmark_blend"] = per_bench_blend
 
@@ -792,16 +932,20 @@ def print_summary(results: dict, title: str = "BENCHMARK SUMMARY"):
     print(title)
     print("=" * 90)
 
-    print("\n{:<24} {:>8} {:>8} {:>8} {:>10} {:>10} {:>8}".format(
-        "Component", "AUROC", "F1@0.5", "OptF1", "Latency", "P95", "GPU MB"
-    ))
+    print(
+        "\n{:<24} {:>8} {:>8} {:>8} {:>10} {:>10} {:>8}".format(
+            "Component", "AUROC", "F1@0.5", "OptF1", "Latency", "P95", "GPU MB"
+        )
+    )
     print("-" * 90)
 
     def _print_row(name, data):
         auroc = f"{data['auroc']:.3f}" if data.get("auroc") is not None else "N/A"
         f1 = f"{data['f1']:.3f}" if data.get("f1") is not None else "N/A"
         opt_f1 = f"{data['optimal_f1']:.3f}" if data.get("optimal_f1") is not None else "N/A"
-        latency = f"{data['latency_mean_ms']:.1f}ms" if data.get("latency_mean_ms") is not None else "-"
+        latency = (
+            f"{data['latency_mean_ms']:.1f}ms" if data.get("latency_mean_ms") is not None else "-"
+        )
         p95 = f"{data['latency_p95_ms']:.1f}ms" if data.get("latency_p95_ms") is not None else "-"
         gpu = f"{data['gpu_peak_mb']:.0f}" if data.get("gpu_peak_mb") else "-"
         print(f"{name:<24} {auroc:>8} {f1:>8} {opt_f1:>8} {latency:>10} {p95:>10} {gpu:>8}")
@@ -836,9 +980,11 @@ def print_summary(results: dict, title: str = "BENCHMARK SUMMARY"):
         print("\n" + "=" * 90)
         print("PER-TASK BREAKDOWN")
         print("=" * 90)
-        print("\n{:<24} {:<12} {:>8} {:>8} {:>8} {:>6}".format(
-            "Component", "Task Type", "AUROC", "F1@0.5", "OptF1", "N"
-        ))
+        print(
+            "\n{:<24} {:<12} {:>8} {:>8} {:>8} {:>6}".format(
+                "Component", "Task Type", "AUROC", "F1@0.5", "OptF1", "N"
+            )
+        )
         print("-" * 90)
         for section in ("components", "stages", "cascade", "blend"):
             for name, data in results.get(section, {}).items():
@@ -848,7 +994,9 @@ def print_summary(results: dict, title: str = "BENCHMARK SUMMARY"):
                 for task_type, tm in sorted(per_task.items()):
                     auroc = f"{tm['auroc']:.3f}" if tm.get("auroc") is not None else "N/A"
                     f1 = f"{tm['f1']:.3f}" if tm.get("f1") is not None else "N/A"
-                    opt_f1 = f"{tm['optimal_f1']:.3f}" if tm.get("optimal_f1") is not None else "N/A"
+                    opt_f1 = (
+                        f"{tm['optimal_f1']:.3f}" if tm.get("optimal_f1") is not None else "N/A"
+                    )
                     n = tm.get("n_samples", 0)
                     print(f"{name:<24} {task_type:<12} {auroc:>8} {f1:>8} {opt_f1:>8} {n:>6}")
                 print()
@@ -864,9 +1012,11 @@ def print_summary(results: dict, title: str = "BENCHMARK SUMMARY"):
         print("\n" + "=" * 90)
         print("PER-BENCHMARK BREAKDOWN")
         print("=" * 90)
-        print("\n{:<24} {:<16} {:>8} {:>8} {:>8} {:>6}".format(
-            "Component", "Benchmark", "AUROC", "F1@0.5", "OptF1", "N"
-        ))
+        print(
+            "\n{:<24} {:<16} {:>8} {:>8} {:>8} {:>6}".format(
+                "Component", "Benchmark", "AUROC", "F1@0.5", "OptF1", "N"
+            )
+        )
         print("-" * 90)
         for section in ("components", "stages", "cascade", "blend"):
             for name, data in results.get(section, {}).items():
@@ -876,7 +1026,9 @@ def print_summary(results: dict, title: str = "BENCHMARK SUMMARY"):
                 for bench_name, bm in sorted(per_bench.items()):
                     auroc = f"{bm['auroc']:.3f}" if bm.get("auroc") is not None else "N/A"
                     f1 = f"{bm['f1']:.3f}" if bm.get("f1") is not None else "N/A"
-                    opt_f1 = f"{bm['optimal_f1']:.3f}" if bm.get("optimal_f1") is not None else "N/A"
+                    opt_f1 = (
+                        f"{bm['optimal_f1']:.3f}" if bm.get("optimal_f1") is not None else "N/A"
+                    )
                     n = bm.get("n_samples", 0)
                     print(f"{name:<24} {bench_name:<16} {auroc:>8} {f1:>8} {opt_f1:>8} {n:>6}")
                 print()
@@ -896,28 +1048,57 @@ def main():
     parser = argparse.ArgumentParser(description="Run full benchmark suite")
     parser.add_argument("--quick", action="store_true", help="Quick mode (100 samples)")
     parser.add_argument("--limit", type=int, default=None, help="Sample limit")
-    parser.add_argument("--datasets", nargs="+", default=["ragtruth"],
-                        choices=["ragtruth", "halueval_qa", "halueval_dialogue", "halueval_summarization"],
-                        help="Datasets to benchmark (default: ragtruth only)")
-    parser.add_argument("--all-datasets", action="store_true",
-                        help="(Deprecated) Load all datasets — use --datasets instead")
-    parser.add_argument("--stage3", type=str, default=None,
-                        choices=list(STAGE3_VARIANTS.keys()),
-                        help="Run only this Stage 3 variant (default: all)")
-    parser.add_argument("--transformer", type=str, default=None,
-                        choices=list(TRANSFORMER_MODELS.keys()),
-                        help="Run only this transformer model (default: both)")
-    parser.add_argument("--output", type=str, default="tests/benchmarks/results", help="Output directory")
-    parser.add_argument("--save-predictions", action="store_true", default=True,
-                        help="Save per-sample predictions in output JSON (default: True)")
-    parser.add_argument("--no-save-predictions", dest="save_predictions", action="store_false",
-                        help="Disable per-sample prediction export")
+    parser.add_argument(
+        "--datasets",
+        nargs="+",
+        default=["ragtruth"],
+        choices=["ragtruth", "halueval_qa", "halueval_dialogue", "halueval_summarization"],
+        help="Datasets to benchmark (default: ragtruth only)",
+    )
+    parser.add_argument(
+        "--all-datasets",
+        action="store_true",
+        help="(Deprecated) Load all datasets — use --datasets instead",
+    )
+    parser.add_argument(
+        "--stage3",
+        type=str,
+        default=None,
+        choices=list(STAGE3_VARIANTS.keys()),
+        help="Run only this Stage 3 variant (default: all)",
+    )
+    parser.add_argument(
+        "--transformer",
+        type=str,
+        default=None,
+        choices=list(TRANSFORMER_MODELS.keys()),
+        help="Run only this transformer model (default: both)",
+    )
+    parser.add_argument(
+        "--output", type=str, default="tests/benchmarks/results", help="Output directory"
+    )
+    parser.add_argument(
+        "--save-predictions",
+        action="store_true",
+        default=True,
+        help="Save per-sample predictions in output JSON (default: True)",
+    )
+    parser.add_argument(
+        "--no-save-predictions",
+        dest="save_predictions",
+        action="store_false",
+        help="Disable per-sample prediction export",
+    )
     args = parser.parse_args()
 
     limit = 100 if args.quick else args.limit
 
     # Load datasets
-    datasets = ["ragtruth", "halueval_qa", "halueval_dialogue", "halueval_summarization"] if args.all_datasets else args.datasets
+    datasets = (
+        ["ragtruth", "halueval_qa", "halueval_dialogue", "halueval_summarization"]
+        if args.all_datasets
+        else args.datasets
+    )
 
     from tests.benchmarks.data_adapters.base import load_dataset_adapter
 
@@ -931,7 +1112,9 @@ def main():
         print(f"  {ds_name}: {len(ds_samples)} samples")
 
     valid_samples = [s for s in samples if s.context and s.response]
-    print(f"Loaded {len(samples)} samples ({len(valid_samples)} valid) from {len(datasets)} dataset(s)")
+    print(
+        f"Loaded {len(samples)} samples ({len(valid_samples)} valid) from {len(datasets)} dataset(s)"
+    )
 
     task_counts = {}
     for s in valid_samples:
@@ -967,9 +1150,14 @@ def main():
     for model_size, variant in variants.items():
         print(f"\n[Stage 3] {model_size.upper()} ({variant['model']}) — PCA 512...")
         try:
-            result = run_stage3_standalone(valid_samples, model_size, variant,
-                                                  save_predictions=save_preds, task_map=task_map,
-                                                  benchmark_map=benchmark_map)
+            result = run_stage3_standalone(
+                valid_samples,
+                model_size,
+                variant,
+                save_predictions=save_preds,
+                task_map=task_map,
+                benchmark_map=benchmark_map,
+            )
             if result:
                 stage3_cache[model_size] = result
         except Exception as e:
@@ -994,9 +1182,14 @@ def main():
 
         # Run transformer standalone + stage1 + cascade[1,2]
         try:
-            transformer_results = run_transformer_benchmarks(valid_samples, model_path, model_tag,
-                                                              save_predictions=save_preds, task_map=task_map,
-                                                              benchmark_map=benchmark_map)
+            transformer_results = run_transformer_benchmarks(
+                valid_samples,
+                model_path,
+                model_tag,
+                save_predictions=save_preds,
+                task_map=task_map,
+                benchmark_map=benchmark_map,
+            )
         except Exception as e:
             print(f"   FAILED: {model_tag} transformer benchmarks crashed: {e}")
             _cuda_cleanup()
@@ -1007,9 +1200,16 @@ def main():
             print(f"\n  [Cascade 1+3] {model_tag} + {model_size.upper()}...")
 
             try:
-                cascade_result = run_cascade_13(valid_samples, model_size, variant, model_path, model_tag,
-                                                        save_predictions=save_preds, task_map=task_map,
-                                                        benchmark_map=benchmark_map)
+                cascade_result = run_cascade_13(
+                    valid_samples,
+                    model_size,
+                    variant,
+                    model_path,
+                    model_tag,
+                    save_predictions=save_preds,
+                    task_map=task_map,
+                    benchmark_map=benchmark_map,
+                )
             except Exception as e:
                 print(f"   FAILED: cascade[1,3] {model_tag}+{model_size} crashed: {e}")
                 _cuda_cleanup()
@@ -1043,7 +1243,11 @@ def main():
             if s1_preds and s3_preds:
                 print(f"\n  [Blend] {model_tag} + {model_size.upper()} (alpha sweep)...")
                 blend_result = compute_blend_results(
-                    s1_preds, s3_preds, valid_samples, model_tag, model_size,
+                    s1_preds,
+                    s3_preds,
+                    valid_samples,
+                    model_tag,
+                    model_size,
                     benchmark_map=benchmark_map,
                 )
                 if blend_result:
@@ -1071,14 +1275,16 @@ def main():
             }
 
             print_summary(merged, f"SUMMARY: {model_tag} + {model_size.upper()}")
-            _save_results(merged, output_dir, f"benchmark_{model_tag}_{model_size}_{timestamp}.json")
+            _save_results(
+                merged, output_dir, f"benchmark_{model_tag}_{model_size}_{timestamp}.json"
+            )
 
         # Cleanup between transformer models
         _cuda_cleanup()
         _gpu_mem_log(f"after {model_tag} complete cleanup")
 
     total_elapsed = time.time() - overall_start
-    print(f"\nTotal time: {total_elapsed:.1f}s ({total_elapsed/60:.1f}m)")
+    print(f"\nTotal time: {total_elapsed:.1f}s ({total_elapsed / 60:.1f}m)")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Analyze component calibration to inform confidence-gating thresholds.
 
 This script runs benchmarks with per-sample output to analyze:
@@ -24,19 +23,16 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 # Disable torch.compile for older GPUs (GTX 1080 = CUDA 6.1, triton needs 7.0+)
 os.environ["TORCHDYNAMO_DISABLE"] = "1"
 
-import torch
-
 import matplotlib
+import torch
 
 matplotlib.use("Agg")  # Non-interactive backend
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -80,6 +76,7 @@ def load_dataset(limit: int | None = None) -> list[BenchmarkSample]:
 def _clear_gpu_memory():
     """Clear GPU memory by garbage collecting and emptying CUDA cache."""
     import gc
+
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -95,12 +92,8 @@ def collect_predictions(samples: list[BenchmarkSample]) -> list[SamplePrediction
     4. NLI - ~3GB
     5. Cascade (Stage1 + Stage2) - shares NLI model
     """
-    from lettucedetect.configs.models import CascadeConfig, Stage1Config, Stage2Config
-    from lettucedetect.detectors.cascade import CascadeDetector
     from lettucedetect.detectors.stage1.augmentations.ner_verifier import NERVerifier
     from lettucedetect.detectors.stage1.augmentations.numeric_validator import NumericValidator
-    from lettucedetect.detectors.stage1.detector import Stage1Detector
-    from lettucedetect.detectors.stage2.detector import Stage2Detector
     from lettucedetect.detectors.stage2.model2vec_encoder import Model2VecEncoder
     from lettucedetect.detectors.stage2.nli_detector import NLIContradictionDetector
     from lettucedetect.detectors.transformer import TransformerDetector
@@ -113,10 +106,12 @@ def collect_predictions(samples: list[BenchmarkSample]) -> list[SamplePrediction
     # Pre-filter valid samples
     valid_samples = [(i, s) for i, s in enumerate(samples) if s.context and s.response]
     for _, sample in valid_samples:
-        predictions.append(SamplePrediction(
-            sample_id=sample.id,
-            ground_truth=sample.ground_truth,
-        ))
+        predictions.append(
+            SamplePrediction(
+                sample_id=sample.id,
+                ground_truth=sample.ground_truth,
+            )
+        )
 
     print(f"\nCollecting predictions for {len(valid_samples)} valid samples...")
 
@@ -131,10 +126,16 @@ def collect_predictions(samples: list[BenchmarkSample]) -> list[SamplePrediction
 
     for idx, (_, sample) in enumerate(valid_samples):
         if (idx + 1) % 100 == 0:
-            print(f"  {idx+1}/{len(valid_samples)}...", end="\r")
-        predictions[idx].lexical_score = lexical.score(sample.context, sample.response, sample.question, None).score
-        predictions[idx].numeric_score = numeric.score(sample.context, sample.response, sample.question, None).score
-        predictions[idx].ner_score = ner.score(sample.context, sample.response, sample.question, None).score
+            print(f"  {idx + 1}/{len(valid_samples)}...", end="\r")
+        predictions[idx].lexical_score = lexical.score(
+            sample.context, sample.response, sample.question, None
+        ).score
+        predictions[idx].numeric_score = numeric.score(
+            sample.context, sample.response, sample.question, None
+        ).score
+        predictions[idx].ner_score = ner.score(
+            sample.context, sample.response, sample.question, None
+        ).score
     print(f"  {len(valid_samples)}/{len(valid_samples)} done")
 
     # ========================================
@@ -147,9 +148,13 @@ def collect_predictions(samples: list[BenchmarkSample]) -> list[SamplePrediction
 
     for idx, (_, sample) in enumerate(valid_samples):
         if (idx + 1) % 100 == 0:
-            print(f"  {idx+1}/{len(valid_samples)}...", end="\r")
-        spans = transformer.predict(sample.context, sample.response, sample.question, output_format="spans")
-        predictions[idx].transformer_score = max((sp.get("confidence", 0.5) for sp in spans), default=0.0)
+            print(f"  {idx + 1}/{len(valid_samples)}...", end="\r")
+        spans = transformer.predict(
+            sample.context, sample.response, sample.question, output_format="spans"
+        )
+        predictions[idx].transformer_score = max(
+            (sp.get("confidence", 0.5) for sp in spans), default=0.0
+        )
     print(f"  {len(valid_samples)}/{len(valid_samples)} done")
 
     # Unload transformer
@@ -164,7 +169,7 @@ def collect_predictions(samples: list[BenchmarkSample]) -> list[SamplePrediction
 
     for idx, (_, sample) in enumerate(valid_samples):
         if (idx + 1) % 100 == 0:
-            print(f"  {idx+1}/{len(valid_samples)}...", end="\r")
+            print(f"  {idx + 1}/{len(valid_samples)}...", end="\r")
         ncs = model2vec.compute_ncs(sample.context, sample.response)
         predictions[idx].model2vec_score = (1.0 - ncs["max"]) / 2.0
     print(f"  {len(valid_samples)}/{len(valid_samples)} done")
@@ -181,8 +186,10 @@ def collect_predictions(samples: list[BenchmarkSample]) -> list[SamplePrediction
 
     for idx, (_, sample) in enumerate(valid_samples):
         if (idx + 1) % 50 == 0:
-            print(f"  {idx+1}/{len(valid_samples)}...", end="\r")
-        predictions[idx].nli_score = nli.compute_context_nli(sample.context, sample.response)["hallucination_score"]
+            print(f"  {idx + 1}/{len(valid_samples)}...", end="\r")
+        predictions[idx].nli_score = nli.compute_context_nli(sample.context, sample.response)[
+            "hallucination_score"
+        ]
     print(f"  {len(valid_samples)}/{len(valid_samples)} done")
 
     del nli
@@ -250,8 +257,12 @@ def analyze_stage2_on_escalated(predictions: list[SamplePrediction]) -> dict:
     not_escalated = [p for p in predictions if p.stage1_confident]
 
     print(f"\nTotal samples: {len(predictions)}")
-    print(f"Stage 1 confident (resolved): {len(not_escalated)} ({100*len(not_escalated)/len(predictions):.1f}%)")
-    print(f"Stage 1 uncertain (escalated): {len(escalated)} ({100*len(escalated)/len(predictions):.1f}%)")
+    print(
+        f"Stage 1 confident (resolved): {len(not_escalated)} ({100 * len(not_escalated) / len(predictions):.1f}%)"
+    )
+    print(
+        f"Stage 1 uncertain (escalated): {len(escalated)} ({100 * len(escalated) / len(predictions):.1f}%)"
+    )
 
     # Stage 2 AUROC on escalated samples
     if len(escalated) >= 2:
@@ -326,7 +337,7 @@ def plot_calibration_curves(predictions: list[SamplePrediction], output_dir: Pat
     ]
 
     # Create figure with subplots
-    fig, axes = plt.subplots(3, 3, figsize=(15, 15))
+    _fig, axes = plt.subplots(3, 3, figsize=(15, 15))
     axes = axes.flatten()
 
     calibration_stats = {}
@@ -392,7 +403,7 @@ def plot_calibration_curves(predictions: list[SamplePrediction], output_dir: Pat
     plt.savefig(output_dir / "calibration_curves.png", dpi=150)
     plt.close()
 
-    print(f"\n  Saved calibration_curves.png")
+    print("\n  Saved calibration_curves.png")
     return calibration_stats
 
 
@@ -439,17 +450,25 @@ def analyze_confidence_correlation(predictions: list[SamplePrediction]) -> dict:
             n_samples = sum(mask)
             if n_samples > 0:
                 acc = sum(c for c, m in zip(correct, mask) if m) / n_samples
-                bin_stats.append({"range": f"[{low:.1f}, {high:.1f})", "n": n_samples, "accuracy": acc})
-                print(f"  Confidence [{low:.1f}, {high:.1f}): {n_samples:4d} samples, accuracy {acc:.3f}")
+                bin_stats.append(
+                    {"range": f"[{low:.1f}, {high:.1f})", "n": n_samples, "accuracy": acc}
+                )
+                print(
+                    f"  Confidence [{low:.1f}, {high:.1f}): {n_samples:4d} samples, accuracy {acc:.3f}"
+                )
 
         # Check monotonicity (higher confidence should mean higher accuracy)
         accuracies = [b["accuracy"] for b in bin_stats if b["n"] >= 10]
         if len(accuracies) >= 2:
-            is_monotonic = all(accuracies[i] <= accuracies[i + 1] for i in range(len(accuracies) - 1))
+            is_monotonic = all(
+                accuracies[i] <= accuracies[i + 1] for i in range(len(accuracies) - 1)
+            )
             if is_monotonic:
                 print("  [OK] Accuracy increases with confidence")
             else:
-                print("  [WARN] Accuracy does NOT increase with confidence - component may be unreliable")
+                print(
+                    "  [WARN] Accuracy does NOT increase with confidence - component may be unreliable"
+                )
 
         correlation_stats[name] = bin_stats
 
@@ -508,12 +527,20 @@ def print_recommendations(escalation_stats: dict, calibration_stats: dict):
     if escalation_stats.get("stage2_auroc_on_escalated"):
         stage2_auroc = escalation_stats["stage2_auroc_on_escalated"]
         if stage2_auroc < 0.6:
-            print("\n[CRITICAL] Stage 2 AUROC on escalated samples is LOW ({:.3f})".format(stage2_auroc))
+            print(
+                "\n[CRITICAL] Stage 2 AUROC on escalated samples is LOW ({:.3f})".format(
+                    stage2_auroc
+                )
+            )
             print("  -> Stage 2 may be hurting cascade performance")
             print("  -> Consider: skip Stage 2 when Stage 1 is uncertain")
             print("  -> Or: only use Stage 2 components with AUROC > 0.65")
         elif stage2_auroc < 0.7:
-            print("\n[WARN] Stage 2 AUROC on escalated samples is MODERATE ({:.3f})".format(stage2_auroc))
+            print(
+                "\n[WARN] Stage 2 AUROC on escalated samples is MODERATE ({:.3f})".format(
+                    stage2_auroc
+                )
+            )
             print("  -> Stage 2 provides some value but not strong")
             print("  -> Consider: higher confidence thresholds for Stage 2")
         else:
@@ -535,8 +562,15 @@ def print_recommendations(escalation_stats: dict, calibration_stats: dict):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Analyze component calibration for confidence-gating")
-    parser.add_argument("--output", type=str, default="tests/benchmarks/results/calibration", help="Output directory")
+    parser = argparse.ArgumentParser(
+        description="Analyze component calibration for confidence-gating"
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="tests/benchmarks/results/calibration",
+        help="Output directory",
+    )
     parser.add_argument("--limit", type=int, default=None, help="Limit samples (for quick testing)")
     args = parser.parse_args()
 
@@ -571,7 +605,7 @@ def main():
     print_recommendations(escalation_stats, calibration_stats)
 
     elapsed = time.time() - start_time
-    print(f"\nTotal time: {elapsed/60:.1f} minutes")
+    print(f"\nTotal time: {elapsed / 60:.1f} minutes")
 
 
 if __name__ == "__main__":

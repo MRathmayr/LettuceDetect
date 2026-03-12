@@ -9,12 +9,8 @@ class DatasetConfig(BaseModel):
     """Configuration for a benchmark dataset."""
 
     name: Literal["ragtruth", "halueval_qa", "all"] = "ragtruth"
-    limit: int | None = Field(
-        default=None, description="Maximum samples to load (None = all)"
-    )
-    cache_dir: str | None = Field(
-        default=None, description="Directory for caching loaded datasets"
-    )
+    limit: int | None = Field(default=None, description="Maximum samples to load (None = all)")
+    cache_dir: str | None = Field(default=None, description="Directory for caching loaded datasets")
 
 
 class ComponentBenchmarkConfig(BaseModel):
@@ -27,9 +23,7 @@ class ComponentBenchmarkConfig(BaseModel):
         default=True, description="Compute bootstrap CI (slower but more informative)"
     )
     ci_bootstraps: int = Field(default=1000, ge=100, description="Bootstrap samples for CI")
-    threshold: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="Classification threshold"
-    )
+    threshold: float = Field(default=0.5, ge=0.0, le=1.0, description="Classification threshold")
 
 
 class BenchmarkConfig(BaseModel):
@@ -69,12 +63,8 @@ class BenchmarkConfig(BaseModel):
 
     # Hardware
     device: str = Field(default="cuda", description="Device for inference")
-    sync_cuda: bool = Field(
-        default=True, description="Sync CUDA for accurate timing"
-    )
-    track_memory: bool = Field(
-        default=True, description="Track GPU/RAM memory usage"
-    )
+    sync_cuda: bool = Field(default=True, description="Sync CUDA for accurate timing")
+    track_memory: bool = Field(default=True, description="Track GPU/RAM memory usage")
 
     def apply_quick_mode(self) -> "BenchmarkConfig":
         """Apply quick mode settings."""

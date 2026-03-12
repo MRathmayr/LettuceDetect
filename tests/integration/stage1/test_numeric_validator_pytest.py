@@ -6,11 +6,9 @@ with real-world financial, scientific, and geographic data.
 Unified score direction: 0.0 = supported, 1.0 = hallucinated
 """
 
-import pytest
-
 from lettucedetect.detectors.stage1.augmentations.numeric_validator import (
-    NumericValidator,
     NumericConfig,
+    NumericValidator,
 )
 
 
@@ -72,17 +70,13 @@ class TestScientificNumericValidation:
 
     def test_medical_numbers_supported(self, medical_context, medical_answer_supported):
         """Verify supported medical numbers."""
-        result = self.validator.score(
-            medical_context, medical_answer_supported, None, None
-        )
+        result = self.validator.score(medical_context, medical_answer_supported, None, None)
         # 37 million and 7% are in context -> low hallucination score
         assert result.score <= 0.5  # mostly supported
 
     def test_medical_numbers_hallucinated(self, medical_context, medical_answer_hallucinated):
         """Verify hallucinated medical numbers are flagged."""
-        result = self.validator.score(
-            medical_context, medical_answer_hallucinated, None, None
-        )
+        result = self.validator.score(medical_context, medical_answer_hallucinated, None, None)
         # 50 million (vs 37 million), 5% (vs 7%) are wrong
         assert result.score > 0.0  # hallucination detected
         assert len(result.flagged_spans) > 0
@@ -107,9 +101,7 @@ class TestGeographicNumericValidation:
 
     def test_elevation_supported(self, geographic_context, geographic_answer_supported):
         """Verify supported elevation numbers."""
-        result = self.validator.score(
-            geographic_context, geographic_answer_supported, None, None
-        )
+        result = self.validator.score(geographic_context, geographic_answer_supported, None, None)
         # 8,849 meters and 1953 are correct -> low hallucination score
         assert result.score <= 0.5  # mostly supported
 

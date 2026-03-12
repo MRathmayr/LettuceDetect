@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
+from typing import ClassVar
 
 from lettucedetect.cascade.types import AugmentationResult
 from lettucedetect.detectors.stage1.augmentations.base import BaseAugmentation
@@ -25,15 +26,42 @@ ABBREVIATIONS = {
 
 # Word numbers
 WORD_NUMBERS = {
-    "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4,
-    "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9,
-    "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
-    "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17,
-    "eighteen": 18, "nineteen": 19, "twenty": 20, "thirty": 30,
-    "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70,
-    "eighty": 80, "ninety": 90, "hundred": 100, "thousand": 1000,
-    "half": 0.5, "quarter": 0.25, "third": 0.333,
-    "dozen": 12, "score": 20, "gross": 144,
+    "zero": 0,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
+    "twenty": 20,
+    "thirty": 30,
+    "forty": 40,
+    "fifty": 50,
+    "sixty": 60,
+    "seventy": 70,
+    "eighty": 80,
+    "ninety": 90,
+    "hundred": 100,
+    "thousand": 1000,
+    "half": 0.5,
+    "quarter": 0.25,
+    "third": 0.333,
+    "dozen": 12,
+    "score": 20,
+    "gross": 144,
 }
 
 
@@ -71,66 +99,51 @@ class NumericValidator(BaseAugmentation):
 
     # Regex patterns for number extraction - ORDER MATTERS!
     # More specific patterns must come before general ones
-    PATTERNS = {
+    PATTERNS: ClassVar[dict[str, re.Pattern]] = {
         # 1. Percentages (before float consumes "50" from "50%")
         "percentage": re.compile(r"(\d+(?:\.\d+)?)\s*%"),
-
         # 2. Currency (before integer consumes "$100")
         "currency": re.compile(
             r"(?:[$\u20ac\u00a3\u00a5])\s*(\d+(?:,\d{3})*(?:\.\d+)?)|"
             r"(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:dollars?|euros?|pounds?)"
         ),
-
         # 3. Scientific notation (before float consumes "1.5" from "1.5e6")
         "scientific": re.compile(r"(\d+(?:\.\d+)?)\s*[eE]\s*([+-]?\d+)"),
-
         # 4. Abbreviated numbers (before integer consumes "5" from "5M")
         # Uses negative lookahead to avoid matching units like "km", "mm"
         "abbreviated": re.compile(
-            r"(\d+(?:\.\d+)?)\s*(k|m|bn?|million|billion|trillion)(?![a-z])",
-            re.IGNORECASE
+            r"(\d+(?:\.\d+)?)\s*(k|m|bn?|million|billion|trillion)(?![a-z])", re.IGNORECASE
         ),
-
         # 5. Fractions (before integer consumes "3" from "3/4")
         "fraction": re.compile(r"\b(\d+)\s*/\s*(\d+)\b"),
-
         # 5b. Ratios (1:10, 3:1)
         "ratio": re.compile(r"\b(\d+)\s*:\s*(\d+)\b"),
-
         # 6. Ordinals (1st, 2nd, 23rd)
         "ordinal": re.compile(r"\b(\d+)(?:st|nd|rd|th)\b", re.IGNORECASE),
-
         # 7. Ranges with hyphen (10-20) - must have digits on both sides
         "range_hyphen": re.compile(r"\b(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\b"),
-
         # 8. Ranges with words (5 to 10, between 10 and 20)
         "range_words": re.compile(
-            r"\b(?:between\s+)?(\d+(?:\.\d+)?)\s+(?:to|and)\s+(\d+(?:\.\d+)?)\b",
-            re.IGNORECASE
+            r"\b(?:between\s+)?(\d+(?:\.\d+)?)\s+(?:to|and)\s+(\d+(?:\.\d+)?)\b", re.IGNORECASE
         ),
-
         # 9. Compound word numbers (twenty-three)
         "compound_word": re.compile(
             r"\b((?:twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)"
             r"[-\s]?(?:one|two|three|four|five|six|seven|eight|nine))\b",
-            re.IGNORECASE
+            re.IGNORECASE,
         ),
-
         # 10. Word numbers (five, dozen)
         "word_number": re.compile(
             r"\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|"
             r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|"
             r"eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|"
             r"eighty|ninety|hundred|thousand|half|quarter|third|dozen|score|gross)\b",
-            re.IGNORECASE
+            re.IGNORECASE,
         ),
-
         # 11. Years (1600-2099 range)
         "year": re.compile(r"\b(1[6-9]\d{2}|20\d{2})\b"),
-
         # 12. Floats
         "float": re.compile(r"(?<![,\d])(\d+\.\d+)(?![,\d])"),
-
         # 13. Integers (catch-all, last)
         # Allow period at end of sentence (followed by space or end of string)
         # Supports negative numbers with optional minus sign
@@ -142,6 +155,7 @@ class NumericValidator(BaseAugmentation):
 
         Args:
             config: NumericConfig with tolerance settings
+
         """
         self.config = config or NumericConfig()
 
@@ -172,6 +186,7 @@ class NumericValidator(BaseAugmentation):
         - "twenty-three" -> "23"
         - "one million" -> "1000000"
         - "two hundred and fifty" -> "250"
+
         """
         if not self.config.normalize_word_numbers:
             return text
@@ -254,7 +269,7 @@ class NumericValidator(BaseAugmentation):
             if not any(p in range(start, end) for p in used_positions):
                 base = self._parse_number(match.group(1))
                 exp = int(match.group(2))
-                value = base * (10 ** exp)
+                value = base * (10**exp)
                 numbers.append(
                     ExtractedNumber(
                         text=match.group(),
@@ -480,6 +495,7 @@ class NumericValidator(BaseAugmentation):
         Returns:
             AugmentationResult with hallucination score (0 = supported, 1 = hallucinated).
             Score is ratio of unverified numbers.
+
         """
         # Normalize text numbers if enabled (e.g., "twenty-three" -> "23")
         context_text = " ".join(context)

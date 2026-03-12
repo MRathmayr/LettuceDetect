@@ -2,8 +2,6 @@
 
 import pytest
 
-from tests.benchmarks.core import BenchmarkTimer
-
 
 @pytest.fixture(scope="module")
 def cascade_detector_detailed():
@@ -28,7 +26,9 @@ def cascade_detector_detailed():
 class TestRoutingBenchmark:
     """Benchmarks for cascade routing decisions."""
 
-    def test_routing_distribution(self, cascade_detector_detailed, ragtruth_samples, benchmark_config):
+    def test_routing_distribution(
+        self, cascade_detector_detailed, ragtruth_samples, benchmark_config
+    ):
         """Analyze routing distribution across samples."""
         samples = ragtruth_samples[:100] if len(ragtruth_samples) > 100 else ragtruth_samples
 
@@ -68,17 +68,23 @@ class TestRoutingBenchmark:
         if total > 0:
             import numpy as np
 
-            print(f"\n{'='*60}")
-            print(f"Routing Distribution Analysis")
-            print(f"{'='*60}")
+            print(f"\n{'=' * 60}")
+            print("Routing Distribution Analysis")
+            print(f"{'=' * 60}")
             print(f"Total samples: {total}")
-            print(f"Resolved at Stage 1: {resolved_stage1} ({100*resolved_stage1/total:.1f}%)")
-            print(f"Escalated to Stage 2: {escalated_stage2} ({100*escalated_stage2/total:.1f}%)")
+            print(f"Resolved at Stage 1: {resolved_stage1} ({100 * resolved_stage1 / total:.1f}%)")
+            print(
+                f"Escalated to Stage 2: {escalated_stage2} ({100 * escalated_stage2 / total:.1f}%)"
+            )
 
             if stage1_times:
-                print(f"\nStage 1 latency: {np.mean(stage1_times):.2f}ms (P95: {np.percentile(stage1_times, 95):.2f}ms)")
+                print(
+                    f"\nStage 1 latency: {np.mean(stage1_times):.2f}ms (P95: {np.percentile(stage1_times, 95):.2f}ms)"
+                )
             if stage2_times:
-                print(f"Stage 2 latency: {np.mean(stage2_times):.2f}ms (P95: {np.percentile(stage2_times, 95):.2f}ms)")
+                print(
+                    f"Stage 2 latency: {np.mean(stage2_times):.2f}ms (P95: {np.percentile(stage2_times, 95):.2f}ms)"
+                )
 
             # Cascade should resolve most samples at Stage 1
             escalation_rate = escalated_stage2 / total
@@ -122,9 +128,9 @@ class TestRoutingBenchmark:
                 total += 1
 
         if total > 0:
-            print(f"\n{'='*60}")
-            print(f"Routing Accuracy Comparison")
-            print(f"{'='*60}")
-            print(f"Stage 1 only accuracy: {100*stage1_correct/total:.1f}%")
-            print(f"Cascade (1+2) accuracy: {100*cascade_correct/total:.1f}%")
-            print(f"Improvement: {100*(cascade_correct - stage1_correct)/total:.1f}%")
+            print(f"\n{'=' * 60}")
+            print("Routing Accuracy Comparison")
+            print(f"{'=' * 60}")
+            print(f"Stage 1 only accuracy: {100 * stage1_correct / total:.1f}%")
+            print(f"Cascade (1+2) accuracy: {100 * cascade_correct / total:.1f}%")
+            print(f"Improvement: {100 * (cascade_correct - stage1_correct) / total:.1f}%")

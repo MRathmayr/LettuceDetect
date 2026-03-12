@@ -8,8 +8,8 @@ from lettucedetect.detectors.stage1.aggregator import (
 from lettucedetect.detectors.stage1.detector import Stage1Detector
 
 __all__ = [
-    "Stage1Detector",
-    "ScoreAggregator",
-    "AggregationConfig",
     "AggregatedScore",
+    "AggregationConfig",
+    "ScoreAggregator",
+    "Stage1Detector",
 ]

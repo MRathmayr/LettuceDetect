@@ -22,23 +22,23 @@ from lettucedetect.configs.presets import (
 )
 
 __all__ = [
-    # Models
-    "CascadeConfig",
-    "Stage1Config",
-    "Stage2Config",
-    "Stage3Config",
-    "RoutingConfig",
-    "Stage3Method",
+    "ACCURATE",
+    "BALANCED",
     # Production presets
     "FAST",
-    "BALANCED",
-    "ACCURATE",
+    "FAST_CASCADE",
     # Legacy / testing presets
     "FULL_CASCADE",
-    "FAST_CASCADE",
-    "WITH_NLI",
+    "PRESETS",
     "STAGE1_MINIMAL",
     "STAGE2_ONLY",
     "STAGE3_GROUNDING_PROBE",
-    "PRESETS",
+    "WITH_NLI",
+    # Models
+    "CascadeConfig",
+    "RoutingConfig",
+    "Stage1Config",
+    "Stage2Config",
+    "Stage3Config",
+    "Stage3Method",
 ]

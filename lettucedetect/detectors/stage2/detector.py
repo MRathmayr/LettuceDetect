@@ -68,6 +68,7 @@ class Stage2Detector(BaseDetector):
         Note:
             GPU is recommended for optimal latency. On CPU-only systems,
             Stage 2 will still function but with degraded performance.
+
         """
         self.config = config or Stage2Config()
         components = self.config.components
@@ -109,7 +110,7 @@ class Stage2Detector(BaseDetector):
         dummy_answer = "This is a test answer."
 
         if self._encoder:
-            self._encoder.encode(dummy_context + [dummy_answer])
+            self._encoder.encode([*dummy_context, dummy_answer])
         if self._nli:
             self._nli.warmup()
 
@@ -128,6 +129,7 @@ class Stage2Detector(BaseDetector):
 
         Returns:
             Tuple of (Stage2Scores, hallucination_score, is_hallucination)
+
         """
         # Compute NCS (if enabled)
         ncs_score = 0.5
@@ -162,7 +164,7 @@ class Stage2Detector(BaseDetector):
         question: str | None = None,
         output_format: str = "tokens",
     ) -> list:
-        """Main prediction method - implements BaseDetector interface.
+        """Predict hallucination tokens or spans for the given context and answer.
 
         Args:
             context: List of context passages.
@@ -172,6 +174,7 @@ class Stage2Detector(BaseDetector):
 
         Returns:
             List of token predictions or spans.
+
         """
         _, hallucination_score, is_hallucination = self._compute_scores(context, answer)
 
@@ -180,9 +183,7 @@ class Stage2Detector(BaseDetector):
             return self._format_spans(is_hallucination, hallucination_score, answer)
         return self._format_tokens(is_hallucination, hallucination_score, answer)
 
-    def predict_prompt(
-        self, prompt: str, answer: str, output_format: str = "tokens"
-    ) -> list:
+    def predict_prompt(self, prompt: str, answer: str, output_format: str = "tokens") -> list:
         """Predict with pre-formatted prompt - implements BaseDetector interface.
 
         Args:
@@ -192,6 +193,7 @@ class Stage2Detector(BaseDetector):
 
         Returns:
             List of predictions.
+
         """
         context = self._extract_context_from_prompt(prompt)
         return self.predict(context, answer, question=None, output_format=output_format)
@@ -208,10 +210,9 @@ class Stage2Detector(BaseDetector):
 
         Returns:
             List of prediction lists.
+
         """
-        return [
-            self.predict_prompt(p, a, output_format) for p, a in zip(prompts, answers)
-        ]
+        return [self.predict_prompt(p, a, output_format) for p, a in zip(prompts, answers)]
 
     def predict_stage(
         self,
@@ -229,6 +230,7 @@ class Stage2Detector(BaseDetector):
         Returns:
             StageResult with hallucination_score, confidence, routing decision,
             component scores, and output predictions.
+
         """
         return self._predict_cascade(input, output_format, has_next_stage)
 
@@ -238,7 +240,7 @@ class Stage2Detector(BaseDetector):
         output_format: str = "tokens",
         has_next_stage: bool = True,
     ) -> StageResult:
-        """Internal cascade prediction method.
+        """Run cascade prediction and return StageResult.
 
         Args:
             cascade_input: CascadeInput with context and previous stage result.
@@ -247,6 +249,7 @@ class Stage2Detector(BaseDetector):
 
         Returns:
             StageResult with full cascade data.
+
         """
         start = time.perf_counter()
 
@@ -264,9 +267,7 @@ class Stage2Detector(BaseDetector):
 
         # Format output
         if output_format == "spans":
-            output = self._format_spans(
-                is_hallucination, hallucination_score, cascade_input.answer
-            )
+            output = self._format_spans(is_hallucination, hallucination_score, cascade_input.answer)
         else:
             output = self._format_tokens(
                 is_hallucination, hallucination_score, cascade_input.answer
@@ -290,6 +291,7 @@ class Stage2Detector(BaseDetector):
 
         Returns:
             Dict with NCS and NLI component scores.
+
         """
         return {
             "ncs": self._encoder.compute_ncs(context, answer) if self._encoder else {},
@@ -304,12 +306,11 @@ class Stage2Detector(BaseDetector):
 
         Returns:
             List of context passages.
+
         """
         return [prompt]
 
-    def _format_tokens(
-        self, is_hallucination: bool, confidence: float, answer: str
-    ) -> list[dict]:
+    def _format_tokens(self, is_hallucination: bool, confidence: float, answer: str) -> list[dict]:
         """Format as token predictions (synthesized from response-level).
 
         Stage 2 operates at response level. If hallucination detected,
@@ -322,14 +323,13 @@ class Stage2Detector(BaseDetector):
 
         Returns:
             List of token dicts or empty list.
+
         """
         if not is_hallucination:
             return []
         return [{"token": t, "pred": 1, "prob": confidence} for t in answer.split()]
 
-    def _format_spans(
-        self, is_hallucination: bool, confidence: float, answer: str
-    ) -> list[dict]:
+    def _format_spans(self, is_hallucination: bool, confidence: float, answer: str) -> list[dict]:
         """Format as spans (response-level = single span if hallucinated).
 
         Args:
@@ -339,9 +339,8 @@ class Stage2Detector(BaseDetector):
 
         Returns:
             List with single span or empty list.
+
         """
         if not is_hallucination:
             return []
-        return [
-            {"start": 0, "end": len(answer), "text": answer, "confidence": confidence}
-        ]
+        return [{"start": 0, "end": len(answer), "text": answer, "confidence": confidence}]

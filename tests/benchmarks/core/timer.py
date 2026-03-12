@@ -24,6 +24,7 @@ class BenchmarkTimer:
 
         Args:
             sync_cuda: If True, synchronize CUDA before timing for accurate GPU measurements.
+
         """
         self.sync_cuda = sync_cuda and TORCH_AVAILABLE and torch.cuda.is_available()
         self._timings: list[float] = []
@@ -56,7 +57,7 @@ class BenchmarkTimer:
     def time_function(
         self,
         func: Callable,
-        *args,
+        *args,  # noqa: ANN002
         warmup_runs: int = 3,
         timed_runs: int = 10,
         **kwargs,
@@ -72,6 +73,7 @@ class BenchmarkTimer:
 
         Returns:
             TimingStats with timing information
+
         """
         # Warmup runs
         for _ in range(warmup_runs):

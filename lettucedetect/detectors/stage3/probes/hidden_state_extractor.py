@@ -1,4 +1,4 @@
-"""Hidden state extraction from causal LMs for probe-based detection.
+r"""Hidden state extraction from causal LMs for probe-based detection.
 
 Extracts hidden states at a specified layer and pools over response tokens
 using the configured token position strategy. The prompt format must match
@@ -43,8 +43,9 @@ class HiddenStateExtractor:
         model: PreTrainedModel,
         tokenizer: PreTrainedTokenizerBase,
         layer_index: int = -15,
-        token_position: Literal["slt", "tbg", "mean"] = "mean",
-    ):
+        token_position: Literal["slt", "tbg", "mean"] = "mean",  # noqa: S107
+    ) -> None:
+        """Initialize extractor with model, tokenizer, and pooling config."""
         self._model = model
         self._tokenizer = tokenizer
         self._layer_index = layer_index
@@ -88,6 +89,7 @@ class HiddenStateExtractor:
 
         Raises:
             ValueError: If question is None (probe requires a question).
+
         """
         if question is None:
             raise ValueError(
@@ -98,8 +100,12 @@ class HiddenStateExtractor:
 
         # Tokenize prompt and response separately (matches hallu-training pipeline)
         prompt = self._build_prompt(question, context)
-        prompt_ids = self._tokenizer(prompt, return_tensors="pt", add_special_tokens=True)["input_ids"]
-        response_ids = self._tokenizer(" " + answer, return_tensors="pt", add_special_tokens=False)["input_ids"]
+        prompt_ids = self._tokenizer(prompt, return_tensors="pt", add_special_tokens=True)[
+            "input_ids"
+        ]
+        response_ids = self._tokenizer(" " + answer, return_tensors="pt", add_special_tokens=False)[
+            "input_ids"
+        ]
 
         prompt_len = prompt_ids.shape[1]
         max_response_len = MAX_SEQ_LEN - prompt_len
@@ -138,7 +144,9 @@ class HiddenStateExtractor:
 
         return self._pool(response_states, hidden_states, prompt_len)
 
-    def _pool(self, response_states: torch.Tensor, all_states: torch.Tensor, prompt_len: int) -> torch.Tensor:
+    def _pool(
+        self, response_states: torch.Tensor, all_states: torch.Tensor, prompt_len: int
+    ) -> torch.Tensor:
         """Pool hidden states based on token position strategy.
 
         Args:
@@ -148,14 +156,15 @@ class HiddenStateExtractor:
 
         Returns:
             1D tensor of shape (hidden_dim,).
+
         """
-        if self._token_position == "mean":
+        if self._token_position == "mean":  # noqa: S105
             return response_states.mean(dim=0)
-        elif self._token_position == "slt":
+        elif self._token_position == "slt":  # noqa: S105
             # Second-Last Token of response
             idx = -2 if response_states.shape[0] >= 2 else -1
             return response_states[idx]
-        elif self._token_position == "tbg":
+        elif self._token_position == "tbg":  # noqa: S105
             # Token Before Generation = last prompt token (before response starts)
             return all_states[prompt_len - 1]
         else:

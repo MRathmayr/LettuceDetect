@@ -12,8 +12,14 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from sklearn.decomposition import PCA
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import StandardScaler
 from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
@@ -22,7 +28,14 @@ logger = logging.getLogger(__name__)
 class GroundingProbe:
     """Sklearn LogisticRegression probe for predicting P(hallucinated) from hidden states."""
 
-    def __init__(self, model, scaler=None, pca=None, metadata: dict | None = None):
+    def __init__(
+        self,
+        model: LogisticRegression,
+        scaler: StandardScaler | None = None,
+        pca: PCA | None = None,
+        metadata: dict | None = None,
+    ) -> None:
+        """Initialize probe with sklearn model, optional scaler and PCA."""
         self._model = model
         self._scaler = scaler
         self._pca = pca
@@ -36,6 +49,7 @@ class GroundingProbe:
 
         Returns:
             1D array of P(hallucinated) values, shape (n_samples,).
+
         """
         if self._scaler is not None:
             X = self._scaler.transform(X)
@@ -60,6 +74,7 @@ class GroundingProbe:
         Raises:
             FileNotFoundError: If probe file doesn't exist.
             KeyError: If probe file missing required 'model' key.
+
         """
         import joblib
 
@@ -91,6 +106,7 @@ class GroundingProbe:
 
         Returns:
             GroundingProbe instance.
+
         """
         try:
             from huggingface_hub import hf_hub_download
@@ -113,18 +129,12 @@ class GroundingProbe:
 
         model = data["model"]
         if not isinstance(model, LogisticRegression):
-            raise TypeError(
-                f"Expected LogisticRegression model, got {type(model).__name__}"
-            )
+            raise TypeError(f"Expected LogisticRegression model, got {type(model).__name__}")
 
         scaler = data.get("scaler")
         if scaler is not None and not isinstance(scaler, StandardScaler):
-            raise TypeError(
-                f"Expected StandardScaler or None, got {type(scaler).__name__}"
-            )
+            raise TypeError(f"Expected StandardScaler or None, got {type(scaler).__name__}")
 
         pca = data.get("pca")
         if pca is not None and not isinstance(pca, PCA):
-            raise TypeError(
-                f"Expected PCA or None, got {type(pca).__name__}"
-            )
+            raise TypeError(f"Expected PCA or None, got {type(pca).__name__}")

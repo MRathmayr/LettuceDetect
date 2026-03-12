@@ -39,19 +39,19 @@ class CascadeDetector(BaseDetector):
             elif stage_num == 3:
                 self._stages[3] = self._init_stage3()
 
-    def _init_stage1(self):
+    def _init_stage1(self) -> BaseDetector:
         """Initialize Stage 1 detector."""
         from lettucedetect.detectors.stage1 import Stage1Detector
 
         return Stage1Detector(config=self.config.stage1)
 
-    def _init_stage2(self):
+    def _init_stage2(self) -> BaseDetector:
         """Initialize Stage 2 detector."""
         from lettucedetect.detectors.stage2 import Stage2Detector
 
         return Stage2Detector(config=self.config.stage2)
 
-    def _init_stage3(self):
+    def _init_stage3(self) -> BaseDetector:
         """Initialize Stage 3 detector based on configured method."""
         from lettucedetect.detectors.stage3.grounding_probe_detector import (
             GroundingProbeDetector,
@@ -74,13 +74,14 @@ class CascadeDetector(BaseDetector):
         question: str | None = None,
         output_format: str = "tokens",
     ) -> list | dict:
-        """Main prediction - routes through cascade stages.
+        """Route prediction through cascade stages.
 
         Args:
             context: List of context passages.
             answer: The answer to check for hallucination.
             question: Optional question.
             output_format: 'tokens', 'spans', or 'detailed'.
+
         """
         start_time = time.perf_counter()
 
@@ -101,9 +102,7 @@ class CascadeDetector(BaseDetector):
                 continue
 
             has_next_stage = stage_num < max(active_stages)
-            result = self._run_stage(
-                stage, stage_num, cascade_input, has_next_stage, output_format
-            )
+            result = self._run_stage(stage, stage_num, cascade_input, has_next_stage, output_format)
             stage_results.append(result)
 
             if result.routing_decision == RoutingDecision.RETURN_CONFIDENT:
@@ -126,18 +125,14 @@ class CascadeDetector(BaseDetector):
             and final_result.stage_name == "stage3"
             and final_result.is_hallucination
         ):
-            stage1_result = next(
-                (r for r in stage_results if r.stage_name == "stage1"), None
-            )
+            stage1_result = next((r for r in stage_results if r.stage_name == "stage1"), None)
             if stage1_result is not None and stage1_result.output:
                 final_result.output = stage1_result.output
 
         total_latency = (time.perf_counter() - start_time) * 1000
 
         if output_format == "detailed":
-            return self._format_detailed(
-                final_result, stage_results, total_latency
-            )
+            return self._format_detailed(final_result, stage_results, total_latency)
         elif output_format == "spans":
             return final_result.output if final_result else []
         else:
@@ -145,7 +140,7 @@ class CascadeDetector(BaseDetector):
 
     def _run_stage(
         self,
-        stage,
+        stage: BaseDetector,
         stage_num: int,
         cascade_input: CascadeInput,
         has_next_stage: bool,
@@ -163,6 +158,7 @@ class CascadeDetector(BaseDetector):
         Returns:
             StageResult with hallucination_score, agreement, routing decision,
             component scores, evidence, and output predictions.
+
         """
         stage_start = time.perf_counter()
 
@@ -201,18 +197,13 @@ class CascadeDetector(BaseDetector):
                 "resolved_at_stage": int(final_result.stage_name[-1]),
                 "stages_executed": [int(r.stage_name[-1]) for r in stage_results],
                 "total_latency_ms": total_latency,
-                "stage_latencies_ms": {
-                    r.stage_name: r.latency_ms for r in stage_results
-                },
+                "stage_latencies_ms": {r.stage_name: r.latency_ms for r in stage_results},
             },
             "scores": {
                 "final_score": final_result.hallucination_score,
-                "confident": final_result.routing_decision
-                == RoutingDecision.RETURN_CONFIDENT,
+                "confident": final_result.routing_decision == RoutingDecision.RETURN_CONFIDENT,
                 "escalated": final_result.routing_decision == RoutingDecision.ESCALATE,
-                "per_stage": {
-                    r.stage_name: r.component_scores for r in stage_results
-                },
+                "per_stage": {r.stage_name: r.component_scores for r in stage_results},
             },
         }
 
@@ -238,8 +229,7 @@ class CascadeDetector(BaseDetector):
     ) -> list:
         """Batch prediction with prompts - implements BaseDetector interface."""
         return [
-            self.predict_prompt(p, a, output_format=output_format)
-            for p, a in zip(prompts, answers)
+            self.predict_prompt(p, a, output_format=output_format) for p, a in zip(prompts, answers)
         ]
 
     def warmup(self) -> None:

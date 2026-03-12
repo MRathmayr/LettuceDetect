@@ -17,9 +17,9 @@ from lettucedetect.configs.presets import (
     FAST,
     FAST_CASCADE,
     FULL_CASCADE,
+    PRESETS,
     STAGE1_MINIMAL,
     WITH_NLI,
-    PRESETS,
 )
 
 
@@ -64,7 +64,7 @@ class TestCascadeConfigDefaults:
         assert config.method == Stage3Method.GROUNDING_PROBE
         assert config.llm_model == "Qwen/Qwen2.5-3B-Instruct"
         assert config.layer_index == -15
-        assert config.token_position == "mean"
+        assert config.token_position == "mean"  # noqa: S105
         assert config.threshold == 0.5
         assert config.probe_repo_id is None
         assert config.probe_filename is None
@@ -99,10 +99,12 @@ class TestCascadeConfigValidation:
 
     def test_cascade_config_from_dict(self):
         """CascadeConfig should be creatable from dict."""
-        config = CascadeConfig.model_validate({
-            "stages": [1, 2],
-            "stage1": {"augmentations": ["ner"]},
-        })
+        config = CascadeConfig.model_validate(
+            {
+                "stages": [1, 2],
+                "stage1": {"augmentations": ["ner"]},
+            }
+        )
         assert config.stages == [1, 2]
         assert config.stage1.augmentations == ["ner"]
 
@@ -145,10 +147,12 @@ class TestCascadeConfigValidation:
 
     def test_extra_fields_ignored(self):
         """Old serialized configs with task_routing should not crash."""
-        config = CascadeConfig.model_validate({
-            "stages": [1, 3],
-            "task_routing": {"qa": [1, 3]},
-        })
+        config = CascadeConfig.model_validate(
+            {
+                "stages": [1, 3],
+                "task_routing": {"qa": [1, 3]},
+            }
+        )
         assert config.stages == [1, 3]
         assert not hasattr(config, "task_routing")
 

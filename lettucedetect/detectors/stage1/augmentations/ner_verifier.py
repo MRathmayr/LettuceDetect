@@ -32,6 +32,7 @@ class NERVerifier(BaseAugmentation):
 
         Args:
             config: NERConfig with model selection and thresholds
+
         """
         self.config = config or NERConfig()
         self._nlp = None  # spaCy model
@@ -47,6 +48,7 @@ class NERVerifier(BaseAugmentation):
             if not is_package(model_name):
                 logger.info(f"Downloading spaCy model: {model_name}")
                 from spacy.cli import download
+
                 download(model_name)
 
             self._nlp = spacy.load(model_name)
@@ -70,6 +72,7 @@ class NERVerifier(BaseAugmentation):
                 if self.config.use_gpu:
                     try:
                         import torch
+
                         if torch.cuda.is_available():
                             self._gliner = self._gliner.to("cuda")
                             logger.info("GLiNER model loaded on GPU")
@@ -80,9 +83,7 @@ class NERVerifier(BaseAugmentation):
                 else:
                     logger.info("GLiNER model loaded on CPU (use_gpu=False)")
             except ImportError:
-                raise ImportError(
-                    "GLiNER not installed. Install with: pip install gliner"
-                )
+                raise ImportError("GLiNER not installed. Install with: pip install gliner")
 
     @property
     def name(self) -> str:
@@ -101,6 +102,7 @@ class NERVerifier(BaseAugmentation):
 
         Returns:
             List of dicts with text, label, start, end
+
         """
         self._load_spacy_model()
         doc = self._nlp(text)
@@ -122,6 +124,7 @@ class NERVerifier(BaseAugmentation):
 
         Returns:
             List of dicts with text, label, start, end
+
         """
         self._load_gliner_model()
 
@@ -157,6 +160,7 @@ class NERVerifier(BaseAugmentation):
 
         Returns:
             (found, similarity_score) tuple
+
         """
         entity_lower = entity_text.lower()
 
@@ -181,6 +185,7 @@ class NERVerifier(BaseAugmentation):
 
         Returns:
             (hallucination_score, entity_details, flagged_spans)
+
         """
         entities = self._extract_entities(text)
 
@@ -193,23 +198,27 @@ class NERVerifier(BaseAugmentation):
 
         for ent in entities:
             found, similarity = self._entity_in_context(ent["text"], context_entities)
-            entity_details.append({
-                "text": ent["text"],
-                "label": ent["label"],
-                "found": found,
-                "similarity": similarity,
-            })
+            entity_details.append(
+                {
+                    "text": ent["text"],
+                    "label": ent["label"],
+                    "found": found,
+                    "similarity": similarity,
+                }
+            )
 
             if found:
                 verified_count += 1
             else:
-                flagged_spans.append({
-                    "start": ent["start"],
-                    "end": ent["end"],
-                    "text": ent["text"],
-                    "confidence": 0.8,
-                    "reason": f"Entity '{ent['text']}' ({ent['label']}) not found in context",
-                })
+                flagged_spans.append(
+                    {
+                        "start": ent["start"],
+                        "end": ent["end"],
+                        "text": ent["text"],
+                        "confidence": 0.8,
+                        "reason": f"Entity '{ent['text']}' ({ent['label']}) not found in context",
+                    }
+                )
 
         unverified_ratio = 1.0 - (verified_count / len(entities))
         return unverified_ratio, entity_details, flagged_spans
@@ -228,6 +237,7 @@ class NERVerifier(BaseAugmentation):
 
         Returns:
             AugmentationResult with hallucination score (0 = supported, 1 = hallucinated).
+
         """
         # Extract entities from context
         context_text = " ".join(context)
@@ -265,9 +275,7 @@ class NERVerifier(BaseAugmentation):
         total_entities = 0
 
         for sent in sentences:
-            score, entity_details, flagged_spans = self._score_text_entities(
-                sent, context_entities
-            )
+            score, entity_details, flagged_spans = self._score_text_entities(sent, context_entities)
             if entity_details:  # Only include sentences with entities
                 sentence_scores.append(score)
                 all_entity_details.extend(entity_details)
@@ -313,9 +321,7 @@ class NERVerifier(BaseAugmentation):
         self, answer: str, context_entities: list[dict]
     ) -> AugmentationResult:
         """Original document-level scoring (all entities pooled)."""
-        score, entity_details, flagged_spans = self._score_text_entities(
-            answer, context_entities
-        )
+        score, entity_details, flagged_spans = self._score_text_entities(answer, context_entities)
 
         if not entity_details:
             return AugmentationResult(

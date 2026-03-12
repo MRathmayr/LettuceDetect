@@ -10,7 +10,7 @@ Note: These tests require CUDA/GPU and will be skipped on CPU-only systems.
 import pytest
 
 from lettucedetect.configs import Stage1Config
-from lettucedetect.detectors.stage1 import Stage1Detector, AggregationConfig
+from lettucedetect.detectors.stage1 import AggregationConfig, Stage1Detector
 
 
 @pytest.mark.gpu
@@ -124,7 +124,10 @@ class TestNumericAugmentationIntegration:
     """Test Numeric augmentation integration with Stage1Detector."""
 
     def test_numeric_detects_fabricated_numbers(
-        self, stage1_detector_numeric, financial_report_context, financial_answer_hallucinated_numbers
+        self,
+        stage1_detector_numeric,
+        financial_report_context,
+        financial_answer_hallucinated_numbers,
     ):
         """Verify Numeric catches fabricated financial numbers."""
         results = stage1_detector_numeric._run_augmentations(
@@ -160,7 +163,9 @@ class TestNumericAugmentationIntegration:
         correct = "Market share reached 31%."
         wrong = "Market share reached 45%."
 
-        correct_results = stage1_detector_numeric._run_augmentations(context_with_percentages, correct)
+        correct_results = stage1_detector_numeric._run_augmentations(
+            context_with_percentages, correct
+        )
         wrong_results = stage1_detector_numeric._run_augmentations(context_with_percentages, wrong)
 
         # Correct should have lower (supported) score, wrong should have higher (hallucinated) score
@@ -179,7 +184,9 @@ class TestLexicalAugmentationIntegration:
         Unified score direction: 0.0 = supported, 1.0 = hallucinated
         hallucination_score = 1.0 - jaccard_similarity
         """
-        results = stage1_detector_lexical._run_augmentations(sample_context, sample_answer_supported)
+        results = stage1_detector_lexical._run_augmentations(
+            sample_context, sample_answer_supported
+        )
 
         assert "lexical" in results
         lexical_result = results["lexical"]
@@ -187,7 +194,11 @@ class TestLexicalAugmentationIntegration:
         assert lexical_result.score < 0.75
 
     def test_lexical_low_overlap_hallucinated(
-        self, stage1_detector_lexical, sample_context, sample_answer_supported, sample_answer_hallucinated
+        self,
+        stage1_detector_lexical,
+        sample_context,
+        sample_answer_supported,
+        sample_answer_hallucinated,
     ):
         """Verify higher hallucination score for hallucinated answer.
 
@@ -202,17 +213,16 @@ class TestLexicalAugmentationIntegration:
         )
 
         # Hallucinated should have higher hallucination score (lower overlap)
-        assert (
-            hallucinated_results["lexical"].score
-            >= supported_results["lexical"].score
-        )
+        assert hallucinated_results["lexical"].score >= supported_results["lexical"].score
 
 
 @pytest.mark.gpu
 class TestCombinedAugmentations:
     """Test multiple augmentations working together."""
 
-    def test_all_augmentations_run(self, stage1_detector_all, financial_report_context, financial_answer_supported):
+    def test_all_augmentations_run(
+        self, stage1_detector_all, financial_report_context, financial_answer_supported
+    ):
         """Verify all augmentations produce results."""
         results = stage1_detector_all._run_augmentations(
             financial_report_context, financial_answer_supported
@@ -241,9 +251,7 @@ class TestCombinedAugmentations:
 
     def test_multi_domain_hallucination_detection(self, stage1_detector_all):
         """Test detection across different hallucination types."""
-        context = [
-            "Acme Corp reported $100 million revenue. CEO John Smith announced expansion."
-        ]
+        context = ["Acme Corp reported $100 million revenue. CEO John Smith announced expansion."]
 
         # Hallucinated entity (Jane Doe) + hallucinated number ($150 million)
         answer = "CEO Jane Doe announced $150 million in revenue."
@@ -344,7 +352,9 @@ class TestPredictStageInterface:
 class TestRealWorldScenarios:
     """Test realistic RAG scenarios end-to-end."""
 
-    def test_medical_qa_scenario(self, stage1_detector_ner_numeric, medical_context, medical_answer_hallucinated):
+    def test_medical_qa_scenario(
+        self, stage1_detector_ner_numeric, medical_context, medical_answer_hallucinated
+    ):
         """Test medical QA with hallucinated content."""
         results = stage1_detector_ner_numeric._run_augmentations(
             medical_context, medical_answer_hallucinated
@@ -376,13 +386,8 @@ class TestRealWorldScenarios:
         )
 
         # Should detect wrong elevation (9100 vs 8849) and wrong person (Mallory)
-        numeric_issues = (
-            results["numeric"].score < 1.0
-            or len(results["numeric"].flagged_spans) > 0
-        )
-        ner_issues = (
-            results["ner"].score < 1.0 or len(results["ner"].flagged_spans) > 0
-        )
+        numeric_issues = results["numeric"].score < 1.0 or len(results["numeric"].flagged_spans) > 0
+        ner_issues = results["ner"].score < 1.0 or len(results["ner"].flagged_spans) > 0
 
         assert numeric_issues or ner_issues
 
@@ -396,54 +401,58 @@ class TestRealWorldScenarios:
 class TestPredictEndToEnd:
     """Test the full predict() pipeline that users actually call."""
 
-    def test_predict_returns_token_list(self, stage1_detector_all, financial_report_context, financial_answer_supported):
+    def test_predict_returns_token_list(
+        self, stage1_detector_all, financial_report_context, financial_answer_supported
+    ):
         """Verify predict() returns a list of token predictions."""
         result = stage1_detector_all.predict(
             context=financial_report_context,
             answer=financial_answer_supported,
-            output_format="tokens"
+            output_format="tokens",
         )
         assert isinstance(result, list)
         assert len(result) > 0
 
-    def test_predict_token_format_has_required_fields(self, stage1_detector_no_aug, sample_context, sample_answer_supported):
+    def test_predict_token_format_has_required_fields(
+        self, stage1_detector_no_aug, sample_context, sample_answer_supported
+    ):
         """Verify each token has required fields."""
         result = stage1_detector_no_aug.predict(
-            context=sample_context,
-            answer=sample_answer_supported,
-            output_format="tokens"
+            context=sample_context, answer=sample_answer_supported, output_format="tokens"
         )
         for token in result:
             assert "token" in token
             assert "pred" in token
             assert "prob" in token
 
-    def test_predict_spans_returns_list(self, stage1_detector_all, financial_report_context, financial_answer_hallucinated_numbers):
+    def test_predict_spans_returns_list(
+        self, stage1_detector_all, financial_report_context, financial_answer_hallucinated_numbers
+    ):
         """Verify predict() with spans format returns a list."""
         result = stage1_detector_all.predict(
             context=financial_report_context,
             answer=financial_answer_hallucinated_numbers,
-            output_format="spans"
+            output_format="spans",
         )
         assert isinstance(result, list)
 
-    def test_predict_detects_hallucinated_answer(self, stage1_detector_no_aug, sample_context, sample_answer_hallucinated):
+    def test_predict_detects_hallucinated_answer(
+        self, stage1_detector_no_aug, sample_context, sample_answer_hallucinated
+    ):
         """Verify full pipeline flags hallucinated content."""
         result = stage1_detector_no_aug.predict(
-            context=sample_context,
-            answer=sample_answer_hallucinated,
-            output_format="tokens"
+            context=sample_context, answer=sample_answer_hallucinated, output_format="tokens"
         )
         # At least one token should be flagged
         hallucinated_tokens = [t for t in result if t.get("pred") == 1]
         assert len(hallucinated_tokens) > 0
 
-    def test_predict_supported_answer_has_low_hallucination(self, stage1_detector_no_aug, sample_context, sample_answer_supported):
+    def test_predict_supported_answer_has_low_hallucination(
+        self, stage1_detector_no_aug, sample_context, sample_answer_supported
+    ):
         """Verify supported answers have few/no hallucination flags."""
         result = stage1_detector_no_aug.predict(
-            context=sample_context,
-            answer=sample_answer_supported,
-            output_format="tokens"
+            context=sample_context, answer=sample_answer_supported, output_format="tokens"
         )
         # Most tokens should NOT be flagged for supported answer
         hallucinated_tokens = [t for t in result if t.get("pred") == 1]
@@ -465,10 +474,7 @@ class TestPromptPrediction:
 
     def test_predict_prompt_batch_returns_list_of_lists(self, stage1_detector_no_aug):
         """Verify batch prediction returns list of results."""
-        prompts = [
-            "Context: Paris is the capital of France.",
-            "Context: Tokyo is in Japan."
-        ]
+        prompts = ["Context: Paris is the capital of France.", "Context: Tokyo is in Japan."]
         answers = ["Paris is the capital.", "Tokyo is in Japan."]
 
         results = stage1_detector_no_aug.predict_prompt_batch(prompts, answers)
@@ -489,33 +495,33 @@ class TestPromptPrediction:
 class TestOutputFormat:
     """Test output formatting methods."""
 
-    def test_tokens_prob_in_valid_range(self, stage1_detector_no_aug, sample_context, sample_answer_supported):
+    def test_tokens_prob_in_valid_range(
+        self, stage1_detector_no_aug, sample_context, sample_answer_supported
+    ):
         """Verify token probabilities are in [0, 1]."""
         result = stage1_detector_no_aug.predict(
-            context=sample_context,
-            answer=sample_answer_supported,
-            output_format="tokens"
+            context=sample_context, answer=sample_answer_supported, output_format="tokens"
         )
         for token in result:
             assert 0 <= token["prob"] <= 1
 
-    def test_tokens_pred_is_binary(self, stage1_detector_no_aug, sample_context, sample_answer_supported):
+    def test_tokens_pred_is_binary(
+        self, stage1_detector_no_aug, sample_context, sample_answer_supported
+    ):
         """Verify token predictions are 0 or 1."""
         result = stage1_detector_no_aug.predict(
-            context=sample_context,
-            answer=sample_answer_supported,
-            output_format="tokens"
+            context=sample_context, answer=sample_answer_supported, output_format="tokens"
         )
         for token in result:
             assert token["pred"] in [0, 1]
 
-    def test_spans_have_valid_indices(self, stage1_detector_all, financial_report_context, financial_answer_hallucinated_numbers):
+    def test_spans_have_valid_indices(
+        self, stage1_detector_all, financial_report_context, financial_answer_hallucinated_numbers
+    ):
         """Verify span indices are valid."""
         answer = financial_answer_hallucinated_numbers
         result = stage1_detector_all.predict(
-            context=financial_report_context,
-            answer=answer,
-            output_format="spans"
+            context=financial_report_context, answer=answer, output_format="spans"
         )
         for span in result:
             assert "start" in span
@@ -532,13 +538,16 @@ class TestAugmentationEffect:
     """Test that augmentations affect the predict() output."""
 
     def test_numeric_augmentation_affects_hallucinated_numbers(
-        self, stage1_detector_numeric, financial_report_context, financial_answer_hallucinated_numbers
+        self,
+        stage1_detector_numeric,
+        financial_report_context,
+        financial_answer_hallucinated_numbers,
     ):
         """Verify numeric augmentation influences detection of wrong numbers."""
         result = stage1_detector_numeric.predict(
             context=financial_report_context,
             answer=financial_answer_hallucinated_numbers,
-            output_format="spans"
+            output_format="spans",
         )
         # Should return a list (may be empty if no hallucinations detected at span level)
         assert isinstance(result, list)
@@ -550,7 +559,7 @@ class TestAugmentationEffect:
         result = stage1_detector_ner.predict(
             context=financial_report_context,
             answer=financial_answer_hallucinated_entities,
-            output_format="spans"
+            output_format="spans",
         )
         assert isinstance(result, list)
 
@@ -559,7 +568,9 @@ class TestAugmentationEffect:
 class TestPackagePublicAPI:
     """Test Stage1Detector through the public package API (how real users import it)."""
 
-    def test_make_detector_with_augmentations_creates_stage1(self, sample_context, sample_answer_supported):
+    def test_make_detector_with_augmentations_creates_stage1(
+        self, sample_context, sample_answer_supported
+    ):
         """Verify make_detector with augmentations creates Stage1Detector."""
         from lettucedetect.detectors.factory import make_detector
 
@@ -570,28 +581,25 @@ class TestPackagePublicAPI:
 
         # Should work like a normal detector
         result = detector.predict(
-            context=sample_context,
-            answer=sample_answer_supported,
-            output_format="tokens"
+            context=sample_context, answer=sample_answer_supported, output_format="tokens"
         )
         assert isinstance(result, list)
 
-    def test_make_detector_without_augmentations_creates_transformer(self, sample_context, sample_answer_supported):
+    def test_make_detector_without_augmentations_creates_transformer(
+        self, sample_context, sample_answer_supported
+    ):
         """Verify make_detector without augmentations creates TransformerDetector."""
         from lettucedetect.detectors.factory import make_detector
 
         detector = make_detector(
-            "transformer",
-            model_path="KRLabsOrg/lettucedect-base-modernbert-en-v1"
+            "transformer", model_path="KRLabsOrg/lettucedect-base-modernbert-en-v1"
         )
 
         # Should be a TransformerDetector (not Stage1Detector)
         assert detector.__class__.__name__ == "TransformerDetector"
 
         result = detector.predict(
-            context=sample_context,
-            answer=sample_answer_supported,
-            output_format="tokens"
+            context=sample_context, answer=sample_answer_supported, output_format="tokens"
         )
         assert isinstance(result, list)
 
@@ -600,20 +608,17 @@ class TestPackagePublicAPI:
         from lettucedetect import HallucinationDetector
 
         detector = HallucinationDetector(
-            method="transformer",
-            model_path="KRLabsOrg/lettucedect-base-modernbert-en-v1"
+            method="transformer", model_path="KRLabsOrg/lettucedect-base-modernbert-en-v1"
         )
 
         result = detector.predict(
-            context=sample_context,
-            answer=sample_answer_supported,
-            output_format="tokens"
+            context=sample_context, answer=sample_answer_supported, output_format="tokens"
         )
         assert isinstance(result, list)
 
     def test_stage1_available_via_direct_import(self):
         """Verify Stage1Detector can be imported from detectors.stage1."""
-        from lettucedetect.detectors.stage1 import Stage1Detector, AggregationConfig
+        from lettucedetect.detectors.stage1 import Stage1Detector
 
         # Verify the classes exist and are importable
         assert Stage1Detector is not None

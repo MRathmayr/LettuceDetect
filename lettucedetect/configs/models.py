@@ -31,14 +31,17 @@ class Stage1Config(BaseModel):
     """
 
     model_path: str = "KRLabsOrg/lettucedect-base-modernbert-en-v1"
-    augmentations: list[Literal["ner", "numeric", "lexical", "model2vec"]] = ["lexical", "model2vec"]
+    augmentations: list[Literal["ner", "numeric", "lexical", "model2vec"]] = [
+        "lexical",
+        "model2vec",
+    ]
     weights: dict[str, float] = Field(
         default_factory=lambda: {
             "transformer": 0.65,  # Primary signal (trained on RAGTruth)
-            "lexical": 0.25,      # Complementary heuristic
-            "model2vec": 0.10,    # NCS embedding similarity
-            "ner": 0.0,           # Disabled - hurts AUROC (flips correct decisions)
-            "numeric": 0.0,       # Disabled - hurts AUROC (flips correct decisions)
+            "lexical": 0.25,  # Complementary heuristic
+            "model2vec": 0.10,  # NCS embedding similarity
+            "ner": 0.0,  # Disabled - hurts AUROC (flips correct decisions)
+            "numeric": 0.0,  # Disabled - hurts AUROC (flips correct decisions)
         }
     )
     max_length: int = 4096
@@ -47,7 +50,7 @@ class Stage1Config(BaseModel):
 
     # Routing thresholds (calibrated on RAGTruth 2026-01-25)
     routing_threshold_high: float = 0.79  # Score >= this = confident hallucination
-    routing_threshold_low: float = 0.09   # Score <= this = confident supported
+    routing_threshold_low: float = 0.09  # Score <= this = confident supported
     classification_threshold: float = 0.15  # Optimal threshold for F1
 
     @field_validator("weights")
@@ -82,8 +85,8 @@ class Stage2Config(BaseModel):
     # Aggregation weights (must sum to 1.0)
     weights: dict[str, float] = Field(
         default_factory=lambda: {
-            "ncs": 0.0,   # Model2Vec moved to Stage 1
-            "nli": 1.0,   # NLI is the only Stage 2 component
+            "ncs": 0.0,  # Model2Vec moved to Stage 1
+            "nli": 1.0,  # NLI is the only Stage 2 component
         }
     )
 
@@ -93,7 +96,7 @@ class Stage2Config(BaseModel):
 
     # Routing thresholds (calibrated on RAGTruth 2026-01-25)
     routing_threshold_high: float = 0.44  # Score >= this = confident hallucination
-    routing_threshold_low: float = 0.06   # Score <= this = confident supported
+    routing_threshold_low: float = 0.06  # Score <= this = confident supported
     classification_threshold: float = 0.18  # Optimal threshold for F1
 
     # Stage 1 integration
@@ -121,7 +124,7 @@ class Stage3Config(BaseModel):
     probe_repo_id: str | None = None
     probe_filename: str | None = None
     layer_index: int = -15
-    token_position: Literal["slt", "tbg", "mean"] = "mean"
+    token_position: Literal["slt", "tbg", "mean"] = "mean"  # noqa: S105
     threshold: float = 0.5  # P(hallucinated) above this = hallucination
 
 

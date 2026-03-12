@@ -45,6 +45,7 @@ class DatasetAdapter(ABC):
 
         Returns:
             List of BenchmarkSample objects
+
         """
         ...
 
@@ -61,13 +62,14 @@ class DatasetAdapter(ABC):
 
 
 def load_dataset_adapter(name: str) -> DatasetAdapter:
-    """Factory function to get dataset adapter by name.
+    """Create a dataset adapter by name.
 
     Args:
         name: Dataset name ("ragtruth", "halueval_qa", etc.)
 
     Returns:
         DatasetAdapter instance
+
     """
     from tests.benchmarks.data_adapters.halueval import HaluEvalAdapter
     from tests.benchmarks.data_adapters.ragtruth import RAGTruthAdapter
@@ -97,6 +99,7 @@ def load_all_datasets(limit: int | None = None) -> list[BenchmarkSample]:
 
     Returns:
         Combined list of samples from all datasets
+
     """
     samples = []
     for name in ["ragtruth", "halueval_qa", "halueval_dialogue", "halueval_summarization"]:

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Analyze score blending strategies for Stage 1 + Stage 3 cascade.
 
 Loads benchmark JSONs with per-sample predictions (--save-predictions),
@@ -39,7 +38,9 @@ def load_predictions(json_path: Path) -> dict:
     transformer_tag = meta.get("transformer_model", "unknown")
     stage3_size = meta.get("stage3_model", "unknown")
 
-    result = {"metadata": {"transformer": transformer_tag, "stage3": stage3_size, "file": str(json_path)}}
+    result = {
+        "metadata": {"transformer": transformer_tag, "stage3": stage3_size, "file": str(json_path)}
+    }
 
     # Stage 1 predictions
     s1_key = f"stage1_{transformer_tag}"
@@ -83,13 +84,15 @@ def match_predictions(s1_preds: list, s3_preds: list) -> list[dict]:
         p3 = s3_map.get(sid)
         if p3 is None:
             continue
-        matched.append({
-            "sample_id": sid,
-            "s1_score": p1["predicted_score"],
-            "s3_score": p3["predicted_score"],
-            "ground_truth": p1["ground_truth"],
-            "task_type": p1.get("task_type", "unknown"),
-        })
+        matched.append(
+            {
+                "sample_id": sid,
+                "s1_score": p1["predicted_score"],
+                "s3_score": p3["predicted_score"],
+                "ground_truth": p1["ground_truth"],
+                "task_type": p1.get("task_type", "unknown"),
+            }
+        )
     return matched
 
 
@@ -118,8 +121,9 @@ def compute_metrics(scores: np.ndarray, labels: np.ndarray, threshold: float = 0
     }
 
 
-def compute_per_task_metrics(scores: np.ndarray, labels: np.ndarray,
-                             task_types: np.ndarray, threshold: float = 0.5) -> dict:
+def compute_per_task_metrics(
+    scores: np.ndarray, labels: np.ndarray, task_types: np.ndarray, threshold: float = 0.5
+) -> dict:
     """Compute metrics per task type."""
     results = {}
     for task in np.unique(task_types):
@@ -137,8 +141,9 @@ def strategy_weighted_avg_all(matched: list, alpha: float) -> np.ndarray:
     return alpha * s1 + (1 - alpha) * s3
 
 
-def strategy_weighted_avg_escalated(matched: list, alpha: float,
-                                    conf_low: float = 0.15, conf_high: float = 0.85) -> np.ndarray:
+def strategy_weighted_avg_escalated(
+    matched: list, alpha: float, conf_low: float = 0.15, conf_high: float = 0.85
+) -> np.ndarray:
     """Keep s1 for confident samples, blend for escalated."""
     s1 = np.array([m["s1_score"] for m in matched])
     s3 = np.array([m["s3_score"] for m in matched])
@@ -305,12 +310,16 @@ def print_summary(all_results: dict):
             continue
         meta = data.get("metadata", {})
         print(f"\n--- {meta.get('transformer', '?')} + {meta.get('stage3', '?')} ---")
-        print(f"  Original cascade:  AUROC={meta.get('cascade_auroc', '?')}, F1={meta.get('cascade_f1', '?')}")
-        print(f"  Stage 1 baseline:  AUROC={meta.get('s1_auroc', '?')}, F1={meta.get('s1_f1', '?')}")
+        print(
+            f"  Original cascade:  AUROC={meta.get('cascade_auroc', '?')}, F1={meta.get('cascade_f1', '?')}"
+        )
+        print(
+            f"  Stage 1 baseline:  AUROC={meta.get('s1_auroc', '?')}, F1={meta.get('s1_f1', '?')}"
+        )
 
         strategies = data.get("strategies", {})
         print(f"\n  {'Strategy':<28} {'AUROC':>8} {'F1@0.5':>8} {'OptF1':>8} {'Notes'}")
-        print(f"  {'-'*28} {'-'*8} {'-'*8} {'-'*8} {'-'*30}")
+        print(f"  {'-' * 28} {'-' * 8} {'-' * 8} {'-' * 8} {'-' * 30}")
 
         for name, s in strategies.items():
             if name.startswith("baseline"):
@@ -325,7 +334,9 @@ def print_summary(all_results: dict):
                 opt_f1 = best.get("optimal_f1", "N/A")
                 ba = s.get("best_auroc_alpha", "?")
                 bf = s.get("best_f1_alpha", "?")
-                print(f"  {name:<28} {auroc:>8} {f1:>8} {opt_f1:>8} alpha_auroc={ba}, alpha_f1={bf}")
+                print(
+                    f"  {name:<28} {auroc:>8} {f1:>8} {opt_f1:>8} alpha_auroc={ba}, alpha_f1={bf}"
+                )
             elif name == "routing_threshold_sweep":
                 best = s.get("best", {})
                 auroc = best.get("auroc", "N/A")
@@ -333,7 +344,9 @@ def print_summary(all_results: dict):
                 opt_f1 = best.get("optimal_f1", "N/A")
                 pair = s.get("best_auroc_thresholds", ["?", "?"])
                 esc = best.get("escalation_pct", "?")
-                print(f"  {name:<28} {auroc:>8} {f1:>8} {opt_f1:>8} low={pair[0]}, high={pair[1]}, esc={esc}%")
+                print(
+                    f"  {name:<28} {auroc:>8} {f1:>8} {opt_f1:>8} low={pair[0]}, high={pair[1]}, esc={esc}%"
+                )
             else:
                 auroc = s.get("auroc", "N/A")
                 f1 = s.get("f1", "N/A")
@@ -345,12 +358,21 @@ def print_summary(all_results: dict):
 
 def main():
     parser = argparse.ArgumentParser(description="Analyze score blending strategies")
-    parser.add_argument("--results-dir", type=str, required=True,
-                        help="Directory containing benchmark JSONs with predictions")
-    parser.add_argument("--output", type=str, default="blending_analysis.json",
-                        help="Output JSON path")
-    parser.add_argument("--pattern", type=str, default="benchmark_*_20*.json",
-                        help="Glob pattern for benchmark files")
+    parser.add_argument(
+        "--results-dir",
+        type=str,
+        required=True,
+        help="Directory containing benchmark JSONs with predictions",
+    )
+    parser.add_argument(
+        "--output", type=str, default="blending_analysis.json", help="Output JSON path"
+    )
+    parser.add_argument(
+        "--pattern",
+        type=str,
+        default="benchmark_*_20*.json",
+        help="Glob pattern for benchmark files",
+    )
     args = parser.parse_args()
 
     results_dir = Path(args.results_dir)

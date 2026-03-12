@@ -14,7 +14,8 @@ from lettucedetect.detectors.stage1.augmentations.base import BaseAugmentation
 class Model2VecAugmentation(BaseAugmentation):
     """Model2Vec NCS as Stage 1 augmentation."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize Model2Vec augmentation with default encoder."""
         from lettucedetect.detectors.stage2.config import Model2VecConfig
         from lettucedetect.detectors.stage2.model2vec_encoder import Model2VecEncoder
 
@@ -22,9 +23,11 @@ class Model2VecAugmentation(BaseAugmentation):
 
     @property
     def name(self) -> str:
+        """Return augmentation name."""
         return "model2vec"
 
     def preload(self) -> None:
+        """Preload the Model2Vec encoder model."""
         self._encoder.preload()
 
     def score(
@@ -34,6 +37,7 @@ class Model2VecAugmentation(BaseAugmentation):
         question: str | None,
         token_predictions: list[dict] | None,
     ) -> AugmentationResult:
+        """Score answer against context using Model2Vec cosine similarity."""
         ncs = self._encoder.compute_ncs(context, answer)
         # cosine [-1, 1] -> support [0, 1] -> hallucination [0, 1]
         support = (ncs["max"] + 1.0) / 2.0

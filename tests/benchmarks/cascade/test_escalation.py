@@ -2,8 +2,6 @@
 
 import pytest
 
-from tests.benchmarks.core import BenchmarkTimer
-
 
 @pytest.fixture(scope="module")
 def cascade_for_escalation():
@@ -28,7 +26,9 @@ def cascade_for_escalation():
 class TestEscalationBenchmark:
     """Benchmarks for escalation behavior."""
 
-    def test_escalation_timing_paths(self, cascade_for_escalation, ragtruth_samples, benchmark_config):
+    def test_escalation_timing_paths(
+        self, cascade_for_escalation, ragtruth_samples, benchmark_config
+    ):
         """Analyze timing for different escalation paths."""
         samples = ragtruth_samples[:100] if len(ragtruth_samples) > 100 else ragtruth_samples
 
@@ -59,9 +59,9 @@ class TestEscalationBenchmark:
 
         import numpy as np
 
-        print(f"\n{'='*60}")
-        print(f"Escalation Path Timing Analysis")
-        print(f"{'='*60}")
+        print(f"\n{'=' * 60}")
+        print("Escalation Path Timing Analysis")
+        print(f"{'=' * 60}")
 
         if path_stage1_only:
             print(f"\nPath: Stage 1 only (n={len(path_stage1_only)})")
@@ -79,8 +79,8 @@ class TestEscalationBenchmark:
         if path_stage1_only and path_stage1_then_2:
             total = len(path_stage1_only) + len(path_stage1_then_2)
             expected = (
-                len(path_stage1_only) * np.mean(path_stage1_only) +
-                len(path_stage1_then_2) * np.mean(path_stage1_then_2)
+                len(path_stage1_only) * np.mean(path_stage1_only)
+                + len(path_stage1_then_2) * np.mean(path_stage1_then_2)
             ) / total
             print(f"\nWeighted average latency: {expected:.2f}ms")
 
@@ -116,13 +116,15 @@ class TestEscalationBenchmark:
                     escalation_reasons[reason] += 1
 
         if escalation_reasons:
-            print(f"\n{'='*60}")
-            print(f"Escalation Reasons")
-            print(f"{'='*60}")
+            print(f"\n{'=' * 60}")
+            print("Escalation Reasons")
+            print(f"{'=' * 60}")
             for reason, count in sorted(escalation_reasons.items(), key=lambda x: -x[1]):
                 print(f"  {reason}: {count}")
 
-    def test_agreement_vs_escalation(self, cascade_for_escalation, ragtruth_samples, benchmark_config):
+    def test_agreement_vs_escalation(
+        self, cascade_for_escalation, ragtruth_samples, benchmark_config
+    ):
         """Analyze relationship between agreement and escalation."""
         samples = ragtruth_samples[:100] if len(ragtruth_samples) > 100 else ragtruth_samples
 
@@ -155,9 +157,9 @@ class TestEscalationBenchmark:
 
         import numpy as np
 
-        print(f"\n{'='*60}")
-        print(f"Agreement vs Escalation Analysis")
-        print(f"{'='*60}")
+        print(f"\n{'=' * 60}")
+        print("Agreement vs Escalation Analysis")
+        print(f"{'=' * 60}")
 
         if agreements_resolved:
             print(f"\nResolved at Stage 1 (n={len(agreements_resolved)}):")
