@@ -29,7 +29,7 @@ class TestCascadeConfigDefaults:
         config = CascadeConfig()
         assert config.stages == [1, 3]
         assert config.strategy == "cascade"
-        assert config.blend_alpha == 0.55
+        assert config.blend_alpha == 0.45
         assert config.blend_threshold == 0.40
         assert isinstance(config.stage1, Stage1Config)
         assert isinstance(config.stage2, Stage2Config)
@@ -191,7 +191,7 @@ class TestPresets:
         """ACCURATE should use blend strategy with 14B Qwen probe."""
         assert ACCURATE.stages == [1, 3]
         assert ACCURATE.strategy == "blend"
-        assert ACCURATE.blend_alpha == 0.55
+        assert ACCURATE.blend_alpha == 0.45
         assert ACCURATE.blend_threshold == 0.40
         assert ACCURATE.stage3.llm_model == "Qwen/Qwen2.5-14B-Instruct"
         assert ACCURATE.stage3.probe_filename == "probe_14b_qwen_pca512.joblib"

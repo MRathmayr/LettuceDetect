@@ -123,7 +123,7 @@ class CascadeConfig(BaseModel):
 
     stages: list[Literal[1, 2, 3]] = [1, 3]
     strategy: Literal["cascade", "blend"] = "cascade"
-    blend_alpha: float = Field(default=0.55, ge=0.0, le=1.0)
+    blend_alpha: float = Field(default=0.45, ge=0.0, le=1.0)
     blend_threshold: float = Field(default=0.40, ge=0.0, le=1.0)
     stage1: Stage1Config = Field(default_factory=Stage1Config)
     stage2: Stage2Config = Field(default_factory=Stage2Config)
