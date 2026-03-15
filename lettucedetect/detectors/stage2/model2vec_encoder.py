@@ -202,4 +202,3 @@ class Model2VecEncoder:
         except Exception as e:
             logger.warning(f"NCS computation failed: {e}, returning neutral scores")
             return neutral_result
-

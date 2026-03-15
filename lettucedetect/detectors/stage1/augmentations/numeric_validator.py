@@ -24,6 +24,7 @@ ABBREVIATIONS = {
     "trillion": 1_000_000_000_000,
 }
 
+
 @dataclass
 class ExtractedNumber:
     """Represents an extracted numeric value."""

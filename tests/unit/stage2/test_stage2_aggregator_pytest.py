@@ -253,8 +253,12 @@ class TestStageResultCreation:
             has_next_stage=False,
         )
 
-        assert result.component_scores["ncs"] == pytest.approx(0.2)  # 1.0 - 0.8 (hallucination direction)
-        assert result.component_scores["nli"] == pytest.approx(0.3)  # 1.0 - 0.7 (hallucination direction)
+        assert result.component_scores["ncs"] == pytest.approx(
+            0.2
+        )  # 1.0 - 0.8 (hallucination direction)
+        assert result.component_scores["nli"] == pytest.approx(
+            0.3
+        )  # 1.0 - 0.7 (hallucination direction)
         assert result.hallucination_score == 0.25
         assert "supported" in result.routing_reason.lower()
 

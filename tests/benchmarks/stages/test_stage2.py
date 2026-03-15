@@ -124,7 +124,9 @@ class TestStage2Benchmark:
             )
 
             ncs_scores.append(scores.get("ncs", {}).get("max", 0.5) if scores.get("ncs") else 0.5)
-            nli_scores.append(scores.get("nli", {}).get("hallucination_score", 0.5) if scores.get("nli") else 0.5)
+            nli_scores.append(
+                scores.get("nli", {}).get("hallucination_score", 0.5) if scores.get("nli") else 0.5
+            )
 
         if ncs_scores:
             import numpy as np

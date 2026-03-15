@@ -25,7 +25,6 @@ BALANCED = CascadeConfig(
     blend_threshold=0.43,
     stage1=Stage1Config(augmentations=["lexical", "model2vec"]),
     stage3=Stage3Config(
-
         llm_model="Qwen/Qwen2.5-3B-Instruct",
         probe_repo_id=_HF_REPO,
         probe_filename="probe_3b_qwen_pca512.joblib",
@@ -44,7 +43,6 @@ ACCURATE = CascadeConfig(
         augmentations=["lexical", "model2vec"],
     ),
     stage3=Stage3Config(
-
         llm_model="Qwen/Qwen2.5-14B-Instruct",
         probe_repo_id=_HF_REPO,
         probe_filename="probe_14b_qwen_pca512.joblib",

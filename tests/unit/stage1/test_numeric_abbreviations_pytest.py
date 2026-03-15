@@ -295,4 +295,3 @@ class TestConstants:
         assert "bn" in ABBREVIATIONS
         assert "billion" in ABBREVIATIONS
         assert "trillion" in ABBREVIATIONS
-

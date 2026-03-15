@@ -140,5 +140,3 @@ class TestNCSComputation:
         result = self.encoder.compute_ncs(context, answer)
         # Just verify it computes without error
         assert "weighted_mean" in result
-
-
