@@ -224,8 +224,8 @@ class TestEdgeCases:
     def test_empty_answer(self, sample_context, empty_answer):
         """Handle empty answer gracefully."""
         result = self.verifier.score(sample_context, empty_answer, None, None)
-        # Empty answer has no entities to verify = neutral, inactive
-        assert result.score == 0.5  # neutral (no signal)
+        # Empty answer has no entities to verify = no hallucination evidence
+        assert result.score == 0.0  # no hallucination signal
         assert result.is_active is False
 
     def test_no_entities_in_answer(self):
@@ -233,8 +233,8 @@ class TestEdgeCases:
         context = ["John Smith works at Microsoft."]
         answer = "The person works at the company."
         result = self.verifier.score(context, answer, None, None)
-        # No entities to verify = neutral, inactive
-        assert result.score == 0.5  # neutral (no signal)
+        # No entities to verify = no hallucination evidence
+        assert result.score == 0.0  # no hallucination signal
         assert result.is_active is False
 
     def test_special_characters_in_entities(self):

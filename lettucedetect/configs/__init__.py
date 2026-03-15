@@ -2,11 +2,9 @@
 
 from lettucedetect.configs.models import (
     CascadeConfig,
-    RoutingConfig,
     Stage1Config,
     Stage2Config,
     Stage3Config,
-    Stage3Method,
 )
 from lettucedetect.configs.presets import (
     ACCURATE,
@@ -36,9 +34,7 @@ __all__ = [
     "WITH_NLI",
     # Models
     "CascadeConfig",
-    "RoutingConfig",
     "Stage1Config",
     "Stage2Config",
     "Stage3Config",
-    "Stage3Method",
 ]

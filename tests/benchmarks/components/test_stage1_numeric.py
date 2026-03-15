@@ -3,7 +3,6 @@
 import pytest
 
 from tests.benchmarks.core import (
-    BenchmarkResults,
     BenchmarkTimer,
     PredictionResult,
     compute_accuracy_metrics,
@@ -89,15 +88,6 @@ class TestNumericValidatorBenchmark:
             predictions, compute_ci=benchmark_config.component.compute_ci
         )
         timing = timer.get_stats()
-
-        results = BenchmarkResults(
-            component="numeric",
-            dataset="ragtruth",
-            predictions=predictions,
-            metrics=metrics,
-            timing=timing,
-            config={},
-        )
 
         assert metrics.n_samples > 0, "No predictions made"
         assert timing.mean_ms < 5, f"Too slow: {timing.mean_ms:.2f}ms"

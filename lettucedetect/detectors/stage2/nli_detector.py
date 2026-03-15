@@ -159,13 +159,6 @@ class NLIContradictionDetector:
                 logger.warning(f"MiniCheck scoring failed for context: {e}")
                 hallucination_scores.append(0.5)
 
-        if not hallucination_scores:
-            return {
-                "hallucination_score": 0.5,
-                "max_hallucination": 0.5,
-                "mean_hallucination": 0.5,
-            }
-
         max_hal = max(hallucination_scores)
         mean_hal = sum(hallucination_scores) / len(hallucination_scores)
 

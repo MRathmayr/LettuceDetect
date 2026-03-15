@@ -3,7 +3,6 @@
 import pytest
 
 from tests.benchmarks.core import (
-    BenchmarkResults,
     BenchmarkTimer,
     PredictionResult,
     compute_accuracy_metrics,
@@ -90,16 +89,6 @@ class TestStage2Benchmark:
         timing = timer.get_stats()
         memory = memory_tracker.get_stats()
 
-        results = BenchmarkResults(
-            component="stage2",
-            dataset="ragtruth",
-            predictions=predictions,
-            metrics=metrics,
-            timing=timing,
-            memory=memory,
-            config={"components": ["ncs", "nli"]},
-        )
-
         assert metrics.n_samples > 0, "No predictions made"
         assert timing.mean_ms < 250, f"Too slow: {timing.mean_ms:.2f}ms"
 
@@ -134,8 +123,8 @@ class TestStage2Benchmark:
                 answer=sample.response,
             )
 
-            ncs_scores.append(scores.get("ncs_score", 0.5))
-            nli_scores.append(scores.get("nli_score", 0.5))
+            ncs_scores.append(scores.get("ncs", {}).get("max", 0.5) if scores.get("ncs") else 0.5)
+            nli_scores.append(scores.get("nli", {}).get("hallucination_score", 0.5) if scores.get("nli") else 0.5)
 
         if ncs_scores:
             import numpy as np

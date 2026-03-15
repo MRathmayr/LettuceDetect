@@ -83,13 +83,6 @@ class Model2VecEncoder:
 
         return chunks if chunks else [text]
 
-    @property
-    def dim(self) -> int:
-        """Return the embedding dimension, loading model if needed."""
-        if self._dim is None:
-            self._load_model()
-        return self._dim or self.DEFAULT_DIM
-
     def encode(self, texts: list[str]) -> NDArray[np.float32]:
         """Encode texts into embeddings with optional L2 normalization.
 
@@ -210,6 +203,3 @@ class Model2VecEncoder:
             logger.warning(f"NCS computation failed: {e}, returning neutral scores")
             return neutral_result
 
-    def preload(self) -> None:
-        """Preload model to avoid cold-start latency."""
-        self._load_model()

@@ -3,7 +3,6 @@
 import pytest
 
 from tests.benchmarks.core import (
-    BenchmarkResults,
     BenchmarkTimer,
     PredictionResult,
     compute_accuracy_metrics,
@@ -88,15 +87,6 @@ class TestNERVerifierBenchmark:
             predictions, compute_ci=benchmark_config.component.compute_ci
         )
         timing = timer.get_stats()
-
-        results = BenchmarkResults(
-            component="ner",
-            dataset="ragtruth",
-            predictions=predictions,
-            metrics=metrics,
-            timing=timing,
-            config={"model": "en_core_web_sm"},
-        )
 
         assert metrics.n_samples > 0, "No predictions made"
         assert timing.mean_ms < 150, f"Too slow: {timing.mean_ms:.2f}ms"

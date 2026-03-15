@@ -13,7 +13,6 @@ import pytest
 
 from lettucedetect.detectors.stage1.augmentations.numeric_validator import (
     ABBREVIATIONS,
-    WORD_NUMBERS,
     NumericValidator,
 )
 
@@ -297,9 +296,3 @@ class TestConstants:
         assert "billion" in ABBREVIATIONS
         assert "trillion" in ABBREVIATIONS
 
-    def test_word_numbers_dict(self):
-        """WORD_NUMBERS dict should have expected keys."""
-        assert "one" in WORD_NUMBERS
-        assert "dozen" in WORD_NUMBERS
-        assert "half" in WORD_NUMBERS
-        assert "twenty" in WORD_NUMBERS

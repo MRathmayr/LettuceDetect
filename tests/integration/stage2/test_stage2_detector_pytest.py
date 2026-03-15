@@ -37,8 +37,8 @@ class TestStage2DetectorInitialization:
     """Test detector initialization."""
 
     def test_default_initialization(self, stage2_detector):
-        """Default initialization creates both components."""
-        assert stage2_detector._encoder is not None
+        """Default initialization creates NLI only (default config)."""
+        assert stage2_detector._encoder is None  # NCS not in default components
         assert stage2_detector._nli is not None
 
     def test_ncs_only_initialization(self, stage2_detector_ncs_only):
@@ -224,27 +224,26 @@ class TestDetailedScores:
         assert "nli" in result
 
     def test_detailed_scores_ncs_structure(self, stage2_detector):
-        """NCS scores contain max, mean, weighted_mean."""
+        """NCS returns empty dict when not enabled in default config."""
         context = ["Test context."]
         answer = "Test answer."
 
         result = stage2_detector.get_detailed_scores(context, answer)
 
         ncs = result["ncs"]
-        assert "max" in ncs
-        assert "mean" in ncs
-        assert "weighted_mean" in ncs
+        assert ncs == {}  # NCS not in default components
 
     def test_detailed_scores_nli_structure(self, stage2_detector):
-        """NLI scores contain max_contradiction, min_non_contradiction."""
+        """NLI scores contain hallucination_score, max_hallucination, mean_hallucination."""
         context = ["Test context."]
         answer = "Test answer."
 
         result = stage2_detector.get_detailed_scores(context, answer)
 
         nli = result["nli"]
-        assert "max_contradiction" in nli
-        assert "min_non_contradiction" in nli
+        assert "hallucination_score" in nli
+        assert "max_hallucination" in nli
+        assert "mean_hallucination" in nli
 
 
 @pytest.mark.gpu

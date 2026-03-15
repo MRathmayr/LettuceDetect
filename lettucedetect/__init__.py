@@ -15,11 +15,9 @@ from lettucedetect.configs import (
     STAGE3_GROUNDING_PROBE,
     WITH_NLI,
     CascadeConfig,
-    RoutingConfig,
     Stage1Config,
     Stage2Config,
     Stage3Config,
-    Stage3Method,
 )
 from lettucedetect.datasets.hallucination_dataset import (
     HallucinationData,
@@ -58,9 +56,7 @@ __all__ = [
     "HallucinationGenerator",
     "HallucinationSample",
     "RAGFactChecker",
-    "RoutingConfig",
     "Stage1Config",
     "Stage2Config",
     "Stage3Config",
-    "Stage3Method",
 ]

@@ -5,7 +5,6 @@ from lettucedetect.configs.models import (
     Stage1Config,
     Stage2Config,
     Stage3Config,
-    Stage3Method,
 )
 
 _HF_REPO = "mrathmayr/lettucedetect-grounding-probes"
@@ -26,7 +25,7 @@ BALANCED = CascadeConfig(
     blend_threshold=0.43,
     stage1=Stage1Config(augmentations=["lexical", "model2vec"]),
     stage3=Stage3Config(
-        method=Stage3Method.GROUNDING_PROBE,
+
         llm_model="Qwen/Qwen2.5-3B-Instruct",
         probe_repo_id=_HF_REPO,
         probe_filename="probe_3b_qwen_pca512.joblib",
@@ -45,7 +44,7 @@ ACCURATE = CascadeConfig(
         augmentations=["lexical", "model2vec"],
     ),
     stage3=Stage3Config(
-        method=Stage3Method.GROUNDING_PROBE,
+
         llm_model="Qwen/Qwen2.5-14B-Instruct",
         probe_repo_id=_HF_REPO,
         probe_filename="probe_14b_qwen_pca512.joblib",
@@ -59,7 +58,7 @@ ACCURATE = CascadeConfig(
 FULL_CASCADE = CascadeConfig(
     stages=[1, 3],
     stage1=Stage1Config(augmentations=["lexical", "model2vec"]),
-    stage3=Stage3Config(method=Stage3Method.GROUNDING_PROBE),
+    stage3=Stage3Config(),
 )
 
 FAST_CASCADE = FAST
@@ -71,7 +70,7 @@ WITH_NLI = CascadeConfig(
     stages=[1, 2, 3],
     stage1=Stage1Config(augmentations=["lexical", "model2vec"]),
     stage2=Stage2Config(),
-    stage3=Stage3Config(method=Stage3Method.GROUNDING_PROBE),
+    stage3=Stage3Config(),
 )
 
 # Stage 1 only (no augmentations) - legacy transformer baseline
@@ -89,7 +88,7 @@ STAGE2_ONLY = CascadeConfig(
 # Stage 3 Grounding Probe only (for standalone probe evaluation)
 STAGE3_GROUNDING_PROBE = CascadeConfig(
     stages=[3],
-    stage3=Stage3Config(method=Stage3Method.GROUNDING_PROBE),
+    stage3=Stage3Config(),
 )
 
 # All presets dict for easy access

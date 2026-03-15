@@ -60,6 +60,7 @@ class Stage1Detector(BaseDetector):
             model_path=kwargs.get("model_path", self.config.model_path),
             max_length=self.config.max_length,
             device=self.config.device,
+            lang=self.config.lang,
         )
 
         # Initialize augmentation modules based on augmentations list
@@ -85,8 +86,11 @@ class Stage1Detector(BaseDetector):
 
             self._augmentations.append(Model2VecAugmentation())
 
-        # Initialize aggregator with weights from config
-        agg_config = aggregation_config or AggregationConfig()
+        # Initialize aggregator with weights and routing thresholds from config
+        agg_config = aggregation_config or AggregationConfig(
+            threshold_high=self.config.routing_threshold_high,
+            threshold_low=self.config.routing_threshold_low,
+        )
         self._aggregator = ScoreAggregator(self.config.weights, agg_config)
 
     @property
@@ -189,22 +193,6 @@ class Stage1Detector(BaseDetector):
     ) -> list[list]:
         """Batch prediction with prompts - implements BaseDetector interface."""
         return [self.predict_prompt(p, a, output_format) for p, a in zip(prompts, answers)]
-
-    def get_routing_decision(
-        self,
-        context: list[str],
-        answer: str,
-        question: str | None = None,
-    ) -> dict:
-        """Get routing decision without full prediction formatting."""
-        _, aggregated = self._detect(context, answer, question)
-        return {
-            "confident": aggregated.confident,
-            "escalate": aggregated.escalate,
-            "score": aggregated.hallucination_score,
-            "reason": aggregated.routing_reason,
-            "component_scores": aggregated.component_scores,
-        }
 
     def predict_stage(
         self,

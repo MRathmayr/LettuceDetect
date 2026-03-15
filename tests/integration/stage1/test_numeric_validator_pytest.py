@@ -222,8 +222,8 @@ class TestEdgeCases:
     def test_empty_answer(self, sample_context, empty_answer):
         """Handle empty answer gracefully."""
         result = self.validator.score(sample_context, empty_answer, None, None)
-        # No numbers in answer = neutral, inactive
-        assert result.score == 0.5  # neutral (no signal)
+        # No numbers in answer = no hallucination evidence
+        assert result.score == 0.0  # no hallucination signal
         assert result.is_active is False
 
     def test_no_numbers_in_answer(self):
@@ -231,8 +231,8 @@ class TestEdgeCases:
         context = ["The value is 42."]
         answer = "There is a value mentioned."
         result = self.validator.score(context, answer, None, None)
-        # No numbers in answer = neutral, inactive
-        assert result.score == 0.5  # neutral (no signal)
+        # No numbers in answer = no hallucination evidence
+        assert result.score == 0.0  # no hallucination signal
         assert result.is_active is False
 
     def test_very_large_numbers(self):

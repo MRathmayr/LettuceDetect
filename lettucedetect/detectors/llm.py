@@ -10,6 +10,7 @@ from string import Template
 
 from openai import OpenAI
 
+from lettucedetect.detectors.base import BaseDetector
 from lettucedetect.detectors.cache import CacheManager
 from lettucedetect.detectors.prompt_utils import LANG_TO_PASSAGE, Lang, PromptUtils
 
@@ -37,7 +38,7 @@ HALLUCINATION_SCHEMA = {
 }
 
 
-class LLMDetector:
+class LLMDetector(BaseDetector):
     """LLM-powered hallucination detector."""
 
     def __init__(

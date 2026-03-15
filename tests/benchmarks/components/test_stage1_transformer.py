@@ -3,7 +3,6 @@
 import pytest
 
 from tests.benchmarks.core import (
-    BenchmarkResults,
     BenchmarkTimer,
     PredictionResult,
     compute_accuracy_metrics,
@@ -99,16 +98,6 @@ class TestTransformerDetectorBenchmark:
         )
         timing = timer.get_stats()
         memory = memory_tracker.get_stats()
-
-        results = BenchmarkResults(
-            component="transformer",
-            dataset="ragtruth",
-            predictions=predictions,
-            metrics=metrics,
-            timing=timing,
-            memory=memory,
-            config={"model": "KRLabsOrg/lettucedect-base-modernbert-en-v1"},
-        )
 
         assert metrics.n_samples > 0, "No predictions made"
         assert timing.mean_ms < 150, f"Too slow: {timing.mean_ms:.2f}ms"

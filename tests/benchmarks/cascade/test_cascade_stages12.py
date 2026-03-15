@@ -3,7 +3,6 @@
 import pytest
 
 from tests.benchmarks.core import (
-    BenchmarkResults,
     BenchmarkTimer,
     PredictionResult,
     compute_accuracy_metrics,
@@ -110,16 +109,6 @@ class TestCascadeStages12Benchmark:
         )
         timing = timer.get_stats()
         memory = memory_tracker.get_stats()
-
-        results = BenchmarkResults(
-            component="cascade_12",
-            dataset="ragtruth",
-            predictions=predictions,
-            metrics=metrics,
-            timing=timing,
-            memory=memory,
-            config={"stages": [1, 2]},
-        )
 
         assert metrics.n_samples > 0, "No predictions made"
 

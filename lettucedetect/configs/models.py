@@ -3,16 +3,9 @@
 from __future__ import annotations
 
 import json
-from enum import Enum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-
-
-class Stage3Method(str, Enum):
-    """Available methods for Stage 3 detection."""
-
-    GROUNDING_PROBE = "grounding_probe"
 
 
 class Stage1Config(BaseModel):
@@ -51,7 +44,6 @@ class Stage1Config(BaseModel):
     # Routing thresholds (calibrated on RAGTruth 2026-01-25)
     routing_threshold_high: float = 0.79  # Score >= this = confident hallucination
     routing_threshold_low: float = 0.09  # Score <= this = confident supported
-    classification_threshold: float = 0.15  # Optimal threshold for F1
 
     @field_validator("weights")
     @classmethod
@@ -92,12 +84,10 @@ class Stage2Config(BaseModel):
 
     # NCS configuration
     ncs_normalize_embeddings: bool = True
-    ncs_batch_size: int = 32
 
     # Routing thresholds (calibrated on RAGTruth 2026-01-25)
     routing_threshold_high: float = 0.44  # Score >= this = confident hallucination
     routing_threshold_low: float = 0.06  # Score <= this = confident supported
-    classification_threshold: float = 0.18  # Optimal threshold for F1
 
     # Stage 1 integration
     use_stage1_score: bool = True
@@ -116,8 +106,6 @@ class Stage2Config(BaseModel):
 class Stage3Config(BaseModel):
     """Configuration for Stage 3: Grounding Probe."""
 
-    method: Stage3Method = Stage3Method.GROUNDING_PROBE
-
     # Grounding probe config
     llm_model: str = "Qwen/Qwen2.5-3B-Instruct"
     probe_path: str | None = None
@@ -126,13 +114,6 @@ class Stage3Config(BaseModel):
     layer_index: int = -15
     token_position: Literal["slt", "tbg", "mean"] = "mean"  # noqa: S105
     threshold: float = 0.5  # P(hallucinated) above this = hallucination
-
-
-class RoutingConfig(BaseModel):
-    """Configuration for inter-stage routing decisions."""
-
-    threshold_1to2: float = 0.7
-    threshold_2to3: float = 0.7
 
 
 class CascadeConfig(BaseModel):
@@ -147,7 +128,6 @@ class CascadeConfig(BaseModel):
     stage1: Stage1Config = Field(default_factory=Stage1Config)
     stage2: Stage2Config = Field(default_factory=Stage2Config)
     stage3: Stage3Config = Field(default_factory=Stage3Config)
-    routing: RoutingConfig = Field(default_factory=RoutingConfig)
 
     @field_validator("stages")
     @classmethod

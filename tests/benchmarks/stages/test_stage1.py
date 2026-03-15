@@ -3,7 +3,6 @@
 import pytest
 
 from tests.benchmarks.core import (
-    BenchmarkResults,
     BenchmarkTimer,
     PredictionResult,
     compute_accuracy_metrics,
@@ -90,16 +89,6 @@ class TestStage1Benchmark:
         timing = timer.get_stats()
         memory = memory_tracker.get_stats()
 
-        results = BenchmarkResults(
-            component="stage1",
-            dataset="ragtruth",
-            predictions=predictions,
-            metrics=metrics,
-            timing=timing,
-            memory=memory,
-            config={"augmentations": ["ner", "numeric", "lexical"]},
-        )
-
         assert metrics.n_samples > 0, "No predictions made"
         assert timing.mean_ms < 200, f"Too slow: {timing.mean_ms:.2f}ms"
 
@@ -124,8 +113,6 @@ class TestStage1Benchmark:
 
         samples = ragtruth_samples[:20] if len(ragtruth_samples) > 20 else ragtruth_samples
 
-        transformer_times = []
-        augmentation_times = []
         total_times = []
 
         for sample in samples:

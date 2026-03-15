@@ -309,11 +309,9 @@ class ScoreAggregator:
                 )
             else:
                 return f"High confidence supported (score={score:.2f}, agreement={agreement:.2f})"
-        elif escalate:
+        else:
             if agreement < self.agreement_threshold:
                 return f"Components disagree, escalating (score={score:.2f}, agreement={agreement:.2f})"
             return (
-                f"Uncertain, escalating to Stage 2 (score={score:.2f}, agreement={agreement:.2f})"
+                f"Uncertain, escalating (score={score:.2f}, agreement={agreement:.2f})"
             )
-        else:
-            return f"Uncertain but below escalation threshold (score={score:.2f}, agreement={agreement:.2f})"

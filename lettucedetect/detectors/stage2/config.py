@@ -26,18 +26,6 @@ class Model2VecConfig:
 
 
 @dataclass
-class NLIConfig:
-    """Configuration for NLI contradiction detector (MiniCheck).
-
-    MiniCheck-Flan-T5-Large outperforms HHEM on LLM-AggreFact (75% vs 71.8%).
-    It's a seq2seq model that outputs Yes/No for document-claim pairs.
-    """
-
-    device: str | None = None
-    max_length: int = 512  # Max input tokens for context + claim
-
-
-@dataclass
 class AggregatorConfig:
     """Configuration for score aggregation and routing.
 

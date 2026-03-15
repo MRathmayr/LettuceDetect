@@ -3,7 +3,6 @@
 import pytest
 
 from tests.benchmarks.core import (
-    BenchmarkResults,
     BenchmarkTimer,
     PredictionResult,
     compute_accuracy_metrics,
@@ -79,15 +78,6 @@ class TestLexicalOverlapBenchmark:
             predictions, compute_ci=benchmark_config.component.compute_ci
         )
         timing = timer.get_stats()
-
-        results = BenchmarkResults(
-            component="lexical",
-            dataset="ragtruth",
-            predictions=predictions,
-            metrics=metrics,
-            timing=timing,
-            config={"use_stemming": True, "ngram_range": (1, 2)},
-        )
 
         # Assertions
         assert metrics.n_samples > 0, "No predictions made"

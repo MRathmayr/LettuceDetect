@@ -24,47 +24,6 @@ ABBREVIATIONS = {
     "trillion": 1_000_000_000_000,
 }
 
-# Word numbers
-WORD_NUMBERS = {
-    "zero": 0,
-    "one": 1,
-    "two": 2,
-    "three": 3,
-    "four": 4,
-    "five": 5,
-    "six": 6,
-    "seven": 7,
-    "eight": 8,
-    "nine": 9,
-    "ten": 10,
-    "eleven": 11,
-    "twelve": 12,
-    "thirteen": 13,
-    "fourteen": 14,
-    "fifteen": 15,
-    "sixteen": 16,
-    "seventeen": 17,
-    "eighteen": 18,
-    "nineteen": 19,
-    "twenty": 20,
-    "thirty": 30,
-    "forty": 40,
-    "fifty": 50,
-    "sixty": 60,
-    "seventy": 70,
-    "eighty": 80,
-    "ninety": 90,
-    "hundred": 100,
-    "thousand": 1000,
-    "half": 0.5,
-    "quarter": 0.25,
-    "third": 0.333,
-    "dozen": 12,
-    "score": 20,
-    "gross": 144,
-}
-
-
 @dataclass
 class ExtractedNumber:
     """Represents an extracted numeric value."""
@@ -120,31 +79,11 @@ class NumericValidator(BaseAugmentation):
         "ratio": re.compile(r"\b(\d+)\s*:\s*(\d+)\b"),
         # 6. Ordinals (1st, 2nd, 23rd)
         "ordinal": re.compile(r"\b(\d+)(?:st|nd|rd|th)\b", re.IGNORECASE),
-        # 7. Ranges with hyphen (10-20) - must have digits on both sides
-        "range_hyphen": re.compile(r"\b(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\b"),
-        # 8. Ranges with words (5 to 10, between 10 and 20)
-        "range_words": re.compile(
-            r"\b(?:between\s+)?(\d+(?:\.\d+)?)\s+(?:to|and)\s+(\d+(?:\.\d+)?)\b", re.IGNORECASE
-        ),
-        # 9. Compound word numbers (twenty-three)
-        "compound_word": re.compile(
-            r"\b((?:twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)"
-            r"[-\s]?(?:one|two|three|four|five|six|seven|eight|nine))\b",
-            re.IGNORECASE,
-        ),
-        # 10. Word numbers (five, dozen)
-        "word_number": re.compile(
-            r"\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|"
-            r"eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|"
-            r"eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|"
-            r"eighty|ninety|hundred|thousand|half|quarter|third|dozen|score|gross)\b",
-            re.IGNORECASE,
-        ),
-        # 11. Years (1600-2099 range)
+        # 7. Years (1600-2099 range)
         "year": re.compile(r"\b(1[6-9]\d{2}|20\d{2})\b"),
-        # 12. Floats
+        # 8. Floats
         "float": re.compile(r"(?<![,\d])(\d+\.\d+)(?![,\d])"),
-        # 13. Integers (catch-all, last)
+        # 9. Integers (catch-all, last)
         # Allow period at end of sentence (followed by space or end of string)
         # Supports negative numbers with optional minus sign
         "integer": re.compile(r"(?<![.\d])(-?\d{1,3}(?:,\d{3})+|-?\d+)(?![\d]|\.(?=\d))"),
@@ -168,16 +107,6 @@ class NumericValidator(BaseAugmentation):
         """Parse number string to float, handling commas."""
         cleaned = text.replace(",", "").replace(" ", "")
         return float(cleaned)
-
-    def _parse_compound_word(self, text: str) -> float:
-        """Parse compound word number like 'twenty-three'."""
-        text_lower = text.lower().replace("-", " ").replace("  ", " ")
-        parts = text_lower.split()
-        total = 0.0
-        for part in parts:
-            if part in WORD_NUMBERS:
-                total += WORD_NUMBERS[part]
-        return total
 
     def _normalize_word_numbers(self, text: str) -> str:
         """Convert written numbers to digits using word2number.
@@ -354,22 +283,7 @@ class NumericValidator(BaseAugmentation):
                 )
                 used_positions.update(range(start, end))
 
-        # 7. Ranges with hyphen - DISABLED (causes -0.095 AUROC regression on RAGTruth)
-        # The range patterns match date-like patterns (2020-2021) and "X and Y" listings
-        # that are not actually numeric ranges, causing false positives.
-
-        # 8. Ranges with words - DISABLED (causes AUROC regression)
-        # Same issue as hyphen ranges.
-
-        # 9. Compound word numbers - DISABLED (causes false positives)
-        # Word number extraction is too aggressive and matches common words
-        # that aren't actually numeric in context
-
-        # 10. Simple word numbers - DISABLED (causes false positives)
-        # Word number extraction is too aggressive and matches common words
-        # that aren't actually numeric in context
-
-        # 11. Years
+        # 7. Years
         if self.config.extract_dates:
             for match in self.PATTERNS["year"].finditer(text):
                 start, end = match.span()
@@ -386,7 +300,7 @@ class NumericValidator(BaseAugmentation):
                     )
                     used_positions.update(range(start, end))
 
-        # 12. Floats
+        # 8. Floats
         for match in self.PATTERNS["float"].finditer(text):
             start, end = match.span()
             if not any(p in range(start, end) for p in used_positions):
@@ -402,7 +316,7 @@ class NumericValidator(BaseAugmentation):
                 )
                 used_positions.update(range(start, end))
 
-        # 13. Integers (catch-all)
+        # 9. Integers (catch-all)
         for match in self.PATTERNS["integer"].finditer(text):
             start, end = match.span()
             if not any(p in range(start, end) for p in used_positions):

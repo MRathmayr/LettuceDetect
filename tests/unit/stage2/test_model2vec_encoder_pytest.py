@@ -142,13 +142,3 @@ class TestNCSComputation:
         assert "weighted_mean" in result
 
 
-class TestPreload:
-    """Test model preloading."""
-
-    def test_preload_loads_model(self):
-        """preload() loads the model."""
-        encoder = Model2VecEncoder(Model2VecConfig())
-        assert encoder._model is None
-
-        encoder.preload()
-        assert encoder._model is not None

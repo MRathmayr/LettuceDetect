@@ -3,7 +3,6 @@
 import pytest
 
 from tests.benchmarks.core import (
-    BenchmarkResults,
     BenchmarkTimer,
     PredictionResult,
     compute_accuracy_metrics,
@@ -80,16 +79,6 @@ class TestNLIDetectorBenchmark:
         )
         timing = timer.get_stats()
         memory = memory_tracker.get_stats()
-
-        results = BenchmarkResults(
-            component="nli",
-            dataset="ragtruth",
-            predictions=predictions,
-            metrics=metrics,
-            timing=timing,
-            memory=memory,
-            config={"model": "cross-encoder/nli-deberta-v3-base"},
-        )
 
         assert metrics.n_samples > 0, "No predictions made"
         assert timing.mean_ms < 200, f"Too slow: {timing.mean_ms:.2f}ms"

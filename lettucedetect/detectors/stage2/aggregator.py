@@ -199,9 +199,9 @@ class Stage2Aggregator:
             stage2_agreement = 1.0
 
         # Combined agreement: consider stage1 agreement if available
-        # Weight: 70% stage2, 30% stage1
-        if scores.stage1_agreement is not None:
-            agreement = 0.7 * stage2_agreement + 0.3 * scores.stage1_agreement
+        if scores.stage1_agreement is not None and self.config.use_stage1_score:
+            s1_weight = self.config.stage1_weight
+            agreement = (1 - s1_weight) * stage2_agreement + s1_weight * scores.stage1_agreement
         else:
             agreement = stage2_agreement
 
@@ -238,8 +238,8 @@ class Stage2Aggregator:
             latency_ms=latency_ms,
             output=output,
             component_scores={
-                "ncs": scores.ncs_score,
-                "nli": scores.nli_score,
+                "ncs": 1.0 - scores.ncs_score,  # Convert to hallucination direction
+                "nli": 1.0 - scores.nli_score,  # Convert to hallucination direction
             },
             evidence=evidence,
             routing_reason=routing_reason,

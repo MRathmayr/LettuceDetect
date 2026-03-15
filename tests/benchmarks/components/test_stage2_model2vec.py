@@ -3,7 +3,6 @@
 import pytest
 
 from tests.benchmarks.core import (
-    BenchmarkResults,
     BenchmarkTimer,
     PredictionResult,
     compute_accuracy_metrics,
@@ -66,15 +65,6 @@ class TestModel2VecBenchmark:
             predictions, compute_ci=benchmark_config.component.compute_ci
         )
         timing = timer.get_stats()
-
-        results = BenchmarkResults(
-            component="model2vec",
-            dataset="ragtruth",
-            predictions=predictions,
-            metrics=metrics,
-            timing=timing,
-            config={"model": "minishlab/potion-base-32M"},
-        )
 
         assert metrics.n_samples > 0, "No predictions made"
         assert timing.mean_ms < 20, f"Too slow: {timing.mean_ms:.2f}ms"

@@ -5,11 +5,9 @@ import pytest
 # Import directly from submodules to avoid heavy imports from main __init__.py
 from lettucedetect.configs.models import (
     CascadeConfig,
-    RoutingConfig,
     Stage1Config,
     Stage2Config,
     Stage3Config,
-    Stage3Method,
 )
 from lettucedetect.configs.presets import (
     ACCURATE,
@@ -36,7 +34,6 @@ class TestCascadeConfigDefaults:
         assert isinstance(config.stage1, Stage1Config)
         assert isinstance(config.stage2, Stage2Config)
         assert isinstance(config.stage3, Stage3Config)
-        assert isinstance(config.routing, RoutingConfig)
 
     def test_stage1_config_defaults(self):
         """Stage1Config should have correct defaults."""
@@ -61,19 +58,12 @@ class TestCascadeConfigDefaults:
     def test_stage3_config_defaults(self):
         """Stage3Config should have correct defaults."""
         config = Stage3Config()
-        assert config.method == Stage3Method.GROUNDING_PROBE
         assert config.llm_model == "Qwen/Qwen2.5-3B-Instruct"
         assert config.layer_index == -15
         assert config.token_position == "mean"  # noqa: S105
         assert config.threshold == 0.5
         assert config.probe_repo_id is None
         assert config.probe_filename is None
-
-    def test_routing_config_defaults(self):
-        """RoutingConfig should have correct defaults."""
-        config = RoutingConfig()
-        assert config.threshold_1to2 == 0.7
-        assert config.threshold_2to3 == 0.7
 
 
 class TestCascadeConfigValidation:
@@ -212,7 +202,6 @@ class TestPresets:
         assert FULL_CASCADE.stages == [1, 3]
         assert FULL_CASCADE.strategy == "cascade"
         assert FULL_CASCADE.stage1.augmentations == ["lexical", "model2vec"]
-        assert FULL_CASCADE.stage3.method == Stage3Method.GROUNDING_PROBE
 
     def test_fast_cascade_is_fast_alias(self):
         """FAST_CASCADE should be an alias for FAST."""
@@ -227,17 +216,3 @@ class TestPresets:
         """STAGE1_MINIMAL should be stage 1 only with no augmentations."""
         assert STAGE1_MINIMAL.stages == [1]
         assert STAGE1_MINIMAL.stage1.augmentations == []
-
-
-class TestStage3Method:
-    """Test Stage3Method enum."""
-
-    def test_stage3_methods(self):
-        """Only GROUNDING_PROBE should be available."""
-        assert Stage3Method.GROUNDING_PROBE.value == "grounding_probe"
-        assert len(Stage3Method) == 1
-
-    def test_stage3_method_from_string(self):
-        """Stage3Method can be set from string value."""
-        config = Stage3Config(method="grounding_probe")
-        assert config.method == Stage3Method.GROUNDING_PROBE

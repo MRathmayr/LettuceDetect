@@ -133,10 +133,7 @@ class CascadeDetector(BaseDetector):
 
         if output_format == "detailed":
             return self._format_detailed(final_result, stage_results, total_latency)
-        elif output_format == "spans":
-            return final_result.output if final_result else []
-        else:
-            return final_result.output if final_result else []
+        return final_result.output if final_result else []
 
     def _run_stage(
         self,
