@@ -1,5 +1,7 @@
 """Benchmark tests for NLI detector component."""
 
+import time
+
 import pytest
 
 from tests.benchmarks.core import (
@@ -8,6 +10,12 @@ from tests.benchmarks.core import (
     compute_accuracy_metrics,
 )
 from tests.benchmarks.core.memory import MemoryTracker
+from tests.benchmarks.core.verdict_export import (
+    compact_metrics,
+    compact_predictions,
+    write_compact,
+    write_native,
+)
 
 
 @pytest.fixture(scope="module")
@@ -51,6 +59,7 @@ class TestNLIDetectorBenchmark:
         predictions = []
         timer = BenchmarkTimer(sync_cuda=True)
         memory_tracker = MemoryTracker()
+        started = time.time()
 
         with memory_tracker.track():
             for sample in ragtruth_samples:
@@ -79,6 +88,53 @@ class TestNLIDetectorBenchmark:
         )
         timing = timer.get_stats()
         memory = memory_tracker.get_stats()
+        elapsed = time.time() - started
+
+        # Per-sample export for the paper's verdict-style baselines. Written
+        # before the assertions below so a latency regression on a loaded
+        # machine does not discard 2700 rows of scoring.
+        task_map = {s.id: s.task_type for s in ragtruth_samples if s.task_type}
+        meta = {
+            "model": nli_detector.MODEL_NAME,
+            "precision": "fp32",
+            "n_samples": metrics.n_samples,
+            "dataset": "ragtruth_test",
+            "latency_mean_ms": timing.mean_ms,
+            "latency_p95_ms": timing.p95_ms,
+            "gpu_peak_mb": memory.gpu_peak_mb,
+            "total_time_sec": elapsed,
+            "prompt_template_note": (
+                "MiniCheck seq2seq format 'Document: {context}\\nClaim: {response}', "
+                "truncated to 512 tokens; score = P(No) over the Yes/No logits of the "
+                "first generated token, max over context passages"
+            ),
+        }
+        native = write_native(
+            "minicheck_ragtruth_test",
+            {
+                "metadata": meta,
+                "metrics": metrics.to_dict(),
+                "timing": timing.to_dict(),
+                "predictions": [
+                    {
+                        "sample_id": p.sample_id,
+                        "ground_truth": p.ground_truth,
+                        "predicted_score": p.predicted_score,
+                        "predicted_label": p.predicted_label,
+                        "latency_ms": round(p.latency_ms, 3),
+                        "task_type": task_map.get(p.sample_id),
+                    }
+                    for p in predictions
+                ],
+            },
+        )
+        paper = write_compact(
+            "minicheck_ragtruth_test",
+            meta,
+            compact_metrics(metrics),
+            compact_predictions(predictions, task_map),
+        )
+        print(f"\nPer-sample scores: {native}\n                   {paper}")
 
         assert metrics.n_samples > 0, "No predictions made"
         assert timing.mean_ms < 200, f"Too slow: {timing.mean_ms:.2f}ms"

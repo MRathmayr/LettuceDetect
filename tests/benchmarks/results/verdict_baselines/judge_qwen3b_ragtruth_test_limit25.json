@@ -1,0 +1,247 @@
+{
+  "metadata": {
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "precision": "fp16",
+    "n_samples": 25,
+    "dataset": "ragtruth_test",
+    "latency_mean_ms": 1959.4232574401394,
+    "latency_p95_ms": 3365.801656400435,
+    "gpu_peak_mb": 6125.072265625,
+    "total_time_sec": 48.98979353904724,
+    "prompt_template_note": "Grounding probe template (hallu-training/py/model_utils.py build_prompt: 'Context:\\n{context}\\nQuestion: {question}\\nResponse: {response}', prompt and response tokenized separately, response right-truncated to 4096 total) plus the verdict question '\\n\\nIs any part of the response unsupported by the context? Answer Yes or No.\\nAnswer:'; score = P(' Yes') via softmax over the ' Yes'/' No' logits of one forward pass, so higher = hallucinated",
+    "input_tokens_mean": 973.92,
+    "input_tokens_p90": 1370,
+    "input_tokens_max": 1548
+  },
+  "metrics": {
+    "auroc": 0.34210526315789475,
+    "auroc_ci_95": null,
+    "accuracy": 0.76,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "optimal_threshold": 0.02517884224653244,
+    "optimal_f1": 0.39999999680000003,
+    "mcc": 0.11470786693528089,
+    "balanced_accuracy": 0.5263157894736842,
+    "specificity": 0.05263157894736842,
+    "brier_score": 0.2174236274510914,
+    "n_samples": 25,
+    "n_hallucinations": 6,
+    "n_factual": 19,
+    "error": null
+  },
+  "timing": {
+    "mean_ms": 1959.4232574401394,
+    "std_ms": 902.3599988885559,
+    "min_ms": 624.9796020001668,
+    "max_ms": 3809.885010000471,
+    "p50_ms": 1751.274469999771,
+    "p90_ms": 3256.1046403996443,
+    "p95_ms": 3365.801656400435,
+    "cold_start_ms": null,
+    "n_samples": 25
+  },
+  "predictions": [
+    {
+      "sample_id": "ragtruth_0",
+      "ground_truth": 0,
+      "predicted_score": 0.031143832951784134,
+      "predicted_label": 0,
+      "latency_ms": 1799.806,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_1",
+      "ground_truth": 0,
+      "predicted_score": 0.034100428223609924,
+      "predicted_label": 0,
+      "latency_ms": 936.748,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_2",
+      "ground_truth": 0,
+      "predicted_score": 0.026759283617138863,
+      "predicted_label": 0,
+      "latency_ms": 877.836,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_3",
+      "ground_truth": 0,
+      "predicted_score": 0.020332353189587593,
+      "predicted_label": 0,
+      "latency_ms": 865.181,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_4",
+      "ground_truth": 1,
+      "predicted_score": 0.02931223064661026,
+      "predicted_label": 0,
+      "latency_ms": 886.596,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_5",
+      "ground_truth": 1,
+      "predicted_score": 0.03308597952127457,
+      "predicted_label": 0,
+      "latency_ms": 908.326,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_6",
+      "ground_truth": 0,
+      "predicted_score": 0.09534946084022522,
+      "predicted_label": 0,
+      "latency_ms": 2343.779,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_7",
+      "ground_truth": 0,
+      "predicted_score": 0.04742587357759476,
+      "predicted_label": 0,
+      "latency_ms": 2181.289,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_8",
+      "ground_truth": 1,
+      "predicted_score": 0.02517884224653244,
+      "predicted_label": 0,
+      "latency_ms": 2524.993,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_9",
+      "ground_truth": 0,
+      "predicted_score": 0.10087861120700836,
+      "predicted_label": 0,
+      "latency_ms": 1751.274,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_10",
+      "ground_truth": 1,
+      "predicted_score": 0.07807815819978714,
+      "predicted_label": 0,
+      "latency_ms": 1784.493,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_11",
+      "ground_truth": 0,
+      "predicted_score": 0.07807815819978714,
+      "predicted_label": 0,
+      "latency_ms": 1875.632,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_12",
+      "ground_truth": 0,
+      "predicted_score": 0.12252321094274521,
+      "predicted_label": 0,
+      "latency_ms": 3253.383,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_13",
+      "ground_truth": 0,
+      "predicted_score": 0.1037486270070076,
+      "predicted_label": 0,
+      "latency_ms": 3809.885,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_14",
+      "ground_truth": 0,
+      "predicted_score": 0.10087861120700836,
+      "predicted_label": 0,
+      "latency_ms": 3392.772,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_15",
+      "ground_truth": 0,
+      "predicted_score": 0.08756384998559952,
+      "predicted_label": 0,
+      "latency_ms": 3185.731,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_16",
+      "ground_truth": 1,
+      "predicted_score": 0.11596070975065231,
+      "predicted_label": 0,
+      "latency_ms": 3044.976,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_17",
+      "ground_truth": 0,
+      "predicted_score": 0.08509904146194458,
+      "predicted_label": 0,
+      "latency_ms": 3257.919,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_18",
+      "ground_truth": 0,
+      "predicted_score": 0.12252321094274521,
+      "predicted_label": 0,
+      "latency_ms": 1742.066,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_19",
+      "ground_truth": 0,
+      "predicted_score": 0.14804719388484955,
+      "predicted_label": 0,
+      "latency_ms": 1659.386,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_20",
+      "ground_truth": 1,
+      "predicted_score": 0.1037486270070076,
+      "predicted_label": 0,
+      "latency_ms": 1579.426,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_21",
+      "ground_truth": 0,
+      "predicted_score": 0.10970577597618103,
+      "predicted_label": 0,
+      "latency_ms": 1580.018,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_22",
+      "ground_truth": 0,
+      "predicted_score": 0.14804719388484955,
+      "predicted_label": 0,
+      "latency_ms": 1468.088,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_23",
+      "ground_truth": 0,
+      "predicted_score": 0.12940272688865662,
+      "predicted_label": 0,
+      "latency_ms": 1650.999,
+      "task_type": "summary"
+    },
+    {
+      "sample_id": "ragtruth_24",
+      "ground_truth": 0,
+      "predicted_score": 0.06371499598026276,
+      "predicted_label": 0,
+      "latency_ms": 624.98,
+      "task_type": "summary"
+    }
+  ]
+}
