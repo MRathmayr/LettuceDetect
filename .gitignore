@@ -183,3 +183,6 @@ temp/
 # cache/
 lettucedetect/cache/
 testing/
+# LaTeX build artifacts from the thesis copy kept in this tree
+thesis.bbl
+thesis.blg
