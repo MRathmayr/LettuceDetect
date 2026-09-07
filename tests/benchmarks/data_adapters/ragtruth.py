@@ -14,6 +14,11 @@ except ImportError:
     HF_DATASETS_AVAILABLE = False
     hf_load_dataset = None
 
+# Community mirror, so `main` can move. Pinned to the snapshot every reported
+# number was computed on; the same value is pinned in
+# hallu-training/benchmark/dataset_loaders.py and paper/scripts/paths.py.
+RAGTRUTH_REVISION = "eb4f4b9d1b68eb7092d3e1a61c0cd82d9808737b"
+
 
 class RAGTruthAdapter(DatasetAdapter):
     """Adapter for RAGTruth benchmark dataset."""
@@ -36,7 +41,9 @@ class RAGTruthAdapter(DatasetAdapter):
                 "datasets library required for RAGTruth. Install with: pip install datasets"
             )
 
-        ds = hf_load_dataset("wandb/RAGTruth-processed", split="test")
+        ds = hf_load_dataset(
+            "wandb/RAGTruth-processed", split="test", revision=RAGTRUTH_REVISION
+        )
 
         samples = []
         for idx, item in enumerate(ds):

@@ -2,8 +2,12 @@
 
 The paper claims that reading an observer's internal states beats asking a model
 of the same size for a verdict. That needs a verdict baseline on the same
-observer, so this script asks Qwen2.5-3B-Instruct directly whether a response is
+observer, so this script asks an observer directly whether a response is
 supported, and scores it by P("Yes") on the hallucination-directed question.
+
+`--model` selects which observer, from the Grounding probe's own model_config.py,
+and names the output after it. It defaults to 3b, the row the paper committed
+first and the only one an 8 GB card can hold in fp16.
 
 Two things make it a same-observer comparison rather than a new experiment:
 
@@ -20,8 +24,9 @@ materializes fp32 logits at every position and the forward pass runs out of
 memory on an 8 GB card.
 
 Usage:
-    python tests/benchmarks/judge_baseline.py --limit 25   # gate run
-    python tests/benchmarks/judge_baseline.py              # full 2700 rows
+    python tests/benchmarks/judge_baseline.py --limit 25          # gate run
+    python tests/benchmarks/judge_baseline.py                     # 3b, 2700 rows
+    python tests/benchmarks/judge_baseline.py --model 14b         # a larger observer
 """
 
 import argparse
@@ -39,6 +44,7 @@ sys.path.insert(0, str(_LETTUCE_ROOT))
 # must not shadow anything importable from the benchmark tree.
 sys.path.append(str(_DIPLOMA_ROOT / "hallu-training" / "py"))
 
+from model_config import MODEL_CONFIGS, get_model_family  # noqa: E402
 from model_utils import build_prompt  # noqa: E402  (path set above)
 
 from tests.benchmarks.core import (  # noqa: E402
@@ -55,8 +61,21 @@ from tests.benchmarks.core.verdict_export import (  # noqa: E402
     write_native,
 )
 
-MODEL_ID = "Qwen/Qwen2.5-3B-Instruct"
-RUN_NAME = "judge_qwen3b_ragtruth_test"
+DEFAULT_OBSERVER = "3b"
+
+
+def observer_ids(size: str) -> tuple[str, str, str]:
+    """HuggingFace id, run name, and method tag for one observer size.
+
+    Read from the Grounding probe's own `model_config.py` rather than restated
+    here, so the judge cannot drift onto a different checkpoint than the probe
+    it is being compared against. That identity is the experiment: the two
+    readouts must differ only in whether the answer comes from a decoded token
+    or from a hidden state.
+    """
+    family = get_model_family(size)
+    return MODEL_CONFIGS[size], f"judge_{family}{size}_ragtruth_test", f"judge_{size}"
+
 
 # Phrased so that "Yes" means hallucinated, matching the probe's P(hallucinated).
 VERDICT_SUFFIX = (
@@ -114,16 +133,18 @@ def score(model, input_ids: torch.Tensor, yes_id: int, no_id: int) -> float:
     return probs[0].item()
 
 
-def _checkpoint_signature() -> dict:
+def _checkpoint_signature(model_id: str) -> dict:
     """Everything that would change the scores. Resume is refused if it differs."""
     return {
-        "model": MODEL_ID,
+        "model": model_id,
         "verdict_suffix": VERDICT_SUFFIX,
         "max_prefix_tokens": MAX_PREFIX_TOKENS,
     }
 
 
-def load_checkpoint(path: Path, samples: list) -> tuple[list[PredictionResult], list[int], float]:
+def load_checkpoint(
+    path: Path, samples: list, model_id: str, method: str
+) -> tuple[list[PredictionResult], list[int], float]:
     """Resume from a partial dump, or start from scratch if there is none.
 
     Refuses rather than resumes when the checkpoint was produced by a different
@@ -134,7 +155,7 @@ def load_checkpoint(path: Path, samples: list) -> tuple[list[PredictionResult], 
         return [], [], 0.0
 
     ckpt = json.loads(path.read_text())
-    signature = _checkpoint_signature()
+    signature = _checkpoint_signature(model_id)
     if ckpt.get("signature") != signature:
         raise RuntimeError(
             f"{path.name} was written under a different configuration "
@@ -156,7 +177,7 @@ def load_checkpoint(path: Path, samples: list) -> tuple[list[PredictionResult], 
             d["predicted_score"],
             int(d["predicted_score"] >= 0.5),
             d["latency_ms"],
-            "judge_3b",
+            method,
         )
         for d in done
     ]
@@ -169,6 +190,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--limit", type=int, default=None, help="Sample limit (gate runs)")
     parser.add_argument(
+        "--model",
+        default=DEFAULT_OBSERVER,
+        choices=sorted(MODEL_CONFIGS),
+        help="Observer to ask for a verdict (default: 3b, the committed baseline)",
+    )
+    parser.add_argument(
         "--checkpoint-every", type=int, default=100, help="Rows between partial dumps"
     )
     parser.add_argument(
@@ -178,6 +205,7 @@ def main() -> int:
         help="Ignore an existing checkpoint and score every row again",
     )
     args = parser.parse_args()
+    model_id, base_run_name, method = observer_ids(args.model)
 
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -190,21 +218,23 @@ def main() -> int:
     # its own name and never the paper-side file, so a crashed full run cannot
     # leave a 25-row file standing in for 2700. Its checkpoint is separate too,
     # or a full run would resume from the gate's rows.
-    run_name = RUN_NAME if args.limit is None else f"{RUN_NAME}_limit{args.limit}"
+    run_name = base_run_name if args.limit is None else f"{base_run_name}_limit{args.limit}"
     partial_path = NATIVE_DIR / f"{run_name}.partial.json"
     NATIVE_DIR.mkdir(parents=True, exist_ok=True)
 
     predictions, token_lengths, prior_peak_mb = (
-        load_checkpoint(partial_path, samples) if args.resume else ([], [], 0.0)
+        load_checkpoint(partial_path, samples, model_id, method)
+        if args.resume
+        else ([], [], 0.0)
     )
     resumed_from = len(predictions)
     if resumed_from == len(samples):
         print("Checkpoint already covers every row; nothing left to score.")
 
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
-    model = AutoModelForCausalLM.from_pretrained(MODEL_ID, torch_dtype=torch.float16).to("cuda")
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16).to("cuda")
     model.eval()
-    print(f"Loaded {MODEL_ID}: dtype={model.dtype}, device={model.device}")
+    print(f"Loaded {model_id}: dtype={model.dtype}, device={model.device}")
     if model.dtype != torch.float16:
         raise RuntimeError(f"Expected fp16, got {model.dtype}")
 
@@ -232,7 +262,7 @@ def main() -> int:
             token_lengths.append(input_ids.shape[1])
             predictions.append(
                 PredictionResult(
-                    s.id, s.ground_truth, p_yes, int(p_yes >= 0.5), timer.last_ms, "judge_3b"
+                    s.id, s.ground_truth, p_yes, int(p_yes >= 0.5), timer.last_ms, method
                 )
             )
             if i % args.checkpoint_every == 0 or i == len(samples):
@@ -242,7 +272,7 @@ def main() -> int:
                         {
                             "n_done": i,
                             "gpu_peak_mb": peak,
-                            "signature": _checkpoint_signature(),
+                            "signature": _checkpoint_signature(model_id),
                             "predictions": [
                                 {
                                     "sample_id": p.sample_id,
@@ -270,7 +300,7 @@ def main() -> int:
 
     lengths = sorted(token_lengths)
     meta = {
-        "model": MODEL_ID,
+        "model": model_id,
         "precision": "fp16",
         "n_samples": metrics.n_samples,
         "dataset": "ragtruth_test",
